@@ -4,7 +4,7 @@
 class m_context
 {
 	public:
-	m_audio_context audio_cxt;
+	audio_context audio_cxt;
 	
 	private:
 };

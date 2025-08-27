@@ -1,22 +1,15 @@
 #ifndef AUDIO_FRAMEWORK_H_
 #define AUDIO_FRAMEWORK_H_
 
-class m_audio_context
+#define AUDIO_SAMPLE_RATE_EXACT 44117.64706
+
+typedef struct
 {
-	public:
-	
-	int init();
-	
-	AudioInputI2S	 line_in;
-	AudioOutputI2S	 line_out;
-	AudioAnalyzePeak peak_analyzer;
-	
-	AudioConnection *line_out_connection;
-	AudioConnection *monitor_connection;
-	
-	AudioControlSGTL5000 shield;
-	
-	void update_controls();
-};
+	i2s_input_struct i2s_input;
+	i2s_output_struct i2s_output;
+	sgtl5000_str sgtl5000;
+}  audio_context;
+
+int init_audio_context(audio_context *cxt);
 
 #endif
