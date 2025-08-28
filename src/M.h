@@ -1,15 +1,12 @@
-#ifndef M_ALL_HEADERS_H_
-#define M_ALL_HEADERS_H_
+#ifndef M_MAIN_H_
+#define M_MAIN_H_
 
-#include <Wire.h>
+#include <DMAChannel.h>
 
-#include "audio_block.h"
-#include "i2s.h"
-#include "sgtl5000.h"
-#include "audio_context.h"
-#include "context.h"
+#include "utility/imxrt_hw.h"
+#include "m_audio.h"
+#include "m_globals.h"
 
-#include "error_codes.h"
 #include "m_printf.h"
 
 #endif

@@ -1,24 +1,30 @@
 #include <Wire.h>
-#include <SPI.h>
-#include <SerialFlash.h>
-#include <stdio.h>
 
 #include "src/M.h"
 
-m_context cxt;
+
+// GUItool: begin automatically generated code
+m_audio_connection 			patchCord1;
+m_AudioControlSGTL5000     	sgtl5000_1;     //xy=585,488
+// GUItool: end automatically generated code
 
 void setup()
 {
-	Wire.begin();
-	Serial.begin(9600);
+	delay(1000);
 	
-	delay(2000);
+	m_printf("Initialising i2s...\n");
+	init_i2s();
 	
-	m_printf("Initialising...\n");
+	sgtl5000_1.i2c_addr = 0x0A;
 	
-	int ret_val = init_audio_context(&cxt.audio_cxt);
+	m_AudioMemory(20);
 	
-	m_printf("Audio initialisation completed with return code %d\n", ret_val);
+	m_printf("Initialising sgtl5000...\n");
+	sgtl5000_1.enable();
+	sgtl5000_1.inputSelect(AUDIO_INPUT_LINEIN);
+	sgtl5000_1.lineInLevel(2);
+	sgtl5000_1.volume(0.5); 
+	m_printf("Initialisation complete.\n");
 }
 
 void loop()

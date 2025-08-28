@@ -1,5 +1,5 @@
-#ifndef SGTL5000_MACROS_H_
-#define SGTL5000_MACROS_H_
+#ifndef M_SGTL5000_DEFS_H_
+#define M_SGTL5000_DEFS_H_
 
 #define CHIP_ID				0x0000
 // 15:8 PARTID		0xA0 - 8 bit identifier for SGTL5000
@@ -440,36 +440,36 @@
 // 1:0	MODE_CM		Behavior of capless headphone central short detection
 //				(same settings as MODE_LR)
 
-#define DAP_CONTROL					0x0100
-#define DAP_PEQ						0x0102
-#define DAP_BASS_ENHANCE			0x0104
+#define DAP_CONTROL			0x0100
+#define DAP_PEQ				0x0102
+#define DAP_BASS_ENHANCE		0x0104
 #define DAP_BASS_ENHANCE_CTRL		0x0106
-#define DAP_AUDIO_EQ				0x0108
-#define DAP_SGTL_SURROUND			0x010A
+#define DAP_AUDIO_EQ			0x0108
+#define DAP_SGTL_SURROUND		0x010A
 #define DAP_FILTER_COEF_ACCESS		0x010C
-#define DAP_COEF_WR_B0_MSB			0x010E
-#define DAP_COEF_WR_B0_LSB			0x0110
+#define DAP_COEF_WR_B0_MSB		0x010E
+#define DAP_COEF_WR_B0_LSB		0x0110
 #define DAP_AUDIO_EQ_BASS_BAND0		0x0116 // 115 Hz
-#define DAP_AUDIO_EQ_BAND1			0x0118 // 330 Hz
-#define DAP_AUDIO_EQ_BAND2			0x011A // 990 Hz
-#define DAP_AUDIO_EQ_BAND3			0x011C // 3000 Hz
+#define DAP_AUDIO_EQ_BAND1		0x0118 // 330 Hz
+#define DAP_AUDIO_EQ_BAND2		0x011A // 990 Hz
+#define DAP_AUDIO_EQ_BAND3		0x011C // 3000 Hz
 #define DAP_AUDIO_EQ_TREBLE_BAND4	0x011E // 9900 Hz
-#define DAP_MAIN_CHAN				0x0120
-#define DAP_MIX_CHAN				0x0122
-#define DAP_AVC_CTRL				0x0124
-#define DAP_AVC_THRESHOLD			0x0126
-#define DAP_AVC_ATTACK				0x0128
-#define DAP_AVC_DECAY				0x012A
-#define DAP_COEF_WR_B1_MSB			0x012C
-#define DAP_COEF_WR_B1_LSB			0x012E
-#define DAP_COEF_WR_B2_MSB			0x0130
-#define DAP_COEF_WR_B2_LSB			0x0132
-#define DAP_COEF_WR_A1_MSB			0x0134
-#define DAP_COEF_WR_A1_LSB			0x0136
-#define DAP_COEF_WR_A2_MSB			0x0138
-#define DAP_COEF_WR_A2_LSB			0x013A
+#define DAP_MAIN_CHAN			0x0120
+#define DAP_MIX_CHAN			0x0122
+#define DAP_AVC_CTRL			0x0124
+#define DAP_AVC_THRESHOLD		0x0126
+#define DAP_AVC_ATTACK			0x0128
+#define DAP_AVC_DECAY			0x012A
+#define DAP_COEF_WR_B1_MSB		0x012C
+#define DAP_COEF_WR_B1_LSB		0x012E
+#define DAP_COEF_WR_B2_MSB		0x0130
+#define DAP_COEF_WR_B2_LSB		0x0132
+#define DAP_COEF_WR_A1_MSB		0x0134
+#define DAP_COEF_WR_A1_LSB		0x0136
+#define DAP_COEF_WR_A2_MSB		0x0138
+#define DAP_COEF_WR_A2_LSB		0x013A
 
-#define SGTL5000_I2C_ADDR_CS_LOW	0x0A 	// CTRL_ADR0_CS pin low (normal configuration)
-#define SGTL5000_I2C_ADDR_CS_HIGH	0x2A	// CTRL_ADR0_CS  pin high
+#define SGTL5000_I2C_ADDR_CS_LOW	0x0A  // CTRL_ADR0_CS pin low (normal configuration)
+#define SGTL5000_I2C_ADDR_CS_HIGH	0x2A  // CTRL_ADR0_CS  pin highz
 
 #endif
