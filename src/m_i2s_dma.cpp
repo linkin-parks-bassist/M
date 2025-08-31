@@ -4,17 +4,17 @@
 DMAMEM __attribute__((aligned(32))) static uint32_t i2s_rx_buffer[AUDIO_BLOCK_SAMPLES];
 DMAMEM __attribute__((aligned(32))) static uint32_t i2s_tx_buffer[AUDIO_BLOCK_SAMPLES];
 
-m_audio_block_t *i2s_in_block_left  = NULL;
-m_audio_block_t *i2s_in_block_right = NULL;
+m_audio_block_int *i2s_in_block_left  = NULL;
+m_audio_block_int *i2s_in_block_right = NULL;
 
 uint16_t	i2s_in_block_offset = 0;
 bool 	 	i2s_in_update_responsibility = false;
 DMAChannel 	i2s_in_dma(false);
 
-m_audio_block_t *i2s_out_block_left_1st  = NULL;
-m_audio_block_t *i2s_out_block_right_1st = NULL;
-m_audio_block_t *i2s_out_block_left_2nd  = NULL;
-m_audio_block_t *i2s_out_block_right_2nd = NULL;
+m_audio_block_int *i2s_out_block_left_1st  = NULL;
+m_audio_block_int *i2s_out_block_right_1st = NULL;
+m_audio_block_int *i2s_out_block_left_2nd  = NULL;
+m_audio_block_int *i2s_out_block_right_2nd = NULL;
 
 uint16_t   i2s_out_block_left_offset = 0;
 uint16_t   i2s_out_block_right_offset = 0;
@@ -22,7 +22,10 @@ bool 	   i2s_out_update_responsibility = false;
 DMAChannel i2s_out_dma(false);
 
 m_audio_connection* i2s_destination_list = NULL;
-m_audio_block_t*	i2s_output_queue[2];
+
+
+m_audio_block_float	i2s_input_blocks[2];
+m_audio_block_int	i2s_output_blocks[2];
 
 void configure_i2s()
 {
@@ -153,7 +156,7 @@ void m_i2s_input_isr()
 	uint32_t daddr, offset;
 	const int16_t *src, *end;
 	int16_t *dest_left, *dest_right;
-	m_audio_block_t *left, *right;
+	m_audio_block_int *left, *right;
 
 	daddr = (uint32_t)(i2s_in_dma.TCD->DADDR);
 	i2s_in_dma.clearInterrupt();
@@ -200,7 +203,7 @@ void m_i2s_input_isr()
 void m_i2s_output_isr()
 {
 	int16_t *dest;
-	m_audio_block_t *blockL, *blockR;
+	m_audio_block_int *blockL, *blockR;
 	uint32_t saddr, offsetL, offsetR;
 
 	saddr = (uint32_t)(i2s_out_dma.TCD->SADDR);
@@ -255,7 +258,7 @@ void m_i2s_output_isr()
 	else
 	{
 		i2s_out_block_left_offset = 0;
-		release_block(blockL);
+		release_block_int(blockL);
 		i2s_out_block_left_1st = i2s_out_block_left_2nd;
 		i2s_out_block_left_2nd = NULL;
 	}
@@ -267,30 +270,24 @@ void m_i2s_output_isr()
 	else
 	{
 		i2s_out_block_right_offset = 0;
-		release_block(blockR);
+		release_block_int(blockR);
 		i2s_out_block_right_1st = i2s_out_block_right_2nd;
 		i2s_out_block_right_2nd = NULL;
 	}
 }
 
-void i2s_in_transmit(m_audio_block_t *block, unsigned char index)
+void i2s_in_transmit(m_audio_block_int *block, unsigned char index)
 {
-	if (bypass_mode)
+	convert_block_int_to_float(i2s_input_blocks[index].data, block->data);
+
+	for (m_audio_connection *c = i2s_destination_list; c != NULL; c = c->next_dest)
 	{
-		i2s_output_queue[index] = block;
-		m_printf("transmitting 0x%x on channel %d\n", block, index);
-	}
-	else
-	{
-		for (m_audio_connection *c = i2s_destination_list; c != NULL; c = c->next_dest)
+		if (c->src_index == index)
 		{
-			if (c->src_index == index)
+			if (c->dst->inputQueue[c->dest_index] == NULL)
 			{
-				if (c->dst->inputQueue[c->dest_index] == NULL)
-				{
-					c->dst->inputQueue[c->dest_index] = block;
-					block->ref_count++;
-				}
+				c->dst->inputQueue[c->dest_index] = block;
+				block->ref_count++;
 			}
 		}
 	}
@@ -298,16 +295,16 @@ void i2s_in_transmit(m_audio_block_t *block, unsigned char index)
 
 void i2s_input_update()
 {
-	m_audio_block_t *new_left=NULL, *new_right=NULL, *out_left=NULL, *out_right=NULL;
+	m_audio_block_int *new_left=NULL, *new_right=NULL, *out_left=NULL, *out_right=NULL;
 
 	// allocate 2 new blocks, but if one fails, allocate neither
-	new_left = allocate_block();
+	new_left = allocate_block_int();
 	if (new_left != NULL)
 	{
-		new_right = allocate_block();
+		new_right = allocate_block_int();
 		if (new_right == NULL)
 		{
-			release_block(new_left);
+			release_block_int(new_left);
 			new_left = NULL;
 		}
 	}
@@ -328,10 +325,10 @@ void i2s_input_update()
 		
 		// then transmit the DMA's former blocks
 		i2s_in_transmit(out_left, 0);
-		release_block(out_left);
+		release_block_int(out_left);
 		
 		i2s_in_transmit(out_right, 1);
-		release_block(out_right);
+		release_block_int(out_right);
 	}
 	else if (new_left != NULL)
 	{
@@ -349,8 +346,8 @@ void i2s_input_update()
 		{
 			// the DMA already has blocks, doesn't need these
 			__enable_irq();
-			release_block(new_left);
-			release_block(new_right);
+			release_block_int(new_left);
+			release_block_int(new_right);
 		}
 	}
 	else
@@ -364,24 +361,22 @@ void i2s_input_update()
 
 // Receive block from an input.  The block's data
 // may be shared with other streams, so it must not be written
-m_audio_block_t *i2s_out_receive_read_only(unsigned int index)
+m_audio_block_int *i2s_out_receive_read_only(unsigned int index)
 {
-	m_audio_block_t *in;
+	m_audio_block_int *in;
 
 	if (index >= 2)
 		return NULL;
 	
-	in = i2s_output_queue[index];
-	i2s_output_queue[index] = NULL;
+	in = &i2s_output_blocks[index];
 	
 	return in;
 }
 
 void i2s_output_update()
 {
-	m_audio_block_t *block;
+	m_audio_block_int *block;
 	block = i2s_out_receive_read_only(0); // input 0 = left channel
-	m_printf("recieved 0x%x from channel 0,\n", block);
 	if (block)
 	{
 		__disable_irq();
@@ -397,16 +392,15 @@ void i2s_output_update()
 		}
 		else
 		{
-			m_audio_block_t *tmp = i2s_out_block_left_1st;
+			m_audio_block_int *tmp = i2s_out_block_left_1st;
 			i2s_out_block_left_1st = i2s_out_block_left_2nd;
 			i2s_out_block_left_2nd = block;
 			i2s_out_block_left_offset = 0;
 			__enable_irq();
-			release_block(tmp);
+			//release_block_int(tmp);
 		}
 	}
 	block = i2s_out_receive_read_only(1); // input 1 = right channel
-	m_printf("recieved 0x%x from channel 1,\n", block);
 	if (block) 
 	{
 		__disable_irq();
@@ -423,12 +417,22 @@ void i2s_output_update()
 		}
 		else
 		{
-			m_audio_block_t *tmp = i2s_out_block_right_1st;
+			m_audio_block_int *tmp = i2s_out_block_right_1st;
 			i2s_out_block_right_1st = i2s_out_block_right_2nd;
 			i2s_out_block_right_2nd = block;
 			i2s_out_block_right_offset = 0;
 			__enable_irq();
-			release_block(tmp);
+			//release_block_int(tmp);
 		}
 	}
+}
+
+
+void i2s_output_transmit_mono(m_audio_block_float *block)
+{
+	if (!block)
+		return;
+	
+	convert_block_float_to_int(i2s_output_blocks[0].data, block->data);
+	convert_block_float_to_int(i2s_output_blocks[1].data, block->data);
 }

@@ -1,7 +1,7 @@
 #include "M.h"
 #include "m_globals.h"
 
-void m_audio_stream_constructor(m_audio_stream *stream, unsigned char ninput, m_audio_block_t **iqueue)
+void m_audio_stream_constructor(m_audio_stream *stream, unsigned char ninput, m_audio_block_int **iqueue)
 {
 	if (!stream) return;
 	

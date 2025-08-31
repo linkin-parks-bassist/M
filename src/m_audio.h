@@ -24,15 +24,9 @@
  *THE SOFTWARE.
  */
 
-#ifndef m_Audio_h_
-#define m_Audio_h_
+#ifndef M_AUDIO_H_
+#define M_AUDIO_H_
 
-#if TEENSYDUINO < 120
-#error "Teensyduino version 1.20 or later is required to compile the m_Audio library."
-#endif
-#ifdef __AVR__
-#error "The m_Audio Library only works with 32 bit Teensy models.  Teensy 2.0 is unsupported."
-#endif
 
 #include <DMAChannel.h>  // github.com/PaulStoffregen/cores/blob/master/teensy4/DMAChannel.h
 #if !defined(DMACHANNEL_HAS_BEGIN) || !defined(DMACHANNEL_HAS_BOOLEAN_CTOR)
@@ -55,18 +49,19 @@
 #define m_AudioNoInterrupts() (NVIC_DISABLE_IRQ(IRQ_SOFTWARE))
 #define m_AudioInterrupts()   (NVIC_ENABLE_IRQ(IRQ_SOFTWARE))
 
-#define MAX_AUDIO_MEMORY 229376
-
 #define NUM_MASKS  (((MAX_AUDIO_MEMORY / AUDIO_BLOCK_SAMPLES / 2) + 31) / 32)
 
 // include all the library headers, so a sketch can use a single
 // #include "m_m_Audio.h" to get the whole library
 //
 #include <DMAChannel.h>
+#include "m_audio_block.h"
 #include "m_audiostream.h"
 #include "m_audiocontrol.h"
 #include "m_i2s_dma.h"
-#include "m_control_sgtl5000.h"
+#include "m_sgtl5000.h"
 #include "m_memcpy_audio.h"
+
+#include "m_error_codes.h"
 
 #endif

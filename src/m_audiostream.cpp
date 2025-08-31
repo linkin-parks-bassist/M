@@ -29,128 +29,7 @@
  */
 
 #include <Arduino.h>
-#include "m_audio.h"
-#include "m_globals.h"
-
-void update_all()
-{
-	NVIC_SET_PENDING(IRQ_SOFTWARE);
-}
-
-// Set up the pool of audio data blocks
-// placing them all onto the free list
-FLASHMEM void initialize_memory(m_audio_block_t *data, unsigned int num)
-{
-	unsigned int i;
-	unsigned int maxnum = MAX_AUDIO_MEMORY / AUDIO_BLOCK_SAMPLES / 2;
-
-	//Serial.println("m_audio_stream initialize_memory");
-	//delay(10);
-	if (num > maxnum) num = maxnum;
-	__disable_irq();
-	memory_pool = data;
-	memory_pool_first_mask = 0;
-	for (i=0; i < NUM_MASKS; i++)
-		memory_pool_available_mask[i] = 0;
-	
-	for (i=0; i < num; i++)
-		memory_pool_available_mask[i >> 5] |= (1 << (i & 0x1F));
-	
-	for (i=0; i < num; i++)
-		data[i].memory_pool_index = i;
-	
-	if (update_scheduled == false)
-	{
-		// if no hardware I/O has taken responsibility for update,
-		// start a timer which will call update_all() at the correct rate
-		IntervalTimer *timer = new IntervalTimer();
-		if (timer) {
-			float usec = 1e6 * AUDIO_BLOCK_SAMPLES / AUDIO_SAMPLE_RATE_EXACT;
-			timer->begin(update_all, usec);
-			update_setup();
-		}
-	}
-	
-	__enable_irq();
-}
-
-// Allocate 1 audio data block.  If successful
-// the caller is the only owner of this new block
-m_audio_block_t *allocate_block()
-{
-	uint32_t n, index, avail;
-	uint32_t *p, *end;
-	m_audio_block_t *block;
-	uint32_t used;
-
-	p = memory_pool_available_mask;
-	end = p + NUM_MASKS;
-	
-	__disable_irq();
-	
-	index = memory_pool_first_mask;
-	p += index;
-	
-	while (1)
-	{
-		if (p >= end)
-		{
-			__enable_irq();
-			//Serial.println("alloc:null");
-			return NULL;
-		}
-		avail = *p;
-		if (avail) break;
-		index++;
-		p++;
-	}
-	
-	n = __builtin_clz(avail);
-	avail &= ~(0x80000000 >> n);
-	*p = avail;
-	
-	if (!avail) index++;
-	
-	memory_pool_first_mask = index;
-	used = memory_used + 1;
-	memory_used = used;
-	
-	__enable_irq();
-	
-	index = p - memory_pool_available_mask;
-	block = memory_pool + ((index << 5) + (31 - n));
-	block->ref_count = 1;
-	
-	if (used > memory_used_max)
-		memory_used_max = used;
-	
-	return block;
-}
-
-// Release ownership of a data block.  If no
-// other streams have ownership, the block is
-// returned to the free pool
-void release_block(m_audio_block_t *block)
-{
-	if (!block) return;
-	
-	uint32_t mask = (0x80000000 >> (31 - (block->memory_pool_index & 0x1F)));
-	uint32_t index = block->memory_pool_index >> 5;
-
-	__disable_irq();
-	if (block->ref_count > 1)
-	{
-		block->ref_count--;
-	}
-	else 
-	{
-		memory_pool_available_mask[index] |= mask;
-		if (index < memory_pool_first_mask) memory_pool_first_mask = index;
-		memory_used--;
-	}
-	
-	__enable_irq();
-}
+#include "M.h"
 
 // Transmit an audio data block
 // to all streams that connect to an output.  The block
@@ -159,7 +38,7 @@ void release_block(m_audio_block_t *block)
 // by the caller after it's transmitted.  This allows the
 // caller to transmit to same block to more than 1 output,
 // and then release it once after all transmit calls.
-void m_audio_stream::transmit(m_audio_block_t *block, unsigned char index)
+void m_audio_stream::transmit(m_audio_block_int *block, unsigned char index)
 {
 	for (m_audio_connection *c = destination_list; c != NULL; c = c->next_dest)
 	{
@@ -177,9 +56,9 @@ void m_audio_stream::transmit(m_audio_block_t *block, unsigned char index)
 
 // Receive block from an input.  The block's data
 // may be shared with other streams, so it must not be written
-m_audio_block_t *m_audio_stream::receiveReadOnly(unsigned int index)
+m_audio_block_int *m_audio_stream::receiveReadOnly(unsigned int index)
 {
-	m_audio_block_t *in;
+	m_audio_block_int *in;
 
 	if (index >= num_inputs) return NULL;
 	in = inputQueue[index];
@@ -189,15 +68,15 @@ m_audio_block_t *m_audio_stream::receiveReadOnly(unsigned int index)
 
 // Receive block from an input.  The block will not
 // be shared, so its contents may be changed.
-m_audio_block_t *m_audio_stream::receiveWritable(unsigned int index)
+m_audio_block_int *m_audio_stream::receiveWritable(unsigned int index)
 {
-	m_audio_block_t *in, *p;
+	m_audio_block_int *in, *p;
 
 	if (index >= num_inputs) return NULL;
 	in = inputQueue[index];
 	inputQueue[index] = NULL;
 	if (in && in->ref_count > 1) {
-		p = allocate_block();
+		p = allocate_block_int();
 		if (p) memcpy(p->data, in->data, sizeof(p->data));
 		in->ref_count--;
 		in = p;
@@ -212,7 +91,7 @@ m_audio_block_t *m_audio_stream::receiveWritable(unsigned int index)
 // by the caller after it's transmitted.  This allows the
 // caller to transmit to same block to more than 1 output,
 // and then release it once after all transmit calls.
-void m_audio_stream_transmit(m_audio_stream *stream, m_audio_block_t *block, unsigned char index)
+void m_audio_stream_transmit(m_audio_stream *stream, m_audio_block_int *block, unsigned char index)
 {
 	if (!stream) return;
 	
@@ -232,11 +111,11 @@ void m_audio_stream_transmit(m_audio_stream *stream, m_audio_block_t *block, uns
 
 // Receive block from an input.  The block's data
 // may be shared with other streams, so it must not be written
-m_audio_block_t *m_audio_stream_receive_read_only(m_audio_stream *stream, unsigned int index)
+m_audio_block_int *m_audio_stream_receive_read_only(m_audio_stream *stream, unsigned int index)
 {
 	if (!stream) return NULL;
 	
-	m_audio_block_t *in;
+	m_audio_block_int *in;
 
 	if (index >= stream->num_inputs)
 		return NULL;
@@ -248,11 +127,11 @@ m_audio_block_t *m_audio_stream_receive_read_only(m_audio_stream *stream, unsign
 
 // Receive block from an input.  The block will not
 // be shared, so its contents may be changed.
-m_audio_block_t *m_audio_stream_receive_writable(m_audio_stream *stream, unsigned int index)
+m_audio_block_int *m_audio_stream_receive_writable(m_audio_stream *stream, unsigned int index)
 {
 	if (!stream) return NULL;
 	
-	m_audio_block_t *in, *p;
+	m_audio_block_int *in, *p;
 
 	if (index >= stream->num_inputs)
 		return NULL;
@@ -262,7 +141,7 @@ m_audio_block_t *m_audio_stream_receive_writable(m_audio_stream *stream, unsigne
 	
 	if (in && in->ref_count > 1)
 	{
-		p = allocate_block();
+		p = allocate_block_int();
 		if (p) memcpy(p->data, in->data, sizeof(p->data));
 		in->ref_count--;
 		in = p;
@@ -288,7 +167,7 @@ m_audio_connection::~m_audio_connection()
 }
 
 /**************************************************************************************/
-int m_audio_connection::connect(void)
+int m_audio_connection::connect()
 {
 	int result = 1;
 	m_audio_connection *p;
@@ -406,7 +285,7 @@ int m_audio_connection::connect(m_audio_stream &source, unsigned char sourceOutp
 	return result;
 }
 
-int m_audio_connection::disconnect(void)
+int m_audio_connection::disconnect()
 {
 	m_audio_connection *p;
 
@@ -449,8 +328,8 @@ int m_audio_connection::disconnect(void)
 	//Remove possible pending src block from destination
 	if(dst->inputQueue[dest_index] != NULL)
 	{
-		release_block(dst->inputQueue[dest_index]);
-		// release_block() re-enables the IRQ. Need it to be disabled a little longer
+		release_block_int(dst->inputQueue[dest_index]);
+		// release_block_int() re-enables the IRQ. Need it to be disabled a little longer
 		__disable_irq();
 		dst->inputQueue[dest_index] = NULL;
 	}
@@ -472,60 +351,3 @@ int m_audio_connection::disconnect(void)
 	
 	return 0;
 }
-
-bool update_setup(void)
-{
-	if (update_scheduled)
-		return false;
-	
-	attachInterruptVector(IRQ_SOFTWARE, m_software_isr);
-	NVIC_SET_PRIORITY(IRQ_SOFTWARE, 208); // 255 = lowest priority
-	NVIC_ENABLE_IRQ(IRQ_SOFTWARE);
-	
-	update_scheduled = true;
-	return true;
-}
-
-void update_stop()
-{
-	NVIC_DISABLE_IRQ(IRQ_SOFTWARE);
-	update_scheduled = false;
-}
-
-void m_software_isr()
-{
-	m_audio_stream *p;
-
-	uint32_t totalcycles = ARM_DWT_CYCCNT;
-	
-	i2s_input_update();
-	
-	for (p = first_update; p; p = p->next_update)
-	{
-		if (p->active)
-		{
-			uint32_t cycles = ARM_DWT_CYCCNT;
-			p->update();
-			// TODO: traverse inputQueueArray and release
-			// any input blocks that weren't consumed?
-			cycles = (ARM_DWT_CYCCNT - cycles) >> 6;
-			p->cpu_cycles = cycles;
-			
-			if (cycles > p->cpu_cycles_max)
-				p->cpu_cycles_max = cycles;
-		}
-	}
-	
-	totalcycles = (ARM_DWT_CYCCNT - totalcycles) >> 6;
-	cpu_cycles_total = totalcycles;
-	
-	if (totalcycles > cpu_cycles_total_max)
-	{
-		cpu_cycles_total_max = totalcycles;
-	}
-	
-	i2s_output_update();
-
-	asm("DSB");
-}
-

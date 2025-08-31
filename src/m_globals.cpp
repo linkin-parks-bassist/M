@@ -14,8 +14,5 @@ m_audio_connection* 	unused_connections = NULL;
 // their constructors.
 bool 					update_scheduled = false;
 m_audio_stream*			first_update = NULL;
-m_audio_block_t*		memory_pool;
-uint16_t		 		memory_pool_first_mask;
-uint32_t 				memory_pool_available_mask[NUM_MASKS];
 
 int bypass_mode = 1;

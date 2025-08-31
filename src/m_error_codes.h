@@ -1,0 +1,21 @@
+#ifndef ERROR_CODES_H_
+#define ERROR_CODES_H_
+
+#define NO_ERROR						0
+#define ERR_NULL_PTR					1
+#define ERR_BAD_ARGS					2
+#define ERR_SGTL5000_WRITE_FAIL 		3
+
+#define ERR_ALLOC_FAIL					5
+
+#define ERR_PIPELINE_NULL				4
+#define ERR_PIPELINE_FULL				6
+#define ERR_POSITION_ILLEGAL			7
+#define ERR_POSITION_OCCUPIED			8
+
+#define ERR_TRANSFORMER_MALFORMED		9
+#define ERR_ARRAY_MALFORMED				10
+
+#define ERR_UNIMPLEMENTED				5000
+
+#endif

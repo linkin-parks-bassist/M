@@ -472,4 +472,23 @@
 #define SGTL5000_I2C_ADDR_CS_LOW	0x0A  // CTRL_ADR0_CS pin low (normal configuration)
 #define SGTL5000_I2C_ADDR_CS_HIGH	0x2A  // CTRL_ADR0_CS  pin highz
 
+//For Filter Type: 0 = LPF, 1 = HPF, 2 = BPF, 3 = NOTCH, 4 = PeakingEQ, 5 = LowShelf, 6 = HighShelf
+#define FILTER_LOPASS 0
+#define FILTER_HIPASS 1
+#define FILTER_BANDPASS 2
+#define FILTER_NOTCH 3
+#define FILTER_PARAEQ 4
+#define FILTER_LOSHELF 5
+#define FILTER_HISHELF 6
+	
+//For frequency adjustment
+#define FLAT_FREQUENCY 0
+#define PARAMETRIC_EQUALIZER 1
+#define TONE_CONTROLS 2
+#define GRAPHIC_EQUALIZER 3
+
+// SGTL5000-specific defines for headphones
+#define AUDIO_HEADPHONE_DAC 0
+#define AUDIO_HEADPHONE_LINEIN 1
+
 #endif

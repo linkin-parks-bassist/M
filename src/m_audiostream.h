@@ -50,10 +50,6 @@
 //   m_AudioInputUSB, m_AudioOutputUSB, m_AudioPlaySdWav, m_AudioAnalyzeFFT256,
 //   m_AudioAnalyzeFFT1024
 
-#ifndef AUDIO_BLOCK_SAMPLES
-#define AUDIO_BLOCK_SAMPLES  128
-#endif
-
 #ifndef AUDIO_SAMPLE_RATE_EXACT
 #define AUDIO_SAMPLE_RATE_EXACT 44100.0f
 #endif
@@ -69,14 +65,6 @@ class m_audio_connection;
 class m_AudioDebug;  // for testing only, never for public release
 #endif // defined(AUDIO_DEBUG_CLASS)
 
-typedef struct m_audio_block_struct
-{
-	uint8_t  ref_count;
-	uint8_t  reserved1;
-	uint16_t memory_pool_index;
-	int16_t  data[AUDIO_BLOCK_SAMPLES];
-} m_audio_block_t;
-
 class m_audio_connection
 {
 public:
@@ -88,8 +76,8 @@ public:
 		: m_audio_connection() { connect(source,sourceOutput, destination,destinationInput); }
 	friend class m_audio_stream;
 	~m_audio_connection(); 
-	int disconnect(void);
-	int connect(void);
+	int disconnect();
+	int connect();
 	int connect(m_audio_stream &source, m_audio_stream &destination) {return connect(source,0,destination,0);};
 	int connect(m_audio_stream &source, unsigned char sourceOutput,
 		m_audio_stream &destination, unsigned char destinationInput);
@@ -108,27 +96,22 @@ public:
 void m_audio_connection_void_constructor(m_audio_connection *conn);
 
 
-#define m_AudioMemory(num) ({ \
-	static DMAMEM m_audio_block_t data[num]; \
-	initialize_memory(data, num); \
-})
-
 #define CYCLE_COUNTER_APPROX_PERCENT(n) (((float)((uint32_t)(n) *6400u) *(float)(AUDIO_SAMPLE_RATE_EXACT / AUDIO_BLOCK_SAMPLES)) / (float)(F_CPU_ACTUAL))
 
 #define m_AudioProcessorUsage() 		(CYCLE_COUNTER_APPROX_PERCENT(cpu_cycles_total))
 #define m_AudioProcessorUsageMax() 		(CYCLE_COUNTER_APPROX_PERCENT(cpu_cycles_total_max))
 #define m_AudioProcessorUsageMaxReset() (cpu_cycles_total_max = cpu_cycles_total)
-#define m_AudioMemoryUsage() 			(memory_used)
-#define m_AudioMemoryUsageMax() 		(memory_used_max)
-#define m_AudioMemoryUsageMaxReset() 	(memory_used_max = memory_used)
+#define init_mempoolUsage() 			(memory_used)
+#define init_mempoolUsageMax() 		(memory_used_max)
+#define init_mempoolUsageMaxReset() 	(memory_used_max = memory_used)
 
 class m_audio_stream
 {
 public:
-	float processorUsage(void) 			{ return CYCLE_COUNTER_APPROX_PERCENT(cpu_cycles); }
-	float processorUsageMax(void) 		{ return CYCLE_COUNTER_APPROX_PERCENT(cpu_cycles_max); }
-	void  processorUsageMaxReset(void) 	{ cpu_cycles_max = cpu_cycles; }
-	bool  isActive(void) 				{ return active; }
+	float processorUsage() 			{ return CYCLE_COUNTER_APPROX_PERCENT(cpu_cycles); }
+	float processorUsageMax() 		{ return CYCLE_COUNTER_APPROX_PERCENT(cpu_cycles_max); }
+	void  processorUsageMaxReset() 	{ cpu_cycles_max = cpu_cycles; }
+	bool  isActive() 				{ return active; }
 	
 	uint16_t cpu_cycles;
 	uint16_t cpu_cycles_max;
@@ -138,37 +121,25 @@ public:
 	bool active;
 	unsigned char num_inputs;
 	
-	void transmit(m_audio_block_t *block, unsigned char index = 0);
+	void transmit(m_audio_block_int *block, unsigned char index = 0);
 	
-	m_audio_block_t *receiveReadOnly(unsigned int index = 0);
-	m_audio_block_t *receiveWritable(unsigned int index = 0);
+	m_audio_block_int *receiveReadOnly(unsigned int index = 0);
+	m_audio_block_int *receiveWritable(unsigned int index = 0);
 	
-	friend void m_software_isr(void);
+	friend void m_software_transformer();
 	friend class m_audio_connection;
 
 	m_audio_connection *destination_list;
-	m_audio_block_t **inputQueue;
+	m_audio_block_int **inputQueue;
 	
 	m_audio_stream *next_update; // for update_all
 	
-	virtual void update(void) = 0;
+	virtual void update() = 0;
 };
 
 /* Functions */
 
-void initialize_memory(m_audio_block_t *data, unsigned int num);
-
-void m_audio_stream_constructor(m_audio_stream *stream, unsigned char ninput, m_audio_block_t **iqueue);
-
-void update_all();
-
-bool update_setup();
-void update_stop();
-
-m_audio_block_t *allocate_block();
-void release_block(m_audio_block_t *block);
-
-void m_software_isr();
+void m_audio_stream_constructor(m_audio_stream *stream, unsigned char ninput, m_audio_block_int **iqueue);
 
 #endif // __ASSEMBLER__
 #endif // m_audio_stream_h
