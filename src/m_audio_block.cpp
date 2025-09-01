@@ -27,11 +27,8 @@ int convert_block_float_to_int(int16_t *dest, float *src)
 	if (!dest || !src)
 		return ERR_NULL_PTR;
 	
-	m_printf("src[0] = %f\n", src[0]);
 	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
 		dest[i] = (int16_t)(src[i] * 32768.0);
-	
-	m_printf("dest[0] = %d\n", dest[0]);
 	
 	return NO_ERROR;
 }

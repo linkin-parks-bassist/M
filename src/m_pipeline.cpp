@@ -5,20 +5,34 @@ int init_pipeline(m_pipeline *pipeline, int width, int height)
 {
 	if (!pipeline) return ERR_NULL_PTR;
 	
+	m_printf("Initialising pipeline...\n");
+	
+	m_printf("Allocating input block...\n");
 	pipeline->input_node.block   = allocate_block();
 	pipeline->input_node.active  = 1;
 	
+	m_printf("Allocating output block...\n");
 	pipeline->output_node.block  = allocate_block();
 	pipeline->output_node.active = 1;
 	
-	pipeline->nodes = (m_pipeline_node**)malloc(width * height * sizeof(m_pipeline_node));
+	m_printf("Allocating node array...\n");
+	pipeline->nodes = (m_pipeline_node**)malloc(width * sizeof(m_pipeline_node*));
 	
 	if (!pipeline->nodes)
 		return ERR_ALLOC_FAIL;
 	
+	for (int i = 0; i < height; i++)
+	{
+		pipeline->nodes[i] = (m_pipeline_node*)malloc(height * sizeof(m_pipeline_node));
+			
+		if (!pipeline->nodes[i])
+			return ERR_ALLOC_FAIL;
+	}
+	
+	m_printf("Initialising array nodes...\n");
 	for (int i = 0; i < width; i++)
 	{
-		for (int j = 0; j < width; j++)
+		for (int j = 0; j < height; j++)
 		{
 			pipeline->nodes[i][j].active = 0;
 			pipeline->nodes[i][j].updated = 0;
@@ -26,8 +40,15 @@ int init_pipeline(m_pipeline *pipeline, int width, int height)
 		}
 	}
 	
+	pipeline->active_node_array = (m_pipeline_node**)malloc(height * width * sizeof(m_pipeline_node*));
+	
 	pipeline->n_active_nodes = 0;
 	pipeline->n_transformers = 0;
+	
+	pipeline->width  = width;
+	pipeline->height = height;
+	
+	m_printf("Done.\n");
 	
 	return NO_ERROR;
 }
@@ -38,11 +59,7 @@ int init_bypass_pipeline(m_pipeline *pipeline)
 	
 	init_pipeline(pipeline, 0, 0);
 	
-	m_audio_transformer *trans = (m_audio_transformer*)malloc(sizeof(m_audio_transformer));
-	
-	init_amp_transformer(trans, 2.0, INPUT_NODE_COORD, OUTPUT_NODE_COORD);
-	
-	pipeline_add_transformer(pipeline, trans);
+	pipeline_add_transformer(pipeline, alloc_buffer_transformer(INPUT_NODE_COORD, OUTPUT_NODE_COORD));
 	
 	return NO_ERROR;
 }
@@ -101,8 +118,11 @@ int pipeline_activate_node(m_pipeline *pipeline, int x, int y)
 	if (x < 0 || y < 0 || x >= pipeline->width || y >= pipeline->height)
 		return ERR_POSITION_ILLEGAL;
 	
+	m_printf("Activating node (%d, %d)...\n", x, y);
+	
 	if (!(pipeline->nodes[x][y].block = allocate_block()))
 	{
+		m_printf("Block allocation failed !\n");
 		pipeline->nodes[x][y].active = 0;
 		return ERR_ALLOC_FAIL;
 	}
@@ -211,7 +231,6 @@ m_pipeline_node *pipeline_get_node(m_pipeline *pipeline, vec2i pos)
 	return &pipeline->nodes[pos.x][pos.y];
 }
 
-// Side-effect warning: may change the content of node->pos
 int pipeline_add_transformer(m_pipeline *pipeline, m_audio_transformer *trans)
 {
 	if (!pipeline || !trans)
@@ -235,9 +254,7 @@ int write_node(m_pipeline_node *node, float *data)
 	if (!node->block)
 		return ERR_NULL_PTR;
 	
-	m_printf("data[0] = %f\n", data[0]);
 	memcpy(node->block->data, data, sizeof(float) * AUDIO_BLOCK_SAMPLES);
-	m_printf("node->block->data[0] = %f\n", node->block->data[0]);
 	
 	node->updated = 1;
 	
@@ -250,21 +267,21 @@ int compute_pipeline(m_pipeline *pipeline, float *input)
 	
 	if (!pipeline || !input)
 	{
-		m_printf("NULL pointer error !\n");
+		//m_printf("NULL pointer error !\n");
 		return ERR_NULL_PTR;
 	}
 	
-	m_printf("Resetting active nodes...\n");
+	//m_printf("Resetting active nodes...\n");
 	reset_node_status(pipeline);
 	
-	m_printf("Copying input data...\n");
+	////m_printf("Copying input data...\n");
 	write_node(&pipeline->input_node, input);
 	
 	for (int i = 0; i < pipeline->n_transformers; i++)
 	{
 		m_printf("Propagate transformer %d...\n", i);
 		propagate_transformer(pipeline, pipeline->transformers[i]);
-		m_printf("Done.\n");
+		//m_printf("Done.\n");
 	}
 	
 	m_printf("Pipeline computation complete\n");

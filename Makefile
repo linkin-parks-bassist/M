@@ -20,7 +20,7 @@ $(HEXFILE): $(INO).ino $(SRC) $(HDR)
 	$(ARDUINO_CLI) compile \
 	    --fqbn $(BOARD) \
 	    --build-path $(BUILD_DIR) \
-	    --build-property build.extra_flags="-Isrc -Iaudio" \
+	    --build-property build.extra_flags="-Isrc" \
 	    .
 
 

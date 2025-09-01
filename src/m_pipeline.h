@@ -4,7 +4,6 @@
 #define PLACE_AT_POSITION 			0
 #define PLACE_AT_END				1
 
-#define MAX_PIPELINE_NODES 			32
 #define MAX_PIPELINE_TRANSFORMERS	64
 
 #define INPUT_NODE_COORD  (vec2i){-1, 0}
@@ -35,7 +34,7 @@ typedef struct
 
 extern m_pipeline *active_pipeline;
 
-int init_pipeline		(m_pipeline *pipeline);
+int init_pipeline		(m_pipeline *pipeline, int width, int height);
 int init_bypass_pipeline(m_pipeline *pipeline);
 
 int pipeline_activate_node(m_pipeline *pipeline, int x, int y);

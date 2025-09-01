@@ -5,7 +5,12 @@ DMAMEM m_audio_block_int int_block_pool[MEM_SIZE];
 uint16_t		 		int_block_pool_first_mask;
 uint32_t 				int_block_pool_available_mask[NUM_MASKS];
 
-m_audio_block_float	float_block_pool[MEM_SIZE];
+m_audio_block_float	 float_block_pool[MEM_SIZE];
+m_audio_block_float	*float_block_queue[MEM_SIZE];
+
+int head = 0;
+int tail = MEM_SIZE - 1;
+
 uint16_t		 	float_block_pool_first_mask;
 uint32_t 			float_block_pool_available_mask[NUM_MASKS];
 
@@ -29,10 +34,15 @@ FLASHMEM void init_mem_pools()
 	for (i=0; i < MEM_SIZE; i++)
 		int_block_pool[i].block_pool_index = i;
 	
+	for (int i = 0; i < MEM_SIZE; i++)
+		float_block_queue[i] = &float_block_pool[i];
+	
+	/*
 	float_block_pool_first_mask = 0;
 	
 	for (i=0; i < NUM_MASKS; i++)
 		float_block_pool_available_mask[i] = 0;
+	
 	
 	for (i=0; i < MEM_SIZE; i++)
 		float_block_pool_available_mask[i >> 5] |= (1 << (i & 0x1F));
@@ -50,7 +60,7 @@ FLASHMEM void init_mem_pools()
 			timer->begin(update_all, usec);
 			update_setup();
 		}
-	}
+	}*/
 	
 	__enable_irq();
 }
@@ -137,7 +147,20 @@ void release_block_int(m_audio_block_int *block)
 // the caller is the only owner of this new block
 m_audio_block_float *allocate_block()
 {
-	m_printf("Allocating block...\n");
+	//m_printf("Allocating block...\n");
+	
+	m_audio_block_float *ret_block = NULL;
+	
+	if (head != tail)
+	{
+		ret_block = float_block_queue[head];
+		head = (head + 1) % MEM_SIZE;
+	}
+	
+	//m_printf("Returning 0x%8x...\n", ret_block);
+	return ret_block;
+	
+	/*
 	uint32_t n, index, avail;
 	uint32_t *p, *end;
 	m_audio_block_float *block;
@@ -153,10 +176,11 @@ m_audio_block_float *allocate_block()
 	
 	while (1)
 	{
+		//m_printf("Walking array... p = 0x%08x\n", p);
 		if (p >= end)
 		{
 			__enable_irq();
-			m_printf("alloc:null");
+			//m_printf("alloc:null");
 			return NULL;
 		}
 		avail = *p;
@@ -184,7 +208,7 @@ m_audio_block_float *allocate_block()
 	if (used > memory_used_max)
 		memory_used_max = used;
 	
-	return block;
+	return block;*/
 }
 
 // Release ownership of a data block.  If no
@@ -193,6 +217,11 @@ m_audio_block_float *allocate_block()
 void release_block(m_audio_block_float *block)
 {
 	if (!block) return;
+	
+	tail = (tail + 1) % MEM_SIZE;
+	float_block_queue[tail] = block;
+	
+	return;
 	
 	uint32_t mask = (0x80000000 >> (31 - (block->block_pool_index & 0x1F)));
 	uint32_t index = block->block_pool_index >> 5;

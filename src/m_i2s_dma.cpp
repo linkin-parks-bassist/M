@@ -21,10 +21,7 @@ uint16_t   i2s_out_block_right_offset = 0;
 bool 	   i2s_out_update_responsibility = false;
 DMAChannel i2s_out_dma(false);
 
-m_audio_connection* i2s_destination_list = NULL;
-
-
-m_audio_block_float	i2s_input_blocks[2];
+m_audio_block_float	i2s_input_blocks [2];
 m_audio_block_int	i2s_output_blocks[2];
 
 void configure_i2s()
@@ -280,7 +277,7 @@ void i2s_in_transmit(m_audio_block_int *block, unsigned char index)
 {
 	convert_block_int_to_float(i2s_input_blocks[index].data, block->data);
 
-	for (m_audio_connection *c = i2s_destination_list; c != NULL; c = c->next_dest)
+	/*for (m_audio_connection *c = i2s_destination_list; c != NULL; c = c->next_dest)
 	{
 		if (c->src_index == index)
 		{
@@ -290,7 +287,7 @@ void i2s_in_transmit(m_audio_block_int *block, unsigned char index)
 				block->ref_count++;
 			}
 		}
-	}
+	}*/
 }
 
 void i2s_input_update()
@@ -392,12 +389,10 @@ void i2s_output_update()
 		}
 		else
 		{
-			m_audio_block_int *tmp = i2s_out_block_left_1st;
 			i2s_out_block_left_1st = i2s_out_block_left_2nd;
 			i2s_out_block_left_2nd = block;
 			i2s_out_block_left_offset = 0;
 			__enable_irq();
-			//release_block_int(tmp);
 		}
 	}
 	block = i2s_out_receive_read_only(1); // input 1 = right channel
@@ -417,12 +412,10 @@ void i2s_output_update()
 		}
 		else
 		{
-			m_audio_block_int *tmp = i2s_out_block_right_1st;
 			i2s_out_block_right_1st = i2s_out_block_right_2nd;
 			i2s_out_block_right_2nd = block;
 			i2s_out_block_right_offset = 0;
 			__enable_irq();
-			//release_block_int(tmp);
 		}
 	}
 }

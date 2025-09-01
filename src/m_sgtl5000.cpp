@@ -25,9 +25,9 @@
  */
 
 #include <Arduino.h>
-#include "m_audio.h"
-#include "Wire.h"
+#include <Wire.h>
 
+#include "M.h"
 #include "m_sgtl5000_defs.h"
 
 static uint16_t ana_ctrl;
@@ -86,6 +86,10 @@ int sgtl5000_enable()
 	sgtl5000_write_reg(CHIP_ANA_CTRL, 		0x0036);  	// enable zero cross detectors
 
 	semi_automated = true;
+	
+	// Set input as line in
+	sgtl5000_write_reg(0x0020, 0x055); // +7.5dB gain (1.3Vp-p full scale)
+	sgtl5000_write_reg(0x0024, ana_ctrl | (1<<2));
 	
 	return NO_ERROR;
 }
@@ -190,24 +194,6 @@ int sgtl5000_mic_gain(unsigned int dB)
 
 	return sgtl5000_write_reg(CHIP_MIC_CTRL, 0x0170 | preamp_gain)
 	    && sgtl5000_write_reg(CHIP_ANA_ADC_CTRL, (input_gain << 4) | input_gain);
-}
-
-int sgtl5000_input_select(int n)
-{
-	if (n == AUDIO_INPUT_LINEIN)
-	{
-		return sgtl5000_write_reg(0x0020, 0x055) // +7.5dB gain (1.3Vp-p full scale)
-			&& sgtl5000_write_reg(0x0024, ana_ctrl | (1<<2)); // enable linein
-	} else if (n == AUDIO_INPUT_MIC)
-	{
-		return sgtl5000_write_reg(0x002A, 0x0173) // mic preamp gain = +40dB
-		 && sgtl5000_write_reg(0x0020, 0x088)     // input gain +12dB (is this enough?)
-		 && sgtl5000_write_reg(0x0024, ana_ctrl & ~(1<<2)); // enable mic
-	}
-	else
-	{
-		return ERR_BAD_ARGS;
-	}
 }
 
 int sgtl5000_headphone_select(int n)
