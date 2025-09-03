@@ -275,8 +275,15 @@ void m_i2s_output_isr()
 
 void i2s_in_transmit(m_audio_block_int *block, unsigned char index)
 {
+	#ifdef SKIP_EVERYTHING
+	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
+	{
+		i2s_output_blocks[1 - index].data[i] = block->data[i];
+	}
+	#else
 	convert_block_int_to_float(i2s_input_blocks[index].data, block->data);
-
+	#endif
+	
 	/*for (m_audio_connection *c = i2s_destination_list; c != NULL; c = c->next_dest)
 	{
 		if (c->src_index == index)

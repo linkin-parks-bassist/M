@@ -21,7 +21,7 @@ int init_pipeline(m_pipeline *pipeline, int width, int height)
 	if (!pipeline->nodes)
 		return ERR_ALLOC_FAIL;
 	
-	for (int i = 0; i < height; i++)
+	for (int i = 0; i < width; i++)
 	{
 		pipeline->nodes[i] = (m_pipeline_node*)malloc(height * sizeof(m_pipeline_node));
 			

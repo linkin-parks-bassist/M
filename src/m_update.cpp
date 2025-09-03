@@ -36,14 +36,40 @@ void m_software_isr()
 {
 	i2s_input_update();
 	
+	m_audio_block_float *block_in = &i2s_input_blocks[1];
+	float *data_in = i2s_input_blocks[1].data;
+	
+	/*float abs_max = 0;
+	float abs;
+	
+	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
+	{
+		abs = fabs(data_in[i]);
+		if (abs > abs_max)
+			abs_max = abs;
+	}
+	
+	//Serial.println(abs, 4);*/
+	
 	if (!active_pipeline)
 	{
-		i2s_output_transmit_mono(&i2s_input_blocks[0]);
+		i2s_output_transmit_mono(block_in);
 	}
 	else
 	{
-		compute_pipeline(active_pipeline, i2s_input_blocks[0].data);
+		compute_pipeline(active_pipeline, data_in);
+		#ifndef SKIP_EVERYTHING
 		i2s_output_transmit_mono(active_pipeline->output_node.block);
+		#endif
+		
+		for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
+		{
+			//Serial.print(data_in[i], 7);
+			//Serial.print(" ");
+			//Serial.print(active_pipeline->output_node.block->data[i], 7);
+			//Serial.print("\n");
+			Serial.flush();
+		}
 	}
 	
 	i2s_output_update();

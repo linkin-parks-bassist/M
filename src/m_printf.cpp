@@ -13,7 +13,7 @@ void m_printf(const char *fmt, ...)
 	va_start(args, fmt);
 	vsnprintf(buf, sizeof(buf), fmt, args);
 	va_end(args);
-	Serial.print(buf);
+	//Serial.print(buf);
 	Serial.flush();
 	#endif
 }

@@ -12,6 +12,8 @@
 
 #define NUM_MASKS  						(((MAX_AUDIO_MEMORY / AUDIO_BLOCK_SAMPLES / 2) + 31) / 32)
 
+#define SKIP_EVERYTHING
+
 #include <DMAChannel.h>
 
 #include "m_printf.h"
@@ -24,6 +26,11 @@
 #include "m_globals.h"
 
 #include "m_transformer.h"
+
+#include "m_biquad.h"
+#include "m_compressor1.h"
+#include "m_distortion.h"
+
 #include "m_pipeline.h"
 #include "m_update.h"
 
