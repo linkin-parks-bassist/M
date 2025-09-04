@@ -21,7 +21,7 @@ uint16_t   i2s_out_block_right_offset = 0;
 bool 	   i2s_out_update_responsibility = false;
 DMAChannel i2s_out_dma(false);
 
-m_audio_block_float	i2s_input_blocks [2];
+m_audio_block_int	i2s_input_blocks [2];
 m_audio_block_int	i2s_output_blocks[2];
 
 void configure_i2s()
@@ -276,12 +276,21 @@ void m_i2s_output_isr()
 void i2s_in_transmit(m_audio_block_int *block, unsigned char index)
 {
 	#ifdef SKIP_EVERYTHING
+	#ifdef TRY_CONVERT
+	float f[AUDIO_BLOCK_SAMPLES];
+	convert_block_int_to_float(f, block->data);
+	convert_block_float_to_int(i2s_output_blocks[1 - index].data, f);
+	#else
 	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
 	{
 		i2s_output_blocks[1 - index].data[i] = block->data[i];
 	}
+	#endif
 	#else
-	convert_block_int_to_float(i2s_input_blocks[index].data, block->data);
+	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
+	{
+		i2s_input_blocks[index].data[i] = block->data[i];
+	}
 	#endif
 	
 	/*for (m_audio_connection *c = i2s_destination_list; c != NULL; c = c->next_dest)
@@ -425,6 +434,8 @@ void i2s_output_update()
 			__enable_irq();
 		}
 	}
+	
+	
 }
 
 

@@ -13,6 +13,7 @@
 #define NUM_MASKS  						(((MAX_AUDIO_MEMORY / AUDIO_BLOCK_SAMPLES / 2) + 31) / 32)
 
 #define SKIP_EVERYTHING
+#define TRY_CONVERT
 
 #include <DMAChannel.h>
 

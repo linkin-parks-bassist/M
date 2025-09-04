@@ -32,35 +32,53 @@ void update_stop()
 	update_scheduled = false;
 }
 
+float output_avg = 0.0f;
+
 void m_software_isr()
 {
 	i2s_input_update();
 	
-	m_audio_block_float *block_in = &i2s_input_blocks[1];
-	float *data_in = i2s_input_blocks[1].data;
+	m_audio_block_int *block_in = &i2s_input_blocks[1];
+	int16_t *data_in = i2s_input_blocks[1].data;
 	
-	/*float abs_max = 0;
-	float abs;
+	float avg = 0.0f;
 	
 	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
 	{
-		abs = fabs(data_in[i]);
-		if (abs > abs_max)
-			abs_max = abs;
+		avg += (float)data_in[i];
 	}
+	avg /= AUDIO_BLOCK_SAMPLES;
 	
-	//Serial.println(abs, 4);*/
+	m_printf("Average input data: %f\n", avg);
+	//Serial.println(abs, 4);
 	
 	if (!active_pipeline)
 	{
-		i2s_output_transmit_mono(block_in);
+		m_audio_block_float f_block;
+		convert_block_int_to_float(f_block.data, data_in);
+		i2s_output_transmit_mono(&f_block);
 	}
 	else
 	{
 		compute_pipeline(active_pipeline, data_in);
 		#ifndef SKIP_EVERYTHING
 		i2s_output_transmit_mono(active_pipeline->output_node.block);
+		
+		avg = 0.0f;
+		for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
+		{
+			avg += 32767.0f * active_pipeline->output_node.block->data[i];
+		}
+		avg /= AUDIO_BLOCK_SAMPLES;
+		
+		m_printf("Average output data: %f\n", avg);
+		
+		output_avg = 0.9 * output_avg + 0.1 * avg;
+		
+		m_printf("Aggregate avg output: %6f\n", output_avg);
 		#endif
+		
+		
 		
 		for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
 		{

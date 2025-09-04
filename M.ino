@@ -22,7 +22,7 @@ void setup()
 	sgtl5000_enable();
 	sgtl5000_line_in_level(4);
 	sgtl5000_volume(0.75); 
-	sgtl5000_adc_high_pass_filter_disable();
+	//sgtl5000_adc_high_pass_filter_disable();
 	
 	int ret_val;
 	

@@ -47,6 +47,6 @@ int write_node(m_pipeline_node *node, float *data);
 int reset_nodes(m_pipeline *pipeline);
 
 int propagate_transformer(m_pipeline *pipeline, m_audio_transformer *trans);
-int compute_pipeline(m_pipeline *pipeline, float *input);
+int compute_pipeline(m_pipeline *pipeline, int16_t *input);
 
 #endif

@@ -261,9 +261,9 @@ int write_node(m_pipeline_node *node, float *data)
 	return NO_ERROR;
 }
 
-int compute_pipeline(m_pipeline *pipeline, float *input)
+int compute_pipeline(m_pipeline *pipeline, int16_t *input)
 {
-	m_printf("Computing pipeline 0x%x on input data 0x%x...\n", pipeline, input);
+	//m_printf("Computing pipeline 0x%x on input data 0x%x...\n", pipeline, input);
 	
 	if (!pipeline || !input)
 	{
@@ -275,15 +275,15 @@ int compute_pipeline(m_pipeline *pipeline, float *input)
 	reset_node_status(pipeline);
 	
 	////m_printf("Copying input data...\n");
-	write_node(&pipeline->input_node, input);
+	convert_block_int_to_float(pipeline->input_node.block->data, input);
 	
 	for (int i = 0; i < pipeline->n_transformers; i++)
 	{
-		m_printf("Propagate transformer %d...\n", i);
+		//m_printf("Propagate transformer %d...\n", i);
 		propagate_transformer(pipeline, pipeline->transformers[i]);
 		//m_printf("Done.\n");
 	}
 	
-	m_printf("Pipeline computation complete\n");
+	//m_printf("Pipeline computation complete\n");
 	return NO_ERROR;
 }
