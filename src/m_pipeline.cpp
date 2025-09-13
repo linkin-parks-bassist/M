@@ -5,17 +5,17 @@ int init_pipeline(m_pipeline *pipeline, int width, int height)
 {
 	if (!pipeline) return ERR_NULL_PTR;
 	
-	m_printf("Initialising pipeline...\n");
+	//m_printf("Initialising pipeline...\n");
 	
-	m_printf("Allocating input block...\n");
+	//m_printf("Allocating input block...\n");
 	pipeline->input_node.block   = allocate_block();
 	pipeline->input_node.active  = 1;
 	
-	m_printf("Allocating output block...\n");
+	//m_printf("Allocating output block...\n");
 	pipeline->output_node.block  = allocate_block();
 	pipeline->output_node.active = 1;
 	
-	m_printf("Allocating node array...\n");
+	//m_printf("Allocating node array...\n");
 	pipeline->nodes = (m_pipeline_node**)malloc(width * sizeof(m_pipeline_node*));
 	
 	if (!pipeline->nodes)
@@ -29,7 +29,7 @@ int init_pipeline(m_pipeline *pipeline, int width, int height)
 			return ERR_ALLOC_FAIL;
 	}
 	
-	m_printf("Initialising array nodes...\n");
+	//m_printf("Initialising array nodes...\n");
 	for (int i = 0; i < width; i++)
 	{
 		for (int j = 0; j < height; j++)
@@ -48,7 +48,7 @@ int init_pipeline(m_pipeline *pipeline, int width, int height)
 	pipeline->width  = width;
 	pipeline->height = height;
 	
-	m_printf("Done.\n");
+	//m_printf("Done.\n");
 	
 	return NO_ERROR;
 }
@@ -118,14 +118,16 @@ int pipeline_activate_node(m_pipeline *pipeline, int x, int y)
 	if (x < 0 || y < 0 || x >= pipeline->width || y >= pipeline->height)
 		return ERR_POSITION_ILLEGAL;
 	
-	m_printf("Activating node (%d, %d)...\n", x, y);
+	//m_printf("Activating node (%d, %d)...\n", x, y);
 	
 	if (!(pipeline->nodes[x][y].block = allocate_block()))
 	{
-		m_printf("Block allocation failed !\n");
+		//m_printf("Block allocation failed !\n");
 		pipeline->nodes[x][y].active = 0;
 		return ERR_ALLOC_FAIL;
 	}
+	
+	//m_printf("node block ptr: 0x%x, data: 0x%x\n", pipeline->nodes[x][y].block, pipeline->nodes[x][y].block->data);
 	
 	pipeline->nodes[x][y].active = 1;
 	

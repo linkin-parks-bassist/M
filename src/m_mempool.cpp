@@ -143,12 +143,8 @@ void release_block_int(m_audio_block_int *block)
 	__enable_irq();
 }
 
-// Allocate 1 audio data block.  If successful
-// the caller is the only owner of this new block
 m_audio_block_float *allocate_block()
 {
-	//m_printf("Allocating block...\n");
-	
 	m_audio_block_float *ret_block = NULL;
 	
 	if (head != tail)
@@ -157,63 +153,9 @@ m_audio_block_float *allocate_block()
 		head = (head + 1) % MEM_SIZE;
 	}
 	
-	//m_printf("Returning 0x%8x...\n", ret_block);
 	return ret_block;
-	
-	/*
-	uint32_t n, index, avail;
-	uint32_t *p, *end;
-	m_audio_block_float *block;
-	uint32_t used;
-
-	p = float_block_pool_available_mask;
-	end = p + NUM_MASKS;
-	
-	__disable_irq();
-	
-	index = float_block_pool_first_mask;
-	p += index;
-	
-	while (1)
-	{
-		//m_printf("Walking array... p = 0x%08x\n", p);
-		if (p >= end)
-		{
-			__enable_irq();
-			//m_printf("alloc:null");
-			return NULL;
-		}
-		avail = *p;
-		if (avail) break;
-		index++;
-		p++;
-	}
-	
-	n = __builtin_clz(avail);
-	avail &= ~(0x80000000 >> n);
-	*p = avail;
-	
-	if (!avail) index++;
-	
-	float_block_pool_first_mask = index;
-	used = memory_used + 1;
-	memory_used = used;
-	
-	__enable_irq();
-	
-	index = p - float_block_pool_available_mask;
-	block = float_block_pool + ((index << 5) + (31 - n));
-	block->ref_count = 1;
-	
-	if (used > memory_used_max)
-		memory_used_max = used;
-	
-	return block;*/
 }
 
-// Release ownership of a data block.  If no
-// other streams have ownership, the block is
-// returned to the free pool
 void release_block(m_audio_block_float *block)
 {
 	if (!block) return;
@@ -222,22 +164,5 @@ void release_block(m_audio_block_float *block)
 	float_block_queue[tail] = block;
 	
 	return;
-	
-	uint32_t mask = (0x80000000 >> (31 - (block->block_pool_index & 0x1F)));
-	uint32_t index = block->block_pool_index >> 5;
-
-	__disable_irq();
-	if (block->ref_count > 1)
-	{
-		block->ref_count--;
-	}
-	else 
-	{
-		float_block_pool_available_mask[index] |= mask;
-		if (index < float_block_pool_first_mask) float_block_pool_first_mask = index;
-		memory_used--;
-	}
-	
-	__enable_irq();
 }
 

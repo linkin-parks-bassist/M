@@ -433,17 +433,40 @@ void i2s_output_update()
 			i2s_out_block_right_offset = 0;
 			__enable_irq();
 		}
-	}
-	
-	
+	}	
 }
 
-
-void i2s_output_transmit_mono(m_audio_block_float *block)
+void i2s_output_transmit_mono_int(int16_t *block)
 {
 	if (!block)
-		return;
+	{
+		for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
+		{
+			i2s_output_blocks[0].data[i] = 0;
+			i2s_output_blocks[1].data[i] = 0;
+		}
+	}
+	else
+	{
+		for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
+		{
+			i2s_output_blocks[0].data[i] = block[i];
+			i2s_output_blocks[1].data[i] = block[i];
+		}
+	}
+}
+
+void i2s_output_transmit_mono_float(float *block)
+{
+	if (!block)
+	{
+		for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
+		{
+			i2s_output_blocks[0].data[i] = 0;
+			i2s_output_blocks[1].data[i] = 0;
+		}
+	}
 	
-	convert_block_float_to_int(i2s_output_blocks[0].data, block->data);
-	convert_block_float_to_int(i2s_output_blocks[1].data, block->data);
+	convert_block_float_to_int(i2s_output_blocks[0].data, block);
+	convert_block_float_to_int(i2s_output_blocks[1].data, block);
 }

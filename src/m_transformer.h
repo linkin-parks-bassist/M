@@ -15,45 +15,18 @@ typedef struct
 #define TRANSFORMER_AMPLIFIER		3
 #define TRANSFORMER_FADER			4
 #define TRANSFORMER_BIQUAD			5
-#define TRANSFORMER_ARCTAN_DIST		6
-#define TRANSFORMER_COMPRESSOR1		7
+#define TRANSFORMER_WAVESHAPER		6
+#define TRANSFORMER_DISTORTION		7
+#define TRANSFORMER_COMPRESSOR		8
 
 #define FADER_FADE_IN  0
 #define FADER_FADE_OUT 1
 
 #define LN_2 0.69314718055994530942
 
-#define PRINT_TRANSFORMER_INFO
+//#define PRINT_TRANSFORMER_INFO
 
-typedef struct
-{
-	float gain;
-} m_trans_amp_data;
-
-typedef struct
-{
-	int n_inputs;
-	float *gains;
-} m_trans_mixer_data;
-
-typedef struct
-{
-	int fade_type;
-	
-	uint32_t sample_progress;
-	uint32_t duration_samples;
-} m_trans_fader_data;
-
-enum biquad_type
-{
-    low_pass,
-    high_pass,
-    band_pass,
-    notch,
-    peaking_band_eq,
-    low_shelf,
-    high_shelf
-};
+#define TRANSFORMER_SWITCH_ACTION_BYPASS 0
 
 typedef struct
 {
@@ -61,37 +34,25 @@ typedef struct
 	
 	unsigned int n_inputs, n_outputs;
 	
+	int bypass;
+	
 	vec2i inputs [MAX_TRANSFORMER_INPUTS ];
 	vec2i outputs[MAX_TRANSFORMER_OUTPUTS];
 
-	void *transformer_data;
+	int n_parameters;
+	m_parameter **parameters;
 	
+	void *transformer_data;
 	int (*compute_transformer)(float **dest, float **src, void *transformer_data);
 } m_audio_transformer;
 
-int init_buffer(m_audio_transformer *trans, vec2i input, vec2i output);
-m_audio_transformer *alloc_buffer_transformer(vec2i input, vec2i output);
+int init_transformer(m_audio_transformer *trans, int type,
+					 unsigned int n_inputs,  unsigned int n_outputs,
+					 vec2i 		   *inputs,  vec2i 		  *outputs,
+					 int n_parameters,
+					 void *transformer_data,
+					 int (*compute_transformer)(float **dest, float **src, void *transformer_data));
 
-int init_amp(m_audio_transformer *trans, vec2i input, vec2i output, float gain);
-m_audio_transformer *alloc_amp_transformer(vec2i input, vec2i output, float gain);
-
-int init_mixer(m_audio_transformer *trans, vec2i *inputs, int n_inputs, vec2i output, float *gains);
-m_audio_transformer *alloc_mixer_transformer(vec2i *inputs, int n_inputs, vec2i output, float *gains);
-
-int init_fader(m_audio_transformer *trans, vec2i input, vec2i output, int fade_type, uint32_t duration_samples);
-m_audio_transformer *alloc_fader_transformer(vec2i input, vec2i output, int fade_type, uint32_t duration_samples);
-
-int init_biquad(m_audio_transformer *trans, vec2i input, vec2i output, int type, float cutoff, float bandwidth, float db_gain);
-m_audio_transformer *alloc_biquad_transformer(vec2i input, vec2i output, int fade_type, uint32_t duration_samples);
-
-int init_low_pass (m_audio_transformer *trans, vec2i input, vec2i output, float cutoff);
-int init_high_pass(m_audio_transformer *trans, vec2i input, vec2i output, float cutoff);
-int init_band_pass(m_audio_transformer *trans, vec2i input, vec2i output, float center, float bandwidth);
-m_audio_transformer *alloc_low_pass_transformer (vec2i input, vec2i output, float cutoff);
-m_audio_transformer *alloc_high_pass_transformer(vec2i input, vec2i output, float cutoff);
-m_audio_transformer *alloc_band_pass_transformer(vec2i input, vec2i output, float center, float bandwidth);
-
-int init_arctan_distortion(m_audio_transformer *trans, vec2i input, vec2i output, float coef);
-m_audio_transformer *alloc_arctan_dist_transformer(vec2i input, vec2i output, float coef);
+int transformer_add_parameter(m_audio_transformer *trans, m_parameter *param);
 
 #endif

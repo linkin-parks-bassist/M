@@ -3,7 +3,7 @@
 
 #define MAX_AUDIO_MEMORY 229376
 
-#define MEM_SIZE 20
+#define MEM_SIZE 96
 
 extern m_audio_block_int	int_block_pool[MEM_SIZE];
 extern uint16_t		 		int_block_pool_first_mask;

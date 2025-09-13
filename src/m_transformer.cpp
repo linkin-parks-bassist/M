@@ -1,328 +1,142 @@
 #include "M.h"
 
-int calc_buffer(float **dest, float **src, void *transformer_data)
-{
-	if (!dest || !src)
-		return ERR_NULL_PTR;
-	
-	if (!dest[0] || !src[0])
-		return ERR_NULL_PTR;
-	
-	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
-		dest[0][i] = src[0][i];
-	
-	return NO_ERROR;
-}
-
-int calc_amp(float **dest, float **src, void *transformer_data)
-{
-	if (!transformer_data || !dest || !src)
-		return ERR_NULL_PTR;
-	
-	if (!dest[0] || !src[0])
-		return ERR_NULL_PTR;
-	
-	//m_printf("Computing amp transformer...\n");
-	
-	m_trans_amp_data *amp = (m_trans_amp_data*)transformer_data;
-	
-	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
-	{
-		dest[0][i] = amp->gain * src[0][i];
-		////m_printf("dest[0][%03d] = amp->gain * src[0][%03d] = %04f * %04f = %04f = %04f\n", i, i, amp->gain, src[0][i], amp->gain * src[0][i], dest[0][i]);
-	}
-	
-	return NO_ERROR;
-}
-
-int calc_mixer(float **dest, float **src, void *transformer_data)
-{
-	if (!transformer_data || !dest || !src)
-		return ERR_NULL_PTR;
-	
-	if (!dest[0])
-		return ERR_NULL_PTR;
-	
-	m_trans_mixer_data *mixer = (m_trans_mixer_data*)transformer_data;
-	
-	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
-	{
-		dest[0][i] = 0.0;
-		for (int j = 0; j < mixer->n_inputs; j++)
-			dest[0][i] += mixer->gains[j] * src[j][i];
-	}
-	
-	return NO_ERROR;
-}
-
-int calc_fader(float **dest, float **src, void *transformer_data)
-{
-	if (!transformer_data || !dest || !src)
-		return ERR_NULL_PTR;
-	
-	if (!dest[0] || !src[0])
-		return ERR_NULL_PTR;
-	
-	m_trans_fader_data *fader = (m_trans_fader_data*)transformer_data;
-	
-	float sgn    = (fader->fade_type == FADER_FADE_OUT) ? -1 : 1;
-	float offset = (fader->fade_type == FADER_FADE_OUT) ?  1 : 0;
-	
-	float gain;
-	
-	int i = 0;
-	while (i < AUDIO_BLOCK_SAMPLES && fader->sample_progress < fader->duration_samples)
-	{
-		gain = offset + sgn * ((float)fader->sample_progress++ / (float)fader->duration_samples);
-		
-		dest[0][i] = gain * src[0][i];
-		
-		i++;
-	}
-	
-	while (i < AUDIO_BLOCK_SAMPLES)
-	{
-		dest[0][i] = (fader->fade_type == FADER_FADE_OUT) ? 0 : src[0][i];
-		i++;
-	}
-	
-	return NO_ERROR;
-}
-
-int init_buffer(m_audio_transformer *trans, vec2i input, vec2i output)
+int init_transformer(m_audio_transformer *trans, int type,
+					 unsigned int n_inputs,  unsigned int n_outputs,
+					 vec2i 		   *inputs,  vec2i 		  *outputs,
+					 int n_parameters,
+					 void *transformer_data,
+					 int (*compute_transformer)(float **dest, float **src, void *transformer_data))
 {
 	if (!trans)
 		return ERR_NULL_PTR;
 	
-	trans->type = TRANSFORMER_BUFFER;
+	trans->type = type;
 	
-	trans->n_inputs  = 1;
-	trans->n_outputs = 1;
-	
-	trans->inputs [0] = input;
-	trans->outputs[0] = output;
-	
-	trans->transformer_data = NULL;
-	trans->compute_transformer = &calc_buffer;
-	
-	return NO_ERROR;
-}
-
-m_audio_transformer *alloc_buffer_transformer(vec2i input, vec2i output)
-{
-	m_audio_transformer *buffer = (m_audio_transformer*)malloc(sizeof(m_audio_transformer));
-	int ret_val;
-	if ((ret_val = init_buffer(buffer, input, output)) != NO_ERROR)
-	{
-		if (buffer)
-			free(buffer);
-		return NULL;
-	}
-	return buffer;
-}
-
-int init_amp(m_audio_transformer *trans, vec2i input, vec2i output, float gain)
-{
-	if (!trans)
-		return ERR_NULL_PTR;
-	
-	trans->type = TRANSFORMER_AMPLIFIER;
-	
-	trans->n_inputs  = 1;
-	trans->n_outputs = 1;
-	
-	trans->inputs [0] = input;
-	trans->outputs[0] = output;
-	
-	trans->transformer_data = (m_trans_amp_data*)malloc(sizeof(m_trans_amp_data));
-	
-	((m_trans_amp_data*)(trans->transformer_data))->gain = gain;
-	
-	trans->compute_transformer = &calc_amp;
-	
-	return NO_ERROR;
-}
-
-m_audio_transformer *alloc_amp_transformer(vec2i input, vec2i output, float gain)
-{
-	m_audio_transformer *amp = (m_audio_transformer*)malloc(sizeof(m_audio_transformer));
-	int ret_val;
-	if ((ret_val = init_amp(amp, input, output, gain)) != NO_ERROR)
-	{
-		if (amp)
-			free(amp);
-		return NULL;
-	}
-	return amp;
-}
-
-int init_mixer(m_audio_transformer *trans, vec2i *inputs, int n_inputs, vec2i output, float *gains)
-{
-	if (!trans || !inputs)
-		return ERR_NULL_PTR;
-	
-	trans->type = TRANSFORMER_BUFFER;
+	trans->bypass = 0;
 	
 	trans->n_inputs  = n_inputs;
-	trans->n_outputs = 1;
+	trans->n_outputs = n_outputs;
 	
-	for (int i = 0; i < n_inputs; i++)
-		trans->inputs[i] = inputs[i];
-	
-	trans->outputs[0] = output;
-	
-	m_trans_mixer_data *data_str = (m_trans_mixer_data*)malloc(sizeof(m_trans_mixer_data));
-	
-	data_str->n_inputs = n_inputs;
-	data_str->gains = (float*)malloc(sizeof(float) * n_inputs);
-	
-	if (gains)
+	if (inputs)
 	{
-		for (int i = 0; i < n_inputs; i++)
-		{
-			data_str->gains[i] = gains[i];
-		}
-	}
-	else
-	{
-		// By default, just transmit first input
-		for (int i = 0; i < n_inputs; i++)
-		{
-			if (i)
-				data_str->gains[i] = 0.0;
-			else
-				data_str->gains[i] = 1.0;
-		}
+		for (unsigned int i = 0; i < n_inputs && i < MAX_TRANSFORMER_INPUTS; i++)
+			trans->inputs[i] = inputs[i];
+		
+		for (unsigned int i = 0; i < n_outputs && i < MAX_TRANSFORMER_OUTPUTS; i++)
+			trans->outputs[i] = outputs[i];
 	}
 	
-	trans->transformer_data = (void*)data_str;
-	trans->compute_transformer = &calc_mixer;
+	trans->transformer_data 	= transformer_data;
+	trans->compute_transformer 	= compute_transformer;
+	
+	trans->n_parameters = 0;
+	trans->parameters 	= (n_parameters) ? (m_parameter**)malloc(sizeof(m_parameter*) * n_parameters) : NULL;
 	
 	return NO_ERROR;
 }
 
-m_audio_transformer *alloc_mixer_transformer(vec2i *inputs, int n_inputs, vec2i output, float *gains)
+void run_bypass(float **dest, float **src, int n_inputs, int n_valid_inputs, int n_outputs)
 {
-	m_audio_transformer *mixer = (m_audio_transformer*)malloc(sizeof(m_audio_transformer));
-	int ret_val;
-	if ((ret_val = init_mixer(mixer, inputs, n_inputs, output, gains)) != NO_ERROR)
+	float tmp;
+		
+	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
 	{
-		if (mixer)
-			free(mixer);
-		return NULL;
+		tmp = 0.0;
+		for (int j = 0; j < n_inputs; j++)
+			if (src[j]) tmp += src[j][i] / n_valid_inputs;
+		
+		for (int j = 0; j < n_outputs; j++)
+			if (dest[j]) dest[j][i] = tmp;
 	}
-	return mixer;
-}
-
-int init_fader(m_audio_transformer *trans, vec2i input, vec2i output, int fade_type, uint32_t duration_samples)
-{
-	if (!trans)
-		return ERR_NULL_PTR;
-	
-	trans->type = TRANSFORMER_AMPLIFIER;
-	
-	trans->n_inputs  = 1;
-	trans->n_outputs = 1;
-	
-	trans->inputs [0] = input;
-	trans->outputs[0] = output;
-	
-	m_trans_fader_data *data_str = (m_trans_fader_data*)malloc(sizeof(m_trans_fader_data));
-	
-	data_str->fade_type 		= fade_type;
-	data_str->duration_samples 	= duration_samples;
-	data_str->sample_progress 	= 0;
-	
-	trans->transformer_data = (void*)data_str;
-	
-	trans->compute_transformer = &calc_fader;
-	
-	return NO_ERROR;
-}
-
-m_audio_transformer *alloc_fader_transformer(vec2i input, vec2i output, int fade_type, uint32_t duration_samples)
-{
-	m_audio_transformer *fader = (m_audio_transformer*)malloc(sizeof(m_audio_transformer));
-	int ret_val;
-	if ((ret_val = init_fader(fader, input, output, fade_type, duration_samples)) != NO_ERROR)
-	{
-		if (fader)
-			free(fader);
-		return NULL;
-	}
-	return fader;
 }
 
 int propagate_transformer(m_pipeline *pipeline, m_audio_transformer *trans)
 {
 	if (!pipeline || !trans)
 		return ERR_NULL_PTR;
-	
+		
 	m_pipeline_node *inputs [MAX_TRANSFORMER_INPUTS ];
 	m_pipeline_node *outputs[MAX_TRANSFORMER_OUTPUTS];
-	
-	int  input_valid[MAX_TRANSFORMER_INPUTS];
-	int output_valid[MAX_TRANSFORMER_INPUTS];
 	
 	float  *src[MAX_TRANSFORMER_INPUTS];
 	float *dest[MAX_TRANSFORMER_INPUTS];
 	
 	unsigned int i;
+	int n_valid_inputs = 0;
 	
 	for (i = 0; i < trans->n_inputs; i++)
 	{
 		inputs[i] = pipeline_get_node(pipeline, trans->inputs[i]);
-		input_valid[i] = (inputs[i] && inputs[i]->active && inputs[i]->block);
 		
-		if (input_valid[i])
+		if (inputs[i] && inputs[i]->active && inputs[i]->block)
+		{
 			src[i] = inputs[i]->block->data;
+			n_valid_inputs++;
+		}
 		else
+		{
 			src[i] = NULL;
+		}
 	}
 	
 	while (i < MAX_TRANSFORMER_INPUTS)
 	{
 		src[i] 			= NULL;
 		inputs[i] 		= NULL;
-		input_valid[i] 	= 0;
 		i++;
 	}
 	
 	#ifdef PRINT_TRANSFORMER_INFO
 	for (i = 0; i < MAX_TRANSFORMER_INPUTS; i++)
-		m_printf("Input %d: coordinates (%d, %d). Validity: %d. Buffer pointer: 0x%08x\n", i, trans->inputs[i].x, trans->inputs[i].y, input_valid[i], src[i]);
+		m_printf("Input %d: coordinates (%d, %d). Buffer pointer: 0x%08x\n", i, trans->inputs[i].x, trans->inputs[i].y, src[i]);
 	#endif
+	
+	int n_valid_outputs = 0;
+	int calc = 1;
 	
 	for (i = 0; i < trans->n_outputs; i++)
 	{
 		outputs[i] = pipeline_get_node(pipeline, trans->outputs[i]);
-		output_valid[i] = (outputs[i] && outputs[i]->block);
 		
-		if (output_valid[i])
+		if (outputs[i] && outputs[i]->block)
+		{
 			dest[i] = outputs[i]->block->data;
+			n_valid_outputs++;
+		}
 		else
+		{
 			dest[i] = NULL;
+		}
 	}
 	
 	while (i < MAX_TRANSFORMER_OUTPUTS)
 	{
 		dest[i] 		= NULL;
 		outputs[i] 		= NULL;
-		output_valid[i] = 0;
 		i++;
 	}
 	
 	#ifdef PRINT_TRANSFORMER_INFO
 	for (i = 0; i < MAX_TRANSFORMER_INPUTS; i++)
-		m_printf("Output %d: coordinates (%d, %d). Validity: %d. Buffer pointer: 0x%08x\n", i, trans->outputs[i].x, trans->outputs[i].y, output_valid[i], dest[i]);
+		m_printf("Output %d: coordinates (%d, %d). Buffer pointer: 0x%08x\n", i, trans->outputs[i].x, trans->outputs[i].y, dest[i]);
 	#endif
 	
-	int ret_val;
+	int ret_val = NO_ERROR;
 	
-	if (trans->compute_transformer)
-		ret_val = trans->compute_transformer(dest, src, trans->transformer_data);
-	else
+	if (!trans->compute_transformer)
+	{
 		ret_val = ERR_TRANSFORMER_MALFORMED;
+		calc = 0;
+	}
+	
+	if (trans->bypass)
+		calc = 0;
+	
+	if (calc)
+		ret_val = trans->compute_transformer(dest, src, trans->transformer_data);
+	
+	if (!calc || ret_val != NO_ERROR)
+		run_bypass(dest, src, trans->n_inputs, n_valid_inputs, trans->n_outputs);
 	
 	#ifdef PRINT_TRANSFORMER_INFO
 	m_printf("Transformer type: ");
@@ -344,17 +158,29 @@ int propagate_transformer(m_pipeline *pipeline, m_audio_transformer *trans)
 			m_printf("biquad.\n");
 			break;
 		
-		case TRANSFORMER_ARCTAN_DIST:
+		case TRANSFORMER_DISTORTION:
 			m_printf("arctan distortion.\n");
 			break;
 		
-		case TRANSFORMER_COMPRESSOR1:
+		case TRANSFORMER_WAVESHAPER:
+			m_printf("compression.\n");
+			break;
+		
+		case TRANSFORMER_COMPRESSOR:
 			m_printf("compression.\n");
 			break;
 		
 		default:
 			m_printf("unknown !\n");
 			return ERR_TRANSFORMER_MALFORMED;
+	}
+	
+	for (int i = 0; i < trans->n_parameters; i++)
+	{
+		if (trans->parameters[i])
+		{
+			m_printf("%s = %6f,\n", trans->parameters[i]->name, trans->parameters[i]->value);
+		}
 	}
 	
 	if (ret_val == NO_ERROR)
@@ -364,9 +190,11 @@ int propagate_transformer(m_pipeline *pipeline, m_audio_transformer *trans)
 	
 	float amp_abs_max = 0.0;
 	
+	m_printf("Bypass: %d. Function pointer: 0x%x.\n", trans->bypass, trans->compute_transformer);
+	
 	for (int i = 0; i < MAX_TRANSFORMER_OUTPUTS; i++)
 	{
-		if (!output_valid[i] || !dest[i])
+		if (!dest[i])
 			continue;
 		
 		for (int j = 0; j < AUDIO_BLOCK_SAMPLES; j++)
@@ -380,4 +208,18 @@ int propagate_transformer(m_pipeline *pipeline, m_audio_transformer *trans)
 	#endif
 	
 	return ret_val;
+}
+
+int transformer_add_parameter(m_audio_transformer *trans, m_parameter *param)
+{
+	if (!trans)
+		return ERR_NULL_PTR;
+	
+	if (!param)
+		return ERR_BAD_ARGS;
+	
+	trans->parameters[trans->n_parameters] = param;
+	trans->n_parameters++;
+	
+	return NO_ERROR;
 }

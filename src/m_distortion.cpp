@@ -1,5 +1,48 @@
 #include "M.h"
 
+m_audio_block_float *tmp_block;
+float *tmp;
+
+m_audio_block_float *low_block;
+float *low;
+
+m_audio_block_float *mid_block;
+float *mid;
+
+m_audio_block_float *high_block;
+float *high;
+
+
+m_audio_block_float *mid_distorted_block;
+float *mid_distorted;
+
+m_audio_block_float *high_distorted_block;
+float *high_distorted;
+
+
+int distortion_temp_buffers_allocated = 0;
+
+int alloc_distortion_temp_buffers()
+{
+	if (!(tmp_block = allocate_block()))  return ERR_ALLOC_FAIL;
+	tmp = &tmp_block->data[0];
+	if (!(low_block = allocate_block()))  return ERR_ALLOC_FAIL;
+	low = &low_block->data[0];
+	if (!(mid_block = allocate_block()))  return ERR_ALLOC_FAIL;
+	mid = &mid_block->data[0];
+	if (!(high_block = allocate_block())) return ERR_ALLOC_FAIL;
+	high = &high_block->data[0];
+
+	if (!(mid_distorted_block = allocate_block())) return ERR_ALLOC_FAIL;
+	mid_distorted  = &mid_distorted_block->data[0];
+	if (!(high_distorted_block = allocate_block())) return ERR_ALLOC_FAIL;
+	high_distorted = &high_distorted_block->data[0];
+
+	distortion_temp_buffers_allocated = 1;
+	
+	return NO_ERROR;
+}
+
 float normalised_arctan(float x)
 {
 	return 0.63661977237 * atan(x);
@@ -15,108 +58,152 @@ float hard_clip(float x)
 		return x;
 }
 
-int calc_waveshaper(float **dest, float **src, void *transformer_data)
+float soft_fold(float x)
 {
-	if (!transformer_data || !dest || !src)
+	return x / (1 + fabsf(x));
+}
+
+int init_distortion_struct(m_distortion_data *data_struct, int type, float bass_cutoff, float mid_cutoff,
+						   float gain, float ratio, float bass_mix, float mid_mix, float high_mix, float wet_mix)
+{
+	if (!data_struct)
 		return ERR_NULL_PTR;
-	
-	if (!dest[0] || !src[0])
-		return ERR_NULL_PTR;
-	
-	m_printf("Calculating arctan distortion...\n");
-	m_trans_waveshaper_data *dist = (m_trans_waveshaper_data*)transformer_data;
-	
-	if (!dist->shape)
-		return ERR_NULL_PTR;
-	
-	float abs_max = 0.0;
-	float abs_amp;
-	float ra;
-	
-	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
-	{
-		abs_amp = fabs(src[0][i]);
-		if (abs_amp > abs_max)
-			abs_max = abs_amp;
-	}
-	
-	ra = abs_amp * 0.5 + dist->running_amp * 0.5;
-	
-	if (ra == 0.0)
-	{
-		for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
-			dest[0][i] = 0.0;
 		
-		return NO_ERROR;
+	float (*shape)(float x);
+	
+	switch (type)
+	{
+		case DISTORTION_SOFT_FOLD:
+			shape = soft_fold;
+			break;
+		
+		case DISTORTION_ARCTAN:
+			shape = normalised_arctan;
+			break;
+			
+		case DISTORTION_TANH:
+			shape = tanh;
+			break;
+			
+		case DISTORTION_CLIP:
+			shape = hard_clip;
+			break;
+			
+		default:
+			return ERR_BAD_ARGS;
 	}
 	
-	float ra_inv = 1.0 / ra;
+	init_waveshaper_struct(&data_struct->mid_distortion,  shape, 0);
+	init_waveshaper_struct(&data_struct->high_distortion, shape, 0);
 	
-	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
-		dest[0][i] = ra *  dist->shape(dist->coef * (src[0][i] * ra_inv));
+	init_biquad_struct_lowpass (&data_struct->low_pass_1,  bass_cutoff);
+	init_biquad_struct_lowpass (&data_struct->low_pass_2,  bass_cutoff);
+	init_biquad_struct_bandpass(&data_struct->mid_pass_1,  sqrt(bass_cutoff * mid_cutoff), log2f(mid_cutoff / bass_cutoff));
+	init_biquad_struct_bandpass(&data_struct->mid_pass_2,  sqrt(bass_cutoff * mid_cutoff), log2f(mid_cutoff / bass_cutoff));
+	init_biquad_struct_highpass(&data_struct->high_pass_1, mid_cutoff);
+	init_biquad_struct_highpass(&data_struct->high_pass_2, mid_cutoff);
 	
-	dist->running_amp = ra;
+	init_parameter(&data_struct->gain,  "Gain", gain);
+	init_parameter(&data_struct->ratio, "Ratio", ratio);
+	
+	init_parameter(&data_struct->bass_cutoff, "Bass cutoff", bass_cutoff);
+	init_parameter(&data_struct->mid_cutoff,  "Mid cutoff",  mid_cutoff);
+	init_parameter(&data_struct->bass_mix,	  "Bass mix", 	 bass_mix);
+	init_parameter(&data_struct->mid_mix,	  "Mid mix", 	 mid_mix);
+	init_parameter(&data_struct->high_mix,	  "High mix", 	 high_mix);
+	init_parameter(&data_struct->wet_mix,	  "Wet mix", 	 wet_mix);
 	
 	return NO_ERROR;
 }
 
-int init_waveshaper(m_audio_transformer *trans, vec2i input, vec2i output, float (*shape)(float x), float coef)
+int calc_distortion(float **dest, float **src, void *transformer_data)
+{
+	if (!dest || !src || !transformer_data)
+		return ERR_NULL_PTR;
+	
+	m_distortion_data *data_struct = (m_distortion_data*)transformer_data;
+	
+	if (!distortion_temp_buffers_allocated)
+	{
+		if (alloc_distortion_temp_buffers() != NO_ERROR)
+		{
+			for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
+				dest[0][i] = src[0][i];
+		}
+	}
+	
+	if (data_struct->gain.updated || data_struct->ratio.updated)
+	{
+		data_struct->mid_distortion.coefficient.value  = data_struct->gain.value;
+		data_struct->high_distortion.coefficient.value = data_struct->gain.value * data_struct->ratio.value;
+	}
+	
+	#ifdef PRINT_TRANSFORMER_INFO
+	m_printf("Gain: %6f, ratio: %6f\n", data_struct->gain.value, data_struct->ratio.value);
+	#endif
+	
+	calc_biquad(&tmp,  src,  (void*)&data_struct->low_pass_1);
+	calc_biquad(&low,  &tmp, (void*)&data_struct->low_pass_2);
+	
+	calc_biquad(&tmp,  src,  (void*)&data_struct->mid_pass_1);
+	calc_biquad(&mid,  &tmp, (void*)&data_struct->mid_pass_2);
+	
+	calc_biquad(&tmp,  src,  (void*)&data_struct->high_pass_1);
+	calc_biquad(&high, &tmp, (void*)&data_struct->high_pass_2);
+	
+	calc_waveshaper(&mid_distorted,  &mid,  (void*)&data_struct->mid_distortion );
+	calc_waveshaper(&high_distorted, &high, (void*)&data_struct->high_distortion);
+	
+	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
+	{
+		dest[0][i] = data_struct->wet_mix.value * (data_struct->bass_mix.value * low[i]
+												 + data_struct->mid_mix.value  * mid_distorted[i]
+												 + data_struct->high_mix.value * high_distorted[i])
+					+ (1.0 - data_struct->wet_mix.value) * src[0][i];
+	}
+	
+	return NO_ERROR;
+}
+
+int init_distortion_transformer(m_audio_transformer *trans, vec2i input, vec2i output, int type, float gain, float ratio)
 {
 	if (!trans)
 		return ERR_NULL_PTR;
 	
-	trans->type = TRANSFORMER_ARCTAN_DIST;
+	m_distortion_data *data_struct = (m_distortion_data*)malloc(sizeof(m_distortion_data));
 	
-	trans->n_inputs  = 1;
-	trans->n_outputs = 1;
+	if (!data_struct)
+		return ERR_ALLOC_FAIL;
 	
-	trans->inputs[0]  = input;
-	trans->outputs[0] = output;
+	m_printf("Init distortion struct...\n");
+	init_distortion_struct(data_struct, type, 100.0, 1000.0, gain, ratio, 0.4, 0.3, 0.3, 0.7);
 	
-	m_trans_waveshaper_data *data_str = (m_trans_waveshaper_data*)malloc(sizeof(m_trans_waveshaper_data));
+	m_printf("Init transformer struct...\n");
+	int ret_val = init_transformer(trans, TRANSFORMER_DISTORTION, 1, 1, &input, &output, 10, (void*)data_struct, calc_distortion);
 	
-	data_str->coef = coef;
-	data_str->running_amp = 0.0;
+	if (ret_val != NO_ERROR)
+	{
+		trans->transformer_data = NULL;
+		free(data_struct);
+		return ret_val;
+	}
 	
-	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
-		data_str->prev_block[i] = 0.0;
+	m_printf("Add parameters...\n");
 	
-	data_str->shape = shape;
+	parameter_set_name(&data_struct->mid_distortion.coefficient,  "Mid gain");
+	parameter_set_name(&data_struct->high_distortion.coefficient, "High gain");
 	
-	trans->transformer_data = (void*)data_str;
-	trans->compute_transformer = &calc_waveshaper;
+	transformer_add_parameter(trans, &data_struct->mid_distortion.coefficient);
+	transformer_add_parameter(trans, &data_struct->high_distortion.coefficient);
+	
+	transformer_add_parameter(trans, &data_struct->gain);
+	transformer_add_parameter(trans, &data_struct->ratio);
+	transformer_add_parameter(trans, &data_struct->bass_cutoff);
+	transformer_add_parameter(trans, &data_struct->mid_cutoff);
+	transformer_add_parameter(trans, &data_struct->bass_mix);
+	transformer_add_parameter(trans, &data_struct->mid_mix);
+	transformer_add_parameter(trans, &data_struct->high_mix);
+	transformer_add_parameter(trans, &data_struct->wet_mix);
 	
 	return NO_ERROR;
-}
-
-int init_arctan_distortion(m_audio_transformer *trans, vec2i input, vec2i output, float coef)
-{
-	return init_waveshaper(trans, input, output, &normalised_arctan, coef);
-}
-
-int init_tanh_distortion(m_audio_transformer *trans, vec2i input, vec2i output, float coef)
-{
-	return init_waveshaper(trans, input, output, &tanh, coef);
-}
-
-m_audio_transformer *alloc_arctan_distortion(vec2i input, vec2i output, float coef)
-{
-	m_audio_transformer *dist = (m_audio_transformer*)malloc(sizeof(m_audio_transformer));
-	int ret_val;
-	if ((ret_val = init_arctan_distortion(dist, input, output, coef)) != NO_ERROR)
-	{
-		if (dist)
-			free(dist);
-		return NULL;
-	}
-	return dist;
-}
-
-m_audio_transformer *alloc_tanh_distortion(vec2i input, vec2i output, float coef)
-{
-	m_audio_transformer *dist = (m_audio_transformer*)malloc(sizeof(m_audio_transformer));
-	int ret_val;
-	if ((ret_val = init_arctan_distortion(dist, input, output, coef)) != NO_ERROR) {if (dist) free(dist); return NULL;}
-	
-	return dist;
 }
