@@ -35,6 +35,7 @@
 #include "m_distortion.h"
 
 #include "m_pipeline.h"
+#include "m_profile.h"
 #include "m_update.h"
 
 #include "m_i2s_dma.h"
@@ -43,7 +44,9 @@
 
 #include "m_hw_ctrl.h"
 #include "m_context.h"
-#include "m_spi.h"
+#include "m_esp32.h"
+
+#include "m_id.h"
 
 extern m_pipeline distortion_pipeline;
 extern m_pipeline bypass_pipeline;

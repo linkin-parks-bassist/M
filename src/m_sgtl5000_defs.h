@@ -167,11 +167,11 @@
 #define CHIP_PAD_STRENGTH		0x0014
 // 9:8	I2S_LRCLK	I2S LRCLK Pad Drive Strength (default=1)
 //				Sets drive strength for output pads per the table below.
-//				 VDDIO    1.8 V     2.5 V     3.3 V
+//				 VDDIO	1.8 V	 2.5 V	 3.3 V
 //				0x0 = Disable
-//				0x1 =     1.66 mA   2.87 mA   4.02 mA
-//				0x2 =     3.33 mA   5.74 mA   8.03 mA
-//				0x3 =     4.99 mA   8.61 mA   12.05 mA
+//				0x1 =	 1.66 mA   2.87 mA   4.02 mA
+//				0x2 =	 3.33 mA   5.74 mA   8.03 mA
+//				0x3 =	 4.99 mA   8.61 mA   12.05 mA
 // 7:6	I2S_SCLK	I2S SCLK Pad Drive Strength (default=1)
 // 5:4	I2S_DOUT	I2S DOUT Pad Drive Strength (default=1)
 // 3:2	CTRL_DATA	I2C DATA Pad Drive Strength (default=3)
@@ -320,10 +320,10 @@
 //				40*log((VAG_VAL)/(LO_VAGCNTRL)) + 15
 //				Suggested values based on typical VDDIO and VDDA voltages.
 //					VDDA  VAG_VAL VDDIO  LO_VAGCNTRL LO_VOL_*
-//					1.8 V    0.9   3.3 V     1.55      0x06
-//					1.8 V    0.9   1.8 V      0.9      0x0F
-//					3.3 V   1.55   1.8 V      0.9      0x19
-//					3.3 V   1.55   3.3 V     1.55      0x0F
+//					1.8 V	0.9   3.3 V	 1.55	  0x06
+//					1.8 V	0.9   1.8 V	  0.9	  0x0F
+//					3.3 V   1.55   1.8 V	  0.9	  0x19
+//					3.3 V   1.55   3.3 V	 1.55	  0x0F
 //				After setting to the nominal voltage, this field can be used
 //				to adjust the output level in +/-0.5 dB increments by using
 //				values higher or lower than the nominal setting.

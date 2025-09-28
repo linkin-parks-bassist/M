@@ -18,7 +18,7 @@ typedef struct
 	uint8_t  ref_count;
 	uint8_t  pad;
 	uint16_t block_pool_index;
-	float    data[AUDIO_BLOCK_SAMPLES];
+	float	data[AUDIO_BLOCK_SAMPLES];
 } m_audio_block_float;
 
 int zero_out_block_float(m_audio_block_float *block);

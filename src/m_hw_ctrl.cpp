@@ -1,8 +1,11 @@
 #include <Arduino.h>
 #include "M.h"
 
-static const int pot_pins[4] = {22, 16, 14, 17};
+static const int pot_pins[4] = {14, 17, 22, 16};
 static const int switch_pins[3] = {4, 5, 9};
+
+static const float pot_affine_coef[3] = {7.0/1023.0, -1.0/1023.0, -1.0/1023.0};
+static const float pot_affine_offs[3] = {-0.18,  1.0, 1.0};
 
 int thread_id;
 
@@ -10,17 +13,32 @@ float   pots[N_POTS];
 int switches[N_SWITCHES];
 int switch_changed[N_SWITCHES];
 
+float pot_value(m_hw_ctrl_context *cxt, int pot)
+{
+	#ifdef ENABLE_POTS
+	if (pot < 0 || pot > N_POTS || !cxt)
+		return 0;
+	
+	return (pot_affine_coef[pot] * (float)analogRead(cxt->pot_pins[pot])) + pot_affine_offs[pot];
+	#else
+	return 0.0;
+	#endif
+}
+
 int init_hardware_controls(m_hw_ctrl_context *cxt)
 {
 	if (!cxt)
 		return ERR_NULL_PTR;
 	
+	#ifdef ENABLE_POTS
 	for (int i = 0; i < N_POTS; i++)
 	{
 		cxt->pot_pins[i] = pot_pins[i];
 		pinMode(cxt->pot_pins[i], INPUT);
-		cxt->pots[i] = (float)analogRead(cxt->pot_pins[i]) / 1023.0;
+		cxt->pots[i] = pot_value(cxt, i);
+		delayMicroseconds(10);
 	}
+	#endif
 	
 	for (int i = 0; i < N_SWITCHES; i++)
 	{
@@ -30,6 +48,7 @@ int init_hardware_controls(m_hw_ctrl_context *cxt)
 		cxt->switch_changed[i] = 0;
 	}
 	
+	#ifdef ENABLE_POTS
 	for (int i = 0; i < N_POTS; i++)
 	{
 		cxt->pot_links[i].active = 0;
@@ -38,6 +57,7 @@ int init_hardware_controls(m_hw_ctrl_context *cxt)
 		cxt->pot_links[i].min = 0.0;
 		cxt->pot_links[i].max = 10.0;
 	}
+	#endif
 	
 	for (int i = 0; i < N_SWITCHES; i++)
 	{
@@ -54,8 +74,17 @@ int poll_hardware_controls(m_hw_ctrl_context *cxt)
 	if (!cxt)
 		return ERR_NULL_PTR;
 	
+	#ifdef ENABLE_POTS
+	analogRead(cxt->pot_pins[0]);
+	delayMicroseconds(10);
+	
 	for (int i = 0; i < N_POTS; i++)
-		cxt->pots[i] = (float)analogRead(cxt->pot_pins[i]) / 1023.0;
+	{
+		analogRead(cxt->pot_pins[i]);
+		delayMicroseconds(10);
+		cxt->pots[i] = pot_value(cxt, i);
+	}
+	#endif
 	
 	int new_val;
 	for (int i = 0; i < N_SWITCHES; i++)
@@ -67,7 +96,25 @@ int poll_hardware_controls(m_hw_ctrl_context *cxt)
 	
 	#ifdef PRINT_HW_CTRL_DATA
 	
-	m_printf("Pots: (%6f, %6f, %6f), switches: (%d, %d)\n", cxt->pots[0], cxt->pots[1], cxt->pots[2], cxt->switch_states[0], cxt->switch_states[1]);
+	#ifdef ENABLE_POTS
+	m_printf("Pots: (");
+	for (int i = 0; i < N_POTS; i++)
+	{
+		m_printf("%6f", cxt->pots[i]);
+		if (i < N_POTS - 1)
+			m_printf(", ");
+	}
+	m_printf("), ");
+	#endif
+	
+	m_printf("Switches: (");
+	for (int i = 0; i < N_SWITCHES; i++)
+	{
+		m_printf("%d", cxt->switch_states[i]);
+		if (i < N_SWITCHES - 1)
+			m_printf(", ");
+	}
+	m_printf(")\n");
 	
 	#endif
 	
@@ -83,7 +130,9 @@ int execute_hw_ctrl_links(m_hw_ctrl_context *cxt)
 	
 	int ret_val = NO_ERROR;
 	
+	#ifdef ENABLE_POTS
 	float new_val;
+	
 	for (int i = 0; i < N_POTS; i++)
 	{
 		if (cxt->pot_links[i].active)
@@ -124,6 +173,7 @@ int execute_hw_ctrl_links(m_hw_ctrl_context *cxt)
 			}
 		}
 	}
+	#endif
 	
 	for (int i = 0; i < N_SWITCHES; i++)
 	{
@@ -167,6 +217,7 @@ int execute_hw_ctrl_links(m_hw_ctrl_context *cxt)
 
 int link_pot_to_parameter(m_hw_ctrl_context *cxt, int pot_n, m_parameter *param, float min_value, float max_value)
 {
+	#ifdef ENABLE_POTS
 	if (!cxt)
 		return ERR_NULL_PTR;
 	
@@ -179,6 +230,9 @@ int link_pot_to_parameter(m_hw_ctrl_context *cxt, int pot_n, m_parameter *param,
 	cxt->pot_links[pot_n].max 	 = max_value;
 	
 	return NO_ERROR;
+	#else
+	return NO_ERROR;
+	#endif
 }
 
 int link_switch_to_pipeline(m_hw_ctrl_context *cxt, int switch_n, m_pipeline *pipeline)

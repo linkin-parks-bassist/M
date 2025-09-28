@@ -193,7 +193,7 @@ int sgtl5000_mic_gain(unsigned int dB)
 		input_gain = 15;
 
 	return sgtl5000_write_reg(CHIP_MIC_CTRL, 0x0170 | preamp_gain)
-	    && sgtl5000_write_reg(CHIP_ANA_ADC_CTRL, (input_gain << 4) | input_gain);
+		&& sgtl5000_write_reg(CHIP_ANA_ADC_CTRL, (input_gain << 4) | input_gain);
 }
 
 int sgtl5000_headphone_select(int n)

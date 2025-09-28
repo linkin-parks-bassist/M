@@ -120,6 +120,8 @@ void m_software_isr()
 	
 	int start_time = millis();
 	
+	//pretty_print_block(block, "Input: \n");
+	
 	if (!active_pipeline)
 	{
 		i2s_output_transmit_mono_int(block);
@@ -153,7 +155,7 @@ void m_software_isr()
 			
 			//m_printf("Compute pipelines...\n");
 			compute_pipeline(active_pipeline, block);
-			compute_pipeline(new_pipeline,    block);
+			compute_pipeline(new_pipeline,	block);
 			
 			out1 = active_pipeline->output_node.block->data;
 			out2 = new_pipeline->output_node.block->data;

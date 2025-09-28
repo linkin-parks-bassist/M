@@ -3,13 +3,13 @@
 
 enum biquad_type
 {
-    low_pass,
-    high_pass,
-    band_pass,
-    notch,
-    peaking_band_eq,
-    low_shelf,
-    high_shelf
+	low_pass,
+	high_pass,
+	band_pass,
+	notch,
+	peaking_band_eq,
+	low_shelf,
+	high_shelf
 };
 
 typedef struct
@@ -17,7 +17,7 @@ typedef struct
 	int type;
 	
 	float a0, a1, a2, a3, a4;
-    float x1, x2, y1, y2;
+	float x1, x2, y1, y2;
 } m_biquad_data;
 
 int calc_biquad(float **dest, float **src, void *transformer_data);

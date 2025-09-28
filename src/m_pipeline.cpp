@@ -1,6 +1,29 @@
 #include <Arduino.h>
 #include "M.h"
 
+int nullify_pipeline(m_pipeline *pipeline)
+{
+	if (!pipeline) return ERR_NULL_PTR;
+	
+	pipeline->input_node.block   = NULL;
+	pipeline->output_node.block  = NULL;
+	
+	pipeline->nodes = NULL;
+	
+	pipeline->active_node_array = NULL;
+	
+	pipeline->n_active_nodes = 0;
+	pipeline->n_transformers = 0;
+	
+	pipeline->width  = 0;
+	pipeline->height = 0;
+	
+	for (int i = 0; i < MAX_PIPELINE_TRANSFORMERS; i++)
+		pipeline->transformers[i] = NULL;
+	
+	return NO_ERROR;
+}
+
 int init_pipeline(m_pipeline *pipeline, int width, int height)
 {
 	if (!pipeline) return ERR_NULL_PTR;
@@ -62,6 +85,11 @@ int init_bypass_pipeline(m_pipeline *pipeline)
 	pipeline_add_transformer(pipeline, alloc_buffer_transformer(INPUT_NODE_COORD, OUTPUT_NODE_COORD));
 	
 	return NO_ERROR;
+}
+
+int free_pipeline(m_pipeline *pipeline)
+{
+	return ERR_UNIMPLEMENTED;
 }
 
 // Swap sort. I'm not expecting a large number of nodes, or frequent sorting.
@@ -242,8 +270,6 @@ int pipeline_add_transformer(m_pipeline *pipeline, m_audio_transformer *trans)
 		return ERR_PIPELINE_FULL;
 	
 	pipeline->transformers[pipeline->n_transformers++] = trans;
-	
-	sort_transformer_array(pipeline);
 	
 	return NO_ERROR;
 }

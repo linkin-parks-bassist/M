@@ -193,10 +193,11 @@ int init_distortion_transformer(m_audio_transformer *trans, vec2i input, vec2i o
 	parameter_set_name(&data_struct->mid_distortion.coefficient,  "Mid gain");
 	parameter_set_name(&data_struct->high_distortion.coefficient, "High gain");
 	
+	transformer_add_parameter(trans, &data_struct->gain);
+	
 	transformer_add_parameter(trans, &data_struct->mid_distortion.coefficient);
 	transformer_add_parameter(trans, &data_struct->high_distortion.coefficient);
 	
-	transformer_add_parameter(trans, &data_struct->gain);
 	transformer_add_parameter(trans, &data_struct->ratio);
 	transformer_add_parameter(trans, &data_struct->bass_cutoff);
 	transformer_add_parameter(trans, &data_struct->mid_cutoff);

@@ -1,10 +1,11 @@
 #ifndef M_HW_CTRL_H_
 #define M_HW_CTRL_H_
 
-#define N_POTS 		3
+#define N_POTS 		0
 #define N_SWITCHES 	2
 
 //#define PRINT_HW_CTRL_DATA
+//#define ENABLE_POTS
 
 typedef struct
 {

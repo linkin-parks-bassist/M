@@ -112,21 +112,21 @@ int compute_biquad_coefficients(m_biquad_data *biquad, int type, float cutoff, f
 			break;
 			
 		case low_shelf:
-			b0 =  A * ((A + 1)     - (A - 1) * cos_omega + beta * sin_omega);
+			b0 =  A * ((A + 1)	 - (A - 1) * cos_omega + beta * sin_omega);
 			b1 =  2 * A * ((A - 1) - (A + 1) * cos_omega);
-			b2 =  A * ((A + 1)     - (A - 1) * cos_omega - beta * sin_omega);
-			a0 = (A + 1)           + (A - 1) * cos_omega + beta * sin_omega;
-			a1 = -2 * ((A - 1)     + (A + 1) * cos_omega);
-			a2 = (A + 1)           + (A - 1) * cos_omega - beta * sin_omega;
+			b2 =  A * ((A + 1)	 - (A - 1) * cos_omega - beta * sin_omega);
+			a0 = (A + 1)		   + (A - 1) * cos_omega + beta * sin_omega;
+			a1 = -2 * ((A - 1)	 + (A + 1) * cos_omega);
+			a2 = (A + 1)		   + (A - 1) * cos_omega - beta * sin_omega;
 			break;
 			
 		case high_shelf:
-			b0 =  A * ((A + 1)     + (A - 1) * cos_omega + beta * sin_omega);
+			b0 =  A * ((A + 1)	 + (A - 1) * cos_omega + beta * sin_omega);
 			b1 = -2 * A * ((A - 1) + (A + 1) * cos_omega);
-			b2 =  A * ((A + 1)     + (A - 1) * cos_omega - beta * sin_omega);
-			a0 = (A + 1)           - (A - 1) * cos_omega + beta * sin_omega;
-			a1 =  2 * ((A - 1)     - (A + 1) * cos_omega);
-			a2 = (A + 1)           - (A - 1) * cos_omega - beta * sin_omega;
+			b2 =  A * ((A + 1)	 + (A - 1) * cos_omega - beta * sin_omega);
+			a0 = (A + 1)		   - (A - 1) * cos_omega + beta * sin_omega;
+			a1 =  2 * ((A - 1)	 - (A + 1) * cos_omega);
+			a2 = (A + 1)		   - (A - 1) * cos_omega - beta * sin_omega;
 			break;
 			
 		default:

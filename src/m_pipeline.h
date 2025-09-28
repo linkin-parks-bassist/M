@@ -34,6 +34,7 @@ typedef struct
 
 extern m_pipeline *active_pipeline;
 
+int nullify_pipeline	(m_pipeline *pipeline);
 int init_pipeline		(m_pipeline *pipeline, int width, int height);
 int init_bypass_pipeline(m_pipeline *pipeline);
 
