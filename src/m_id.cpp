@@ -35,3 +35,8 @@ int parameter_id_valid(m_context *cxt, uint16_t profile_id, uint16_t transformer
 	
 	return 1;
 }
+
+int parameter_id_str_valid(m_context *cxt, m_parameter_id pid)
+{
+	return parameter_id_valid(cxt, pid.profile_id, pid.transformer_id, pid.parameter_id);
+}

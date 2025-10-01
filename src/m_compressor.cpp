@@ -4,6 +4,12 @@
 // Small constant to avoid taking log(0)
 #define EPSILON 0.00000001
 
+int init_compressor_default(m_audio_transformer *trans)
+{
+	return init_compressor(trans, DISCONNECTED, DISCONNECTED,
+		DEFAULT_COMPRESSOR_RATIO, DEFAULT_COMPRESSOR_THRESHOLD, DEFAULT_COMPRESSOR_ATTACK, DEFAULT_COMPRESSOR_RELEASE);
+}
+
 int calc_compressor(float **dest, float **src, void *transformer_data)
 {
 	if (!transformer_data || !dest || !src)
@@ -17,13 +23,13 @@ int calc_compressor(float **dest, float **src, void *transformer_data)
 	if (comp->attack.updated)
 	{
 		m_printf("updating alpha...\n");
-		comp->alpha = exp(-1.0 / (AUDIO_SAMPLE_RATE_EXACT * comp->attack.value));
+		comp->alpha = exp(-1.0 / (AUDIO_SAMPLE_RATE_EXACT * comp->attack.val.level));
 		comp->attack.updated = 0;
 	}
 	if (comp->release.updated)
 	{
 		m_printf("updating rho...\n");
-		comp->rho = exp(-1.0 / (AUDIO_SAMPLE_RATE_EXACT * comp->release.value));
+		comp->rho = exp(-1.0 / (AUDIO_SAMPLE_RATE_EXACT * comp->release.val.level));
 		comp->release.updated = 0;
 	}
 	
@@ -41,8 +47,8 @@ int calc_compressor(float **dest, float **src, void *transformer_data)
 		
 		L = 10 * log10f(e + EPSILON);
 		
-		if (L > comp->threshold.value)
-			G = comp->threshold.value + (1.0 / comp->ratio.value) * (L - comp->threshold.value) - L;
+		if (L > comp->threshold.val.level)
+			G = comp->threshold.val.level + (1.0 / comp->ratio.val.level) * (L - comp->threshold.val.level) - L;
 		else
 			G = 0.0;
 		
@@ -62,10 +68,10 @@ int init_compressor_struct(m_compressor_data *data_struct, float ratio, float th
 	if (!data_struct)
 		return ERR_NULL_PTR;
 	
-	init_parameter(&data_struct->ratio, 		"Ratio", 	 ratio	  );
-	init_parameter(&data_struct->threshold, 	"Threshold", threshold);
-	init_parameter(&data_struct->attack, 		"Attack", 	 attack	  );
-	init_parameter(&data_struct->release, 		"Release", 	 release  );
+	INIT_PARAM(data_struct->ratio, 		M_PARAM_LEVEL, ratio, 		"Ratio");
+	INIT_PARAM(data_struct->threshold, 	M_PARAM_LEVEL, threshold, 	"Threshold");
+	INIT_PARAM(data_struct->attack, 	M_PARAM_LEVEL, attack, 		"Attack");
+	INIT_PARAM(data_struct->release, 	M_PARAM_LEVEL, release, 	"Release");
 	
 	data_struct->e_final	= 0.0;
 	

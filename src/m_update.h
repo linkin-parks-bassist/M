@@ -1,6 +1,8 @@
 #ifndef M_UPDATE_H_
 #define M_UPDATE_H_
 
+//#define PRINT_BLOCKS
+
 void update_all();
 
 bool update_setup();

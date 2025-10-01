@@ -26,6 +26,14 @@
 #define ERR_BUSTED_ET_MSG				15
 #define ERR_ET_MSG_BAD_REQUEST			16
 
+#define ERR_QUEUE_FULL					17
+#define ERR_LOOP_DETECTED				18
+
+#define ERR_NODE_PRIVATE				19
+#define ERR_PIPELINE_BUSTED				20
+
+#define ERR_ET_MSG_INVALID				21
+
 #define ERR_UNKNOWN_ERR					4999
 #define ERR_UNIMPLEMENTED				5000
 

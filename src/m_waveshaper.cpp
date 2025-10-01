@@ -3,9 +3,15 @@
 float 	local_amplitude_weighting_table[AUDIO_BLOCK_SAMPLES];
 int 	local_amplitude_weighting_table_initialised = 0;
 
+float identity_function(float x){return x;}
+
+int init_waveshaper_default(m_audio_transformer *trans)
+{
+	init_waveshaper(trans, DISCONNECTED, DISCONNECTED, DEFAULT_WAVESHAPER_FUNCTION, DEFAULT_WAVESHAPER_COEFFICIENT);
+}
+
 void init_local_amplitude_weighting_table()
 {
-	float sum = 0.0;
 	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
 		local_amplitude_weighting_table[i] = expf(-((float)i / 72.0) * ((float)i / 72.0));
 	
@@ -57,7 +63,7 @@ int calc_waveshaper(float **dest, float **src, void *transformer_data)
 		}
 		else
 		{
-			dest[0][i] = local_amplitude *  data_struct->shape(data_struct->coefficient.value * (src[0][i] * (1.0 / local_amplitude)));
+			dest[0][i] = local_amplitude *  data_struct->shape(data_struct->coefficient.val.level * (src[0][i] * (1.0 / local_amplitude)));
 		}
 	}
 	
@@ -74,7 +80,7 @@ int init_waveshaper_struct(m_waveshaper_data *data_struct, float (*shape)(float 
 	if (!data_struct)
 		return ERR_NULL_PTR;
 	
-	init_parameter(&data_struct->coefficient, "Gain", coef);
+	INIT_PARAM(data_struct->coefficient, M_PARAM_LEVEL, coef, "Coefficient");
 	
 	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
 		data_struct->prev_block[i] = 0.0;
@@ -108,6 +114,7 @@ int init_waveshaper(m_audio_transformer *trans, vec2i input, vec2i output, float
 	trans->transformer_data = (void*)data_struct;
 	trans->compute_transformer = &calc_waveshaper;
 	
+	INIT_PARAM(data_struct->coefficient, M_PARAM_LEVEL, coef, "Coefficient");
 	transformer_add_parameter(trans, &data_struct->coefficient);
 	
 	return NO_ERROR;

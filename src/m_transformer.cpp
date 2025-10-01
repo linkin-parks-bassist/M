@@ -1,5 +1,36 @@
 #include "M.h"
 
+int init_transformer_default(m_audio_transformer *trans, uint16_t type)
+{
+	if (!trans)
+		return ERR_NULL_PTR;
+	
+	trans->bypass = 0;
+	
+	for (int i = 0; i < TRANSFORMER_MAX_INPUTS; i++)
+		trans->inputs[i] = DISCONNECTED;
+	
+	for (int i = 0; i < TRANSFORMER_MAX_OUTPUTS; i++)
+		trans->outputs[i] = DISCONNECTED;
+	
+	int ret_val;
+	
+	switch (type)
+	{
+		case TRANSFORMER_BUFFER: 		ret_val = init_buffer_default	 (trans); 	break;
+		case TRANSFORMER_MIXER: 		ret_val = init_mixer_default	 (trans); 	break;
+		case TRANSFORMER_AMPLIFIER: 	ret_val = init_amp_default		 (trans); 	break;
+		case TRANSFORMER_BIQUAD: 		ret_val = init_biquad_default	 (trans); 	break;
+		case TRANSFORMER_WAVESHAPER: 	ret_val = init_waveshaper_default(trans); 	break;
+		case TRANSFORMER_DISTORTION: 	ret_val = init_distortion_default(trans); 	break;
+		case TRANSFORMER_COMPRESSOR: 	ret_val = init_compressor_default(trans); 	break;
+		
+		default: ret_val = ERR_BAD_ARGS; break;
+	}
+	
+	return ret_val;
+}
+
 int init_transformer(m_audio_transformer *trans, int type,
 					 unsigned int n_inputs,  unsigned int n_outputs,
 					 vec2i 		   *inputs,  vec2i 		  *outputs,
@@ -11,19 +42,28 @@ int init_transformer(m_audio_transformer *trans, int type,
 		return ERR_NULL_PTR;
 	
 	trans->type = type;
-	
 	trans->bypass = 0;
 	
-	trans->n_inputs  = n_inputs;
-	trans->n_outputs = n_outputs;
+	trans->n_inputs  = (n_inputs  < TRANSFORMER_MAX_INPUTS)  ? n_inputs  : TRANSFORMER_MAX_INPUTS;
+	trans->n_outputs = (n_outputs < TRANSFORMER_MAX_OUTPUTS) ? n_outputs : TRANSFORMER_MAX_OUTPUTS;
 	
+	unsigned int i;
 	if (inputs)
 	{
-		for (unsigned int i = 0; i < n_inputs && i < MAX_TRANSFORMER_INPUTS; i++)
-			trans->inputs[i] = inputs[i];
+		for (i = 0; i < n_inputs; i++)
+			trans->inputs[i] = inputs ? inputs[i] : DISCONNECTED;
 		
-		for (unsigned int i = 0; i < n_outputs && i < MAX_TRANSFORMER_OUTPUTS; i++)
-			trans->outputs[i] = outputs[i];
+		for (; i < TRANSFORMER_MAX_INPUTS; i++)
+			trans->inputs[i] = DISCONNECTED;
+	}
+	
+	if (outputs)
+	{
+		for (i = 0; i < n_outputs; i++)
+			trans->outputs[i] = outputs ? outputs[i] : DISCONNECTED;
+		
+		for (; i < TRANSFORMER_MAX_OUTPUTS; i++)
+			trans->outputs[i] = DISCONNECTED;
 	}
 	
 	trans->transformer_data 	= transformer_data;
@@ -55,11 +95,11 @@ int propagate_transformer(m_pipeline *pipeline, m_audio_transformer *trans)
 	if (!pipeline || !trans)
 		return ERR_NULL_PTR;
 		
-	m_pipeline_node *inputs [MAX_TRANSFORMER_INPUTS ];
-	m_pipeline_node *outputs[MAX_TRANSFORMER_OUTPUTS];
+	m_pipeline_node *inputs [TRANSFORMER_MAX_INPUTS ];
+	m_pipeline_node *outputs[TRANSFORMER_MAX_OUTPUTS];
 	
-	float  *src[MAX_TRANSFORMER_INPUTS];
-	float *dest[MAX_TRANSFORMER_INPUTS];
+	float  *src[TRANSFORMER_MAX_INPUTS];
+	float *dest[TRANSFORMER_MAX_INPUTS];
 	
 	unsigned int i;
 	int n_valid_inputs = 0;
@@ -68,7 +108,7 @@ int propagate_transformer(m_pipeline *pipeline, m_audio_transformer *trans)
 	{
 		inputs[i] = pipeline_get_node(pipeline, trans->inputs[i]);
 		
-		if (inputs[i] && inputs[i]->active && inputs[i]->block)
+		if (inputs[i] && inputs[i]->block)
 		{
 			src[i] = inputs[i]->block->data;
 			n_valid_inputs++;
@@ -79,7 +119,7 @@ int propagate_transformer(m_pipeline *pipeline, m_audio_transformer *trans)
 		}
 	}
 	
-	while (i < MAX_TRANSFORMER_INPUTS)
+	while (i < TRANSFORMER_MAX_INPUTS)
 	{
 		src[i] 			= NULL;
 		inputs[i] 		= NULL;
@@ -87,7 +127,7 @@ int propagate_transformer(m_pipeline *pipeline, m_audio_transformer *trans)
 	}
 	
 	#ifdef PRINT_TRANSFORMER_INFO
-	for (i = 0; i < MAX_TRANSFORMER_INPUTS; i++)
+	for (i = 0; i < TRANSFORMER_MAX_INPUTS; i++)
 		m_printf("Input %d: coordinates (%d, %d). Buffer pointer: 0x%08x\n", i, trans->inputs[i].x, trans->inputs[i].y, src[i]);
 	#endif
 	
@@ -109,7 +149,7 @@ int propagate_transformer(m_pipeline *pipeline, m_audio_transformer *trans)
 		}
 	}
 	
-	while (i < MAX_TRANSFORMER_OUTPUTS)
+	while (i < TRANSFORMER_MAX_OUTPUTS)
 	{
 		dest[i] 		= NULL;
 		outputs[i] 		= NULL;
@@ -117,7 +157,7 @@ int propagate_transformer(m_pipeline *pipeline, m_audio_transformer *trans)
 	}
 	
 	#ifdef PRINT_TRANSFORMER_INFO
-	for (i = 0; i < MAX_TRANSFORMER_INPUTS; i++)
+	for (i = 0; i < TRANSFORMER_MAX_INPUTS; i++)
 		m_printf("Output %d: coordinates (%d, %d). Buffer pointer: 0x%08x\n", i, trans->outputs[i].x, trans->outputs[i].y, dest[i]);
 	#endif
 	
@@ -175,14 +215,6 @@ int propagate_transformer(m_pipeline *pipeline, m_audio_transformer *trans)
 			return ERR_TRANSFORMER_MALFORMED;
 	}
 	
-	for (int i = 0; i < trans->n_parameters; i++)
-	{
-		if (trans->parameters[i])
-		{
-			m_printf("%s = %6f,\n", trans->parameters[i]->name, trans->parameters[i]->value);
-		}
-	}
-	
 	if (ret_val == NO_ERROR)
 		m_printf("Computed sucessfully\n");
 	else
@@ -192,7 +224,7 @@ int propagate_transformer(m_pipeline *pipeline, m_audio_transformer *trans)
 	
 	m_printf("Bypass: %d. Function pointer: 0x%x.\n", trans->bypass, trans->compute_transformer);
 	
-	for (int i = 0; i < MAX_TRANSFORMER_OUTPUTS; i++)
+	for (int i = 0; i < TRANSFORMER_MAX_OUTPUTS; i++)
 	{
 		if (!dest[i])
 			continue;

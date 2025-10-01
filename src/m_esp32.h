@@ -5,4 +5,6 @@
 
 int init_esp32_link();
 
+void esp32_message_check_handle();
+
 #endif

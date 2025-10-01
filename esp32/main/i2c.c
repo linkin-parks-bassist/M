@@ -48,7 +48,7 @@ int i2c_transmit(uint8_t addr, uint8_t *buf, int n)
 		return ERR_MUTEX_UNAVAILABLE;
 	}
 	
-	esp_err_t ret_val = i2c_master_write_to_device(I2C_MASTER_NUM, addr, buf, n, pdMS_TO_TICKS(1000));
+	esp_err_t ret_val = i2c_master_write_to_device(I2C_MASTER_NUM, addr, buf, n, pdMS_TO_TICKS(I2C_MASTER_TIMEOUT_MS));
 	
 	xSemaphoreGive(i2c_mutex);
 	

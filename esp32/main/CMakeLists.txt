@@ -6,4 +6,8 @@ idf_component_register(SRCS "M.c"
 							"lvgl_port.c"
 							"ui.c"
 							"comms.c"
+							"transformer_view.c"
+							"parameter_widget.c"
+							"touch_irq.c"
+							"esp32_context.c"
 					INCLUDE_DIRS "." "../../src")

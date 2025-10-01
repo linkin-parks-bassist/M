@@ -1,5 +1,10 @@
 #include "M.h"
 
+int init_biquad_default(m_audio_transformer *trans)
+{
+	return init_biquad(trans, DISCONNECTED, DISCONNECTED, DEFAULT_BIQUAD_TYPE, DEFAULT_BIQUAD_CUTOFF, DEFAULT_BIQUAD_BANDWIDTH, DEFAULT_BIQUAD_DB_GAIN);
+}
+
 int calc_biquad(float **dest, float **src, void *transformer_data)
 {
 	if (!transformer_data || !dest || !src)
@@ -10,6 +15,26 @@ int calc_biquad(float **dest, float **src, void *transformer_data)
 	
 	//m_printf("Calculating biquad transform...\n");
 	m_biquad_data *biquad = (m_biquad_data*)transformer_data;
+	
+	int parameters_updated = 0;
+	
+	parameters_updated |= biquad->type.updated;
+	parameters_updated |= biquad->cutoff.updated;
+	parameters_updated |= biquad->bandwidth.updated;
+	parameters_updated |= biquad->db_gain.updated;
+	
+	int ret_val;
+	
+	if (parameters_updated)
+	{
+		if ((ret_val = compute_biquad_coefficients(biquad)) != NO_ERROR)
+			return ret_val;
+		
+		biquad->type.updated 	  = 0;
+		biquad->cutoff.updated 	  = 0;
+		biquad->bandwidth.updated = 0;
+		biquad->db_gain.updated   = 0;
+	}
 	
 	//m_printf("Coefficients: a0 = %4f, a1 = %4f,  a2 = %4f,  a3 = %4f, a4 = %4f, x1 = %4f, x2 = %4f, y1 = %4f, y2 = %4f.\n",
 	//	biquad->a0, biquad->a1, biquad->a2, biquad->a3, biquad->a4, biquad->x1, biquad->x2, biquad->y1, biquad->y2);
@@ -47,24 +72,22 @@ int init_biquad_struct_bandpass(m_biquad_data *biquad, float center, float bandw
 	return init_biquad_struct(biquad, band_pass, center, bandwidth, 1.0);
 }
 
-int compute_biquad_coefficients(m_biquad_data *biquad, int type, float cutoff, float bandwidth, float db_gain)
+int compute_biquad_coefficients(m_biquad_data *biquad)
 {
 	if (!biquad)
 		return ERR_NULL_PTR;
 	
-	biquad->type = type;
-	
 	float A, omega, sin_omega, cos_omega, alpha, beta;
 	float a0, a1, a2, b0, b1, b2;
 	
-	A 			= pow(10, db_gain / 40);
-	omega 		= 2 * PI * cutoff / AUDIO_SAMPLE_RATE_EXACT;
+	A 			= pow(10, biquad->db_gain.val.level / 40);
+	omega 		= 2 * PI * biquad->cutoff.val.level / AUDIO_SAMPLE_RATE_EXACT;
 	sin_omega 	= sin(omega);
 	cos_omega 	= cos(omega);
-	alpha 		= sin_omega * sinh(((LN_2 / 2) * bandwidth * omega) / sin_omega);
+	alpha 		= sin_omega * sinh(((LN_2 / 2) * biquad->bandwidth.val.level * omega) / sin_omega);
 	beta 		= sqrt(A + A);
 
-	switch (type)
+	switch (biquad->type.val.option)
 	{
 		case low_pass:
 			b0 = (1 - cos_omega) / 2;
@@ -112,20 +135,20 @@ int compute_biquad_coefficients(m_biquad_data *biquad, int type, float cutoff, f
 			break;
 			
 		case low_shelf:
-			b0 =  A * ((A + 1)	 - (A - 1) * cos_omega + beta * sin_omega);
+			b0 =  A * ((A + 1)	   - (A - 1) * cos_omega + beta * sin_omega);
 			b1 =  2 * A * ((A - 1) - (A + 1) * cos_omega);
-			b2 =  A * ((A + 1)	 - (A - 1) * cos_omega - beta * sin_omega);
+			b2 =  A * ((A + 1)	   - (A - 1) * cos_omega - beta * sin_omega);
 			a0 = (A + 1)		   + (A - 1) * cos_omega + beta * sin_omega;
-			a1 = -2 * ((A - 1)	 + (A + 1) * cos_omega);
+			a1 = -2 * ((A - 1)	   + (A + 1) * cos_omega);
 			a2 = (A + 1)		   + (A - 1) * cos_omega - beta * sin_omega;
 			break;
 			
 		case high_shelf:
-			b0 =  A * ((A + 1)	 + (A - 1) * cos_omega + beta * sin_omega);
+			b0 =  A * ((A + 1)	   + (A - 1) * cos_omega + beta * sin_omega);
 			b1 = -2 * A * ((A - 1) + (A + 1) * cos_omega);
-			b2 =  A * ((A + 1)	 + (A - 1) * cos_omega - beta * sin_omega);
+			b2 =  A * ((A + 1)	   + (A - 1) * cos_omega - beta * sin_omega);
 			a0 = (A + 1)		   - (A - 1) * cos_omega + beta * sin_omega;
-			a1 =  2 * ((A - 1)	 - (A + 1) * cos_omega);
+			a1 =  2 * ((A - 1)	   - (A + 1) * cos_omega);
 			a2 = (A + 1)		   - (A - 1) * cos_omega - beta * sin_omega;
 			break;
 			
@@ -145,22 +168,23 @@ int compute_biquad_coefficients(m_biquad_data *biquad, int type, float cutoff, f
 	return NO_ERROR;
 }
 
-int init_biquad_struct(m_biquad_data *biquad, int type, float cutoff, float bandwidth, float db_gain)
+int init_biquad_struct(m_biquad_data *biquad, biquad_type type, float cutoff, float bandwidth, float db_gain)
 {
-	int ret_val = compute_biquad_coefficients(biquad, type, cutoff, bandwidth, db_gain);
-	
-	if (ret_val != NO_ERROR)
-		return ret_val;
+	INIT_PARAM(biquad->type, 		M_PARAM_OPTION, type, 		"Type");
+	INIT_PARAM(biquad->cutoff, 		M_PARAM_LEVEL, 	cutoff, 	"Cutoff");
+	INIT_PARAM(biquad->bandwidth, 	M_PARAM_LEVEL, 	bandwidth, 	"Bandwidth");
+	INIT_PARAM(biquad->db_gain, 	M_PARAM_LEVEL, 	db_gain, 	"Gain");
 	
 	return NO_ERROR;
 }
 
-int init_biquad(m_audio_transformer *trans, vec2i input, vec2i output, int type, float cutoff, float bandwidth, float db_gain)
+int init_biquad(m_audio_transformer *trans, vec2i input, vec2i output, biquad_type type, float cutoff, float bandwidth, float db_gain)
 {
 	if (!trans)
 		return ERR_NULL_PTR;
 	
 	trans->type = TRANSFORMER_BIQUAD;
+	trans->bypass = 0;
 	
 	trans->n_inputs  = 1;
 	trans->n_outputs = 1;
@@ -182,10 +206,15 @@ int init_biquad(m_audio_transformer *trans, vec2i input, vec2i output, int type,
 	
 	trans->compute_transformer = &calc_biquad;
 	
+	transformer_add_parameter(trans, &data_struct->type);
+	transformer_add_parameter(trans, &data_struct->cutoff);
+	transformer_add_parameter(trans, &data_struct->bandwidth);
+	transformer_add_parameter(trans, &data_struct->db_gain);
+	
 	return NO_ERROR;
 }
 
-m_audio_transformer *alloc_biquad_transformer(vec2i input, vec2i output, int type, float cutoff, float bandwidth, float db_gain)
+m_audio_transformer *alloc_biquad_transformer(vec2i input, vec2i output, biquad_type type, float cutoff, float bandwidth, float db_gain)
 {
 	m_audio_transformer *biquad = (m_audio_transformer*)malloc(sizeof(m_audio_transformer));
 	int ret_val;

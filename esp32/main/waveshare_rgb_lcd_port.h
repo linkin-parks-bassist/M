@@ -21,11 +21,7 @@
 #define EXAMPLE_LCD_H_RES			   1024
 #define EXAMPLE_LCD_V_RES			   600
 
-#if ESP_PANEL_USE_1024_600_LCD
-	#define EXAMPLE_LCD_PIXEL_CLOCK_HZ	  (21 * 1000 * 1000)
-#else
-	#define EXAMPLE_LCD_PIXEL_CLOCK_HZ	  (16 * 1000 * 1000)
-#endif
+#define EXAMPLE_LCD_PIXEL_CLOCK_HZ	  (40 * 1000 * 1000)
 
 #define CONFIG_EXAMPLE_LCD_RGB_BOUNCE_BUFFER_HEIGHT 20
 
@@ -61,18 +57,14 @@
 #define EXAMPLE_LCD_BK_LIGHT_OFF_LEVEL  !EXAMPLE_LCD_BK_LIGHT_ON_LEVEL
 
 #define EXAMPLE_PIN_NUM_TOUCH_RST	   (-1)			// -1 if not used
-#define EXAMPLE_PIN_NUM_TOUCH_INT	   (-1)			// -1 if not used
-
-static const char *TAG = "example";
+#define EXAMPLE_PIN_NUM_TOUCH_INT	   GPIO_NUM_4			// -1 if not used
 
 bool example_lvgl_lock(int timeout_ms);
 void example_lvgl_unlock(void);
 
-esp_err_t waveshare_esp32_s3_rgb_lcd_init();
+esp_err_t waveshare_esp32_s3_rgb_lcd_init(lv_disp_t **disp);
 
 esp_err_t wavesahre_rgb_lcd_bl_on();
 esp_err_t wavesahre_rgb_lcd_bl_off();
-
-void example_lvgl_demo_ui();
 
 #endif

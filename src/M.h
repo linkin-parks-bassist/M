@@ -12,6 +12,8 @@
 
 #define NUM_MASKS  						(((MAX_AUDIO_MEMORY / AUDIO_BLOCK_SAMPLES / 2) + 31) / 32)
 
+#define M_TEENSY
+
 #include <DMAChannel.h>
 #include <TeensyThreads.h>
 
@@ -28,7 +30,7 @@
 #include "m_parameter.h"
 #include "m_transformer.h"
 
-#include "m_fader_mixer_amp.h"
+#include "m_buffer_mixer_amp.h"
 #include "m_biquad.h"
 #include "m_compressor.h"
 #include "m_waveshaper.h"
@@ -42,11 +44,11 @@
 #include "m_sgtl5000.h"
 #include "m_memcpy_audio.h"
 
-#include "m_hw_ctrl.h"
 #include "m_context.h"
 #include "m_esp32.h"
 
 #include "m_id.h"
+#include "m_status.h"
 
 extern m_pipeline distortion_pipeline;
 extern m_pipeline bypass_pipeline;

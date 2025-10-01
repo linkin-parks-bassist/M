@@ -1,6 +1,5 @@
 #include "M.h"
 
-m_pipeline *active_pipeline = NULL;
 m_pipeline *new_pipeline = NULL;
 
 #define NOISE_DELTA 0.999
@@ -12,8 +11,8 @@ int pipeline_switch_scheduled = 0;
 
 void set_active_pipeline(m_pipeline *pipeline)
 {
-	active_pipeline = pipeline;
-	//m_printf("Obtained new active pipeline, 0x%x.\n", active_pipeline);
+	global_cxt.active_pipeline = pipeline;
+	//m_printf("Obtained new active pipeline, 0x%x.\n", global_cxt.active_pipeline);
 }
 
 int switch_active_pipeline(m_pipeline *pipeline)
@@ -107,8 +106,20 @@ float smoothed_transition_function(float ratio, float power)
 int switch_progress;
 int switch_in_progress = 0;
 
+#define AVG_DURATION_UPDATE_COEF 0.99f
+//#define PRINT_TIMES
+
 void m_software_isr()
 {
+	static uint32_t last_runtime = micros();
+	
+	static float avg_roundtrip_duration_micros 	= 0.0;
+	static float avg_compute_duration_micros 	= 0.0;
+	
+	uint32_t start_time = micros();
+	
+	int ret_val;
+	static int runs = 0;
 	i2s_input_update();
 	
 	int16_t block[AUDIO_BLOCK_SAMPLES];
@@ -118,11 +129,9 @@ void m_software_isr()
 	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
 		block[i] = i2s_input_blocks[1].data[i] - (int16_t)avg_noise[i];
 	
-	int start_time = millis();
-	
 	//pretty_print_block(block, "Input: \n");
 	
-	if (!active_pipeline)
+	if (!global_cxt.active_pipeline)
 	{
 		i2s_output_transmit_mono_int(block);
 	}
@@ -132,7 +141,7 @@ void m_software_isr()
 		{
 			if (new_pipeline)
 			{
-				if (active_pipeline)
+				if (global_cxt.active_pipeline)
 				{
 					switch_in_progress 	= 1;
 					switch_progress 	= 0;
@@ -154,10 +163,10 @@ void m_software_isr()
 			float ratio, coef;
 			
 			//m_printf("Compute pipelines...\n");
-			compute_pipeline(active_pipeline, block);
+			compute_pipeline(global_cxt.active_pipeline, block);
 			compute_pipeline(new_pipeline,	block);
 			
-			out1 = active_pipeline->output_node.block->data;
+			out1 = global_cxt.active_pipeline->output_node.block->data;
 			out2 = new_pipeline->output_node.block->data;
 			
 			//m_printf("outputs: 0x%x, 0x%x\n", out1, out2);
@@ -180,7 +189,7 @@ void m_software_isr()
 			if (switch_progress >= PIPELINE_SWITCH_SAMPLES)
 			{
 				//m_printf("transition complete\n");
-				active_pipeline = new_pipeline;
+				global_cxt.active_pipeline = new_pipeline;
 				new_pipeline 	= NULL;
 				
 				switch_in_progress = 0;
@@ -188,15 +197,35 @@ void m_software_isr()
 		}
 		else
 		{
-			compute_pipeline(active_pipeline, block);
+			ret_val = compute_pipeline(global_cxt.active_pipeline, block);
+			
+			if (ret_val == ERR_PIPELINE_BUSTED)
+			{
+				if (global_cxt.active_pipeline->err_flags & PIPELINE_ERR_FLAG_UNCONFIGURED)
+					global_cxt.unconfigured_pipeline = global_cxt.active_pipeline;
+			}
 			#ifdef PRINT_BLOCKS
-			serial_print_blocks(2, active_pipeline->output_node.block->data, active_pipeline->input_node.block->data);
+			serial_print_blocks(2, global_cxt.active_pipeline->input_node.block->data,  global_cxt.active_pipeline->output_node.block->data);
 			#endif
-			i2s_output_transmit_mono_float(active_pipeline->output_node.block->data);
+			i2s_output_transmit_mono_float(global_cxt.active_pipeline->output_node.block->data);
 		}
 	}
 	
+	avg_roundtrip_duration_micros = avg_roundtrip_duration_micros * AVG_DURATION_UPDATE_COEF + (start_time - last_runtime) * (1.0 - AVG_DURATION_UPDATE_COEF);
+	last_runtime = start_time;
+	
+	avg_compute_duration_micros = avg_compute_duration_micros * AVG_DURATION_UPDATE_COEF + ((float)(micros() - start_time)) * (1.0 - AVG_DURATION_UPDATE_COEF);
+	
 	i2s_output_update();
+	
+	runs++;
+	
+	#ifdef PRINT_TIMES
+	if (runs % 256 == 0)
+		m_printf("average compute duration: %6fms. average round-trip duration: %6fms. Compute takes %03f%% of round-trip\n",
+			avg_compute_duration_micros * 0.001, avg_roundtrip_duration_micros * 0.001,
+			(avg_roundtrip_duration_micros == 0.0) ? 0 : 100.0 * (avg_compute_duration_micros/avg_roundtrip_duration_micros));
+	#endif
 
 	asm("DSB");
 }

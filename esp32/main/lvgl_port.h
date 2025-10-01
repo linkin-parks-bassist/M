@@ -8,10 +8,17 @@
 
 #include <stdint.h>
 
+#define LV_CONF_PATH "./"
+
+#define LV_BIG_ENDIAN_SYSTEM 0
+
 #include "esp_err.h"
 #include "esp_lcd_types.h"
 #include "esp_lcd_touch.h"
+#include "lv_conf.h"
 #include "lvgl.h"
+
+#define TOUCH_PANEL_USE_INTERRUPTS
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,7 +38,7 @@ extern "C" {
 	#define LVGL_PORT_H_RES			 (800)
 	#define LVGL_PORT_V_RES			 (480)
 #endif
-#define LVGL_PORT_TICK_PERIOD_MS	5
+#define LVGL_PORT_TICK_PERIOD_MS	1
 
 /**
  * LVGL timer handle task related parameters, can be adjusted by users
@@ -41,8 +48,9 @@ extern "C" {
 #define LVGL_PORT_TASK_MIN_DELAY_MS (0)	// The minimum delay of the LVGL timer task, in milliseconds
 #define LVGL_PORT_TASK_STACK_SIZE   (8 * 1024) // The stack size of the LVGL timer task, in bytes
 #define LVGL_PORT_TASK_PRIORITY	 (3)		// The priority of the LVGL timer task
-#define LVGL_PORT_TASK_CORE		 (-1)			// The core of the LVGL timer task,
+#define LVGL_PORT_TASK_CORE		 (0)			// The core of the LVGL timer task,
 // `-1` means the don't specify the core
+
 /**
  *
  * LVGL buffer related parameters, can be adjusted by users:
@@ -55,20 +63,22 @@ extern "C" {
  *
  */
 
-#define CONFIG_EXAMPLE_LVGL_PORT_BUF_PSRAM 1
+#define CONFIG_EXAMPLE_LVGL_PORT_BUF_PSRAM 		0
+#define CONFIG_EXAMPLE_LVGL_PORT_BUF_INTERNAL 	1
 
 #if CONFIG_EXAMPLE_LVGL_PORT_BUF_PSRAM
 #define LVGL_PORT_BUFFER_MALLOC_CAPS	(MALLOC_CAP_SPIRAM)
 #elif CONFIG_EXAMPLE_LVGL_PORT_BUF_INTERNAL
 #define LVGL_PORT_BUFFER_MALLOC_CAPS	(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)
 #endif
-#define LVGL_PORT_BUFFER_HEIGHT		 (60)
+
+#define LVGL_PORT_BUFFER_HEIGHT		 (20)
 
 /**
  * Avoid tering related configurations, can be adjusted by users.
  *
  */
-#define LVGL_PORT_AVOID_TEAR_ENABLE	 1 // Set to 1 to enable
+#define LVGL_PORT_AVOID_TEAR_ENABLE	 0 // Set to 1 to enable
 #if LVGL_PORT_AVOID_TEAR_ENABLE
 /**
  * Set the avoid tearing mode:
@@ -137,7 +147,7 @@ extern "C" {
  *	  - ESP_ERR_INVALID_ARG: Invalid argument
  *	  - Others: Fail
  */
-esp_err_t lvgl_port_init(esp_lcd_panel_handle_t lcd_handle, esp_lcd_touch_handle_t tp_handle);
+esp_err_t lvgl_port_init(esp_lcd_panel_handle_t lcd_handle, esp_lcd_touch_handle_t tp_handle, lv_disp_t **disp);
 
 /**
  * @brief Take LVGL mutex
