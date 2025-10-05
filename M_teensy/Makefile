@@ -20,7 +20,7 @@ $(HEXFILE): $(INO).ino $(SRC) $(HDR)
 	cp include/*.h src && $(ARDUINO_CLI) compile \
 	    --fqbn $(BOARD) \
 	    --build-path $(BUILD_DIR) \
-	    --build-property build.extra_flags="-Isrc" || rm src/*.h
+	    --build-property build.extra_flags="-Isrc" ; rm src/*.h
 
 
 upload: $(HEXFILE)

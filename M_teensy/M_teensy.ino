@@ -1,97 +1,121 @@
 #include <Wire.h>
+#include <ST7796_t3.h>
+#include <TeensyThreads.h>
+#include <SPI.h>
 
-#include "src/M.h"
+#include "src/tm.h"
 
-m_pipeline pipeline;
+tm_pipeline pipelines[4];
 
-#define BYPASS
-//#define DISTORTION
-//#define COMPRESSION
+tm_audio_transformer distortion;
+tm_audio_transformer compressor;
+
+tm_context global_cxt;
+
 
 void setup()
 {
+	Serial.begin(115200);
 	delay(1000);
-	Serial.end();
 	
-	m_printf("Initialising i2s...\n");
+	if (CrashReport)
+	{
+		delay(4000);
+		Serial.print(CrashReport);
+		exit(0);
+	}
+	
+	tm_printf("Hello!\n");
+	
+	tm_printf("sizeof(tm_context) = %d\n", sizeof(tm_context));
+	
+	/*global_cxt = malloc(sizeof(tm_context));
+	if (!global_cxt)
+	{
+		tm_printf("Failed to allocate global_cxt struct! Abort!\n");
+	}*/
+	
+	tm_printf("Initialising memory pools... ");
+	init_metm_pools();
+	tm_printf("done.\n");
+	
+	tm_printf("Initialising context struct... ");
+	init_tm_context(&global_cxt);
+	tm_printf("done.\n");
+	
 	init_i2s();
 	
-	init_mem_pools();
-	
-	m_printf("Initialising sgtl5000...\n");
+	tm_printf("Initialising SGTL5000... ");
 	sgtl5000_enable();
 	sgtl5000_line_in_level(4);
-	sgtl5000_volume(0.75); 
-	//sgtl5000_adc_high_pass_filter_disable();
+	sgtl5000_volume(0.5);
+	tm_printf("done.\n");
 	
-	int ret_val;
 	
-	#ifdef BYPASS
-	init_bypass_pipeline(&pipeline);
-	#else
-	#ifdef DISTORTION
-	float f_1 = 100.0;
-	float f_2 = 1000.0;
 	
-	float gains[4] = {0.6, 0.2, 0.2, 0.4};
-	vec2i mixer_inputs[4] = {(vec2i){2, 0}, (vec2i){2, 1}, (vec2i){2, 2}, INPUT_NODE_COORD};
+	//tm_context_new_profile(&global_cxt);
 	
-	init_pipeline(&pipeline, 4, 3);
+	//set_active_pipeline(&global_cxt.profiles[1].pipeline);
 	
-	pipeline_activate_node(&pipeline, 0, 0);
-	pipeline_activate_node(&pipeline, 0, 1);
-	pipeline_activate_node(&pipeline, 0, 2);
-	pipeline_activate_node(&pipeline, 1, 0);
-	pipeline_activate_node(&pipeline, 1, 1);
-	pipeline_activate_node(&pipeline, 1, 2);
-	pipeline_activate_node(&pipeline, 2, 0);
-	pipeline_activate_node(&pipeline, 2, 1);
-	pipeline_activate_node(&pipeline, 2, 2);
-	pipeline_activate_node(&pipeline, 3, 0);
+	//init_distortion(&distortion, INPUT_NODE_COORD, (vec2i){0, 0}, DISTORTION_CLIP, 4.0, 0.1);
+	//pipeline_add_transformer(&global_cxt.profiles[1].pipeline, &distortion);
 	
-	/* Split out bass */
-	pipeline_add_transformer(&pipeline, alloc_low_pass_transformer(INPUT_NODE_COORD,  (vec2i){0, 0}, f_1));
-	pipeline_add_transformer(&pipeline, alloc_low_pass_transformer((vec2i){0, 0}, 	  (vec2i){2, 0}, f_1));
+	//init_compressor(&compressor, (vec2i){0, 0}, OUTPUT_NODE_COORD, 6.0, -24, 0.01, 0.01);
+	//pipeline_add_transformer(&global_cxt.profiles[1].pipeline, &compressor);
 	
-	/* Split out mids */
-	pipeline_add_transformer(&pipeline, alloc_band_pass_transformer(INPUT_NODE_COORD, (vec2i){0, 1}, sqrt(f_1 * f_2), log2f(f_2 / f_1)));
-	pipeline_add_transformer(&pipeline, alloc_band_pass_transformer((vec2i){0, 1}, 	  (vec2i){1, 1}, sqrt(f_1 * f_2), log2f(f_2 / f_1)));
+	tm_printf("Initialising esp32 link... ");
+	init_esp32_link();
+	tm_printf("done.\n");
 	
-	/* Split out highs */
-	pipeline_add_transformer(&pipeline, alloc_high_pass_transformer(INPUT_NODE_COORD, (vec2i){0, 2}, f_2));
-	pipeline_add_transformer(&pipeline, alloc_high_pass_transformer((vec2i){0, 2}, 	  (vec2i){1, 2}, f_2));
-	
-	/* Distort mids */
-	pipeline_add_transformer(&pipeline, alloc_tanh_distortion((vec2i){1, 1},  (vec2i){2, 1}, 12.0));
-	
-	/* Distort highs */
-	pipeline_add_transformer(&pipeline, alloc_tanh_distortion((vec2i){1, 2},  (vec2i){2, 2}, 14.0));
-	
-	pipeline_add_transformer(&pipeline, alloc_mixer_transformer(mixer_inputs, 4, (vec2i){3, 0}, gains));
-	pipeline_add_transformer(&pipeline, alloc_compressor1((vec2i){3, 0}, OUTPUT_NODE_COORD, 6.0, -18, 0.01, 0.03));
-	
-	#else
-	#ifdef COMPRESSION
-	init_pipeline(&pipeline, 0, 0);
-	
-	if ((ret_val = pipeline_add_transformer(&pipeline, alloc_compressor1(INPUT_NODE_COORD, OUTPUT_NODE_COORD, 20.0, -30.0, 0.0001, 0.005))) != NO_ERROR)
-	{
-		m_printf("Error adding compressor: %d\n", ret_val);
-	}
-	else
-	{
-		m_printf("Sucessfully added compressor\n");
-	}
-	#endif
-	#endif
-	#endif
-	
-	set_active_pipeline(&pipeline);
-	
-	m_printf("Initialisation complete.\n");
+	tm_printf("Initialisation complete. Entering main loop...\n");
 }
+
+int LED = 1;
+#define LED_BLINK_MILLIS 	50
+#define DEBUG_PRINTS
+#define DEBUG_PRINT_MILLIS 2000
 
 void loop()
 {
+	#ifdef DEBUG_PRINTS
+	static int last_debug_print = millis();
+	#endif
+	static int last_led_transition = millis();
+	int time = millis();
 	
+	if (time - last_led_transition > LED_BLINK_MILLIS)
+	{
+		digitalWrite(13, LED);
+		LED = 1 - LED;
+		last_led_transition = millis();
+	}
+	
+	#ifdef DEBUG_PRINTS
+	if (time - last_debug_print > DEBUG_PRINT_MILLIS)
+	{
+		print_context_info(&global_cxt, -1);
+		last_debug_print = millis();
+	}
+	#endif
+	
+	esp32_message_check_handle();
+	
+	if (global_cxt.unconfigured_pipeline)
+	{
+		int ret_val;
+		tm_AudioNoInterrupts();
+		ret_val = pipeline_reconfigure(global_cxt.unconfigured_pipeline);
+		tm_AudioInterrupts();
+		global_cxt.unconfigured_pipeline = NULL;
+		
+		if (ret_val)
+		{
+			tm_printf("ERROR configuring pipeline! returned value: %d\n", ret_val);
+		}
+		else
+		{
+			tm_printf("Sucessfully configured pipeline\n");
+		}
+	}
+	delay(1);
 }
