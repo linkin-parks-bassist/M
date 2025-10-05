@@ -1,0 +1,20 @@
+idf_component_register(SRCS "em.c"
+							"em_i2c.c"
+							"em_comms.c"
+							"em_display.c"
+							"waveshare_rgb_lcd_port.c"
+							"lvgl_port.c"
+							"em_ui.c"
+							"m_comms.c"
+							"em_comms.c"
+							"em_transformer_view.c"
+							"em_parameter_widget.c"
+							"em_touch_irq.c"
+							"em_context.c"
+							"em_profile_view.c"
+							"em_actions.c"
+							"em_shared_context.c"
+							"em_transformer_default.c"
+					INCLUDE_DIRS "." "../../shared" "../include")
+
+target_compile_options(${COMPONENT_LIB} PRIVATE -DM_ESP32)

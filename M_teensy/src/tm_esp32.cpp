@@ -1,0 +1,388 @@
+#include <Wire.h>
+#include "tm.h"
+#include "tm_comms.h"
+#include "signal.h"
+#include "m_vec2i.h"
+#include "tm_context.h"
+#include "tm_error_codes.h"
+
+te_msg response;
+et_msg recieved;
+
+uint8_t recieve_buffer[ET_MESSAGE_MAX_LEN];
+uint8_t wait_message[ET_MESSAGE_MAX_LEN];
+
+volatile sig_atomic_t message_pending = 0;
+volatile sig_atomic_t response_ready  = 0;
+
+int et_msg_sanity_check(et_msg msg, int len)
+{
+	tm_printf("Message sanity check. msg.type = %d. length = %d. expected length = %d.\n", msg.type, len, et_message_data_length(msg));
+	if (!valid_et_msg_type(msg.type))
+		return 0;
+	
+	int expected_len = et_message_data_length(msg);
+	
+	if (expected_len != MESSAGE_LEN_VARIABLE && len != expected_len)
+		return 0;
+	
+	return 1;
+}
+
+typedef enum
+{
+	IDLE,
+	SENDING_STRING,
+	RECIEVING_NEW_PARAM_NAME_LONG
+} comms_fstm_state_t;
+
+char *string_out = NULL;
+int string_out_pos;
+
+char *string_in = NULL;
+int string_in_pos;
+
+m_parameter_id target;
+
+comms_fstm_state_t comms_fstm_state = IDLE;
+
+void handle_esp32_message(et_msg msg)
+{
+	tm_printf("Recieved message type: %d\n", msg.type);
+	int ret_val;
+	int string_received = 0;
+	
+	uint16_t arg16_1, arg16_2, arg16_3, arg16_4, arg16_5;
+	
+	memcpy(&arg16_1, &msg.data[0],  sizeof(uint16_t));
+	memcpy(&arg16_2, &msg.data[2],  sizeof(uint16_t));
+	memcpy(&arg16_3, &msg.data[4],  sizeof(uint16_t));
+	memcpy(&arg16_4, &msg.data[6],  sizeof(uint16_t));
+	memcpy(&arg16_5, &msg.data[8],  sizeof(uint16_t));
+	
+	union
+	{
+		et_msg_chparam_struct chstr;
+		et_msg_rqparam_struct rqstr;
+	} str;
+	
+	m_parameter *param;
+	m_param_value value;
+	
+	int len;
+	
+	switch (msg.type)
+	{
+		case ET_MESSAGE_HI:
+			response = create_te_msg(TE_MESSAGE_HI, "s", global_cxt.status_flags);
+			break;
+		
+		case ET_MESSAGE_RESET:
+			ret_val = reset_context(&global_cxt);
+			response = create_te_msg_error(ret_val);
+			break;
+		
+		case ET_MESSAGE_REBOOT:
+			tm_safe_reboot(&global_cxt);
+			break;
+		
+		case ET_MESSAGE_CREATE_PROFILE:
+			tm_printf("Creating new profile...\n");
+			ret_val = tm_context_new_profile(&global_cxt);
+			
+			tm_printf("ret_val: %d\n", ret_val);
+			if (ret_val >= 0)	// A positive return is the ID of the new profile
+				response = create_te_msg_profile_id(ret_val);
+			else 				// A negative return is an error code
+				response = create_te_msg_error(-ret_val);
+			break;
+		
+		case ET_MESSAGE_APPEND_TRANSFORMER:
+			tm_printf("Creating new transformer...\n");
+			
+			ret_val = cxt_append_transformer_to_profile(&global_cxt, arg16_1, arg16_2);
+			
+			if (ret_val < 0)
+				response = create_te_msg_error(-ret_val);
+			else
+				response = create_te_msg_transformer_id(arg16_1, ret_val);
+			break;
+			
+		case ET_MESSAGE_INSERT_TRANSFORMER:
+			tm_printf("Creating new transformer...\n");
+			
+			ret_val = cxt_insert_transformer_to_profile(&global_cxt, arg16_1, arg16_2, arg16_3);
+			
+			if (ret_val < 0)
+				response = create_te_msg_error(-ret_val);
+			else
+				response = create_te_msg_transformer_id(arg16_1, ret_val);
+			break;
+		
+		case ET_MESSAGE_PREPEND_TRANSFORMER:
+			tm_printf("Creating new transformer...\n");
+			
+			ret_val = cxt_prepend_transformer_to_profile(&global_cxt, arg16_1, arg16_2);
+			
+			if (ret_val < 0)
+				response = create_te_msg_error(-ret_val);
+			else
+				response = create_te_msg_transformer_id(arg16_1, ret_val);
+			break;
+		
+		case ET_MESSAGE_GET_N_PROFILES:
+			tm_printf("esp32 asks: how many profiles? answer: %d\n", global_cxt.n_profiles);
+			response = create_te_msg(TE_MESSAGE_N_PROFILES, "s", global_cxt.n_profiles);
+			break;
+		
+		case ET_MESSAGE_GET_N_TRANSFORMERS:
+			tm_printf("esp32 asks: how many transformers in profile %d? answer: %d\n", arg16_1, cxt_get_n_profile_transformers(&global_cxt, arg16_1));
+			response = create_te_msg(TE_MESSAGE_N_TRANSFORMERS, "ss", arg16_1,
+									 cxt_get_n_profile_transformers(&global_cxt, arg16_1));
+			break;
+		
+		case ET_MESSAGE_GET_TRANSFORMER_ID:
+			tm_printf("esp32 asks: what is the id of the transformer in position %d in profile %d? answer: %d\n", arg16_2, arg16_1, cxt_get_transformer_id_by_pos(&global_cxt, arg16_1, arg16_2));
+			response = create_te_msg(TE_MESSAGE_TRANSFORMER_TYPE, "sss", arg16_1, arg16_2,
+									 cxt_get_transformer_id_by_pos(&global_cxt, arg16_1, arg16_2));
+			break;
+		
+		case ET_MESSAGE_GET_TRANSFORMER_TYPE:
+			tm_printf("esp32 asks: what is the type of transformer %d.%d? answer: %d\n", arg16_1, arg16_2, cxt_get_transformer_type(&global_cxt, arg16_1, arg16_2));
+			response = create_te_msg(TE_MESSAGE_TRANSFORMER_TYPE, "sss", arg16_1, arg16_2,
+									 cxt_get_transformer_type(&global_cxt, arg16_1, arg16_2));
+			break;
+		
+		case ET_MESSAGE_GET_N_PARAMETERS:
+			tm_printf("esp32 asks: what is the n_parameters of transformer %d.%d? answer: %d\n", arg16_1, arg16_2, cxt_get_n_transformer_params(&global_cxt, arg16_1, arg16_2));
+			response = create_te_msg(TE_MESSAGE_N_PARAMETERS, "sss", arg16_1, arg16_2,
+									 cxt_get_n_transformer_params(&global_cxt, arg16_1, arg16_2));
+			break;
+		
+		case ET_MESSAGE_GET_PARAM_TYPE:
+			tm_printf("esp32 asks: what is the type of parameter %d.%d.%d? answer: %d\n", arg16_1, arg16_2, arg16_3, (uint16_t)cxt_get_parameter_type(&global_cxt, arg16_1, arg16_2, arg16_3));
+			response = create_te_msg(TE_MESSAGE_N_PARAMETERS, "sss", arg16_1, arg16_2, arg16_3,
+									 (uint16_t)cxt_get_parameter_type(&global_cxt, arg16_1, arg16_2, arg16_3));
+			break;
+		
+		case ET_MESSAGE_GET_PARAM_VALUE:
+			tm_printf("Request for value of parameter %d.%d.%d...\n", arg16_1, arg16_2, arg16_3);
+			
+			param = cxt_get_parameter_by_id(&global_cxt, arg16_1, arg16_2, arg16_3);
+			
+			if (param)
+			{
+				tm_printf("Request valid. Parameter ptr: 0x%08x, value %f = %d\n", param, param->val.level, param->val.option);
+				response = create_te_msg(TE_MESSAGE_PARAM_VALUE, "sss", arg16_1, arg16_2, arg16_3);
+				memcpy(&response.data[6], &param->val, sizeof(m_param_value));
+			}
+			else
+			{
+				tm_printf("Requested parameter doesn't exist !\n");
+				response.type = TE_MESSAGE_BAD_REQUEST;
+			}
+			break;
+		
+		case ET_MESSAGE_SET_PARAM_VALUE:
+			memcpy(&value, &msg.data[6], sizeof(m_param_value));
+			
+			tm_printf("Request to set parameter %d.%d.%d to value %f = %d\n", arg16_1, arg16_2, arg16_3, value.level, value.option);
+			param = cxt_get_parameter_by_id(&global_cxt, arg16_1, arg16_2, arg16_3);
+			
+			if (param)
+			{
+				tm_printf("The parameter exists; with address %p, and current value %f\n", param, param->val.level);
+				param->val = value;
+				tm_printf("It has been updated to value %f.\n", param->val.level);
+				response = create_te_msg_ok();
+			}
+			else
+			{
+				tm_printf("But no such parameter exists!\n");
+				response = create_te_msg_no_data(TE_MESSAGE_BAD_REQUEST);
+			}
+			break;
+		
+		case ET_MESSAGE_GET_PARAM_NAME:
+			if (!parameter_id_valid(&global_cxt, arg16_1, arg16_2, arg16_3))
+			{
+				response = create_te_msg_no_data(TE_MESSAGE_BAD_REQUEST);
+				break;
+			}
+			
+			string_out = cxt_get_parameter_name(&global_cxt, arg16_1, arg16_2, arg16_3);
+			
+			tm_printf("esp32 asks: what is the name of paramater %d.%d.%d? answer: %d\n", arg16_1, arg16_2, arg16_3, string_out ? "NULL" : string_out);
+			
+			response = create_te_msg_parameter_name(arg16_1, arg16_2, arg16_3, string_out);
+			
+			if (response.type == TE_MESSAGE_PARAM_NAME_LONG)
+				string_out_pos = TE_MESSAGE_MAX_LEN - 3 * sizeof(uint16_t);
+			
+			break;
+		
+		case ET_MESSAGE_SET_PARAM_NAME:
+			response = create_te_msg_error(cxt_set_parameter_name(&global_cxt, arg16_1, arg16_2, arg16_3, (const char*)&msg.data[6]));
+			break;
+		
+		case ET_MESSAGE_SET_PARAM_NAME_LONG:
+			len = msg.data[6];
+			string_in = (char*)malloc(len + 1);
+			string_in_pos = 0;
+			
+			comms_fstm_state = RECIEVING_NEW_PARAM_NAME_LONG;
+			target = {.profile_id = arg16_1, .transformer_id = arg16_2, .parameter_id = arg16_3};
+			
+			for (int i = 0; i + 7 < ET_MESSAGE_MAX_LEN; i++)
+				string_in[string_in_pos++] = msg.data[i + 7];
+			
+			response = create_te_msg_ok();
+			break;
+		
+		case ET_MESSAGE_SWITCH_PROFILE:
+			tm_printf("Profile switch requested; to profile %d\n", arg16_1);
+			if (arg16_1 < global_cxt.n_profiles)
+			{
+				ret_val = cxt_switch_to_profile(&global_cxt, arg16_1);
+				
+				if (ret_val != NO_ERROR)
+					response = create_te_msg_error(ret_val);
+				else
+					response = create_te_msg(TE_MESSAGE_SWITCHING_PROFILE, "s", arg16_1);
+				
+				tm_printf("Request valid; swwitching. Error code: %d\n", ret_val);
+			}
+			else
+			{
+				tm_printf("No such profile exists!\n");
+				response = create_te_msg_no_data(TE_MESSAGE_BAD_REQUEST);
+			}
+			break;
+		
+		case ET_MESSAGE_STRING_CONTINUE:
+		
+			break;
+		
+		case ET_MESSAGE_STRING_CONTINUING:
+			if (!string_in)
+			{
+				response = create_te_msg_no_data(TE_MESSAGE_START_OVER);
+			}
+			else
+			{
+				string_received = 0;
+				
+				for (int i = 0; i < ET_MESSAGE_MAX_LEN; i++)
+				{
+					string_in[string_in_pos++] = (char)msg.data[i];
+					if (msg.data[i] == 0)
+					{
+						string_received = 1;
+						break;
+					}
+				}
+				
+				if (string_received)
+				{
+					if (comms_fstm_state == RECIEVING_NEW_PARAM_NAME_LONG)
+					{
+						response = create_te_msg_error(cxt_set_parameter_name(&global_cxt,
+							target.profile_id, target.transformer_id, target.parameter_id, string_in));
+					}
+				}
+				response = create_te_msg_ok();
+			}
+			break;
+		
+		case ET_MESSAGE_INVALID:
+			response.type = TE_MESSAGE_BAD_TRANSFER;
+			break;
+	}
+	
+	response_ready = 1;
+}
+
+void i2c_recieve_isr(int n)
+{
+	tm_AudioNoInterrupts();
+	
+	if (message_pending)
+	{
+		response.type = TE_MESSAGE_TRY_AGAIN;
+	}
+	else
+	{
+		message_pending = 1;
+		response_ready  = 0;
+		
+		
+		int i = 0;
+		
+		if (n > ET_MESSAGE_MAX_LEN)
+		{
+			for (i = 0; i < n; i++)
+			{
+				Wire.read();
+				if (i < ET_MESSAGE_MAX_LEN)
+					recieve_buffer[i] = 0;
+			}
+		}
+		else
+		{
+			for (i = 0; i < n; i++)
+				recieve_buffer[i] = Wire.read();
+		
+			while (i < ET_MESSAGE_MAX_LEN)
+				recieve_buffer[i++] = 0xFF;
+		}
+	}
+	
+	for (int i = 0; i < n; i++)
+		tm_printf("%d%s", recieve_buffer[i], (i < n - 1) ? ", " : "\n");
+	
+	tm_AudioInterrupts();
+}
+
+void i2c_request_isr()
+{
+	tm_AudioNoInterrupts();
+	tm_printf("i2c request isr\n");
+	
+	if (response_ready)
+	{
+		uint8_t send_buffer[TE_MESSAGE_MAX_LEN + 1];
+		
+		encode_te_msg(send_buffer, response);
+		
+		Wire.write(send_buffer, TE_MESSAGE_MAX_LEN);
+		tm_printf("Sent response:\n\t");
+		for (int i = 0; i < TE_MESSAGE_MAX_LEN; i++)
+			tm_printf("0x%02x%s", send_buffer[i], (i == TE_MESSAGE_MAX_LEN - 1) ? "\n" : " ");
+	}
+	else
+	{
+		tm_printf("not ready !!\n");
+		Wire.write(wait_message, TE_MESSAGE_MAX_LEN);
+	}
+	tm_AudioInterrupts();
+}
+
+int init_esp32_link()
+{
+	Wire.begin(TEENSY_I2C_SLAVE_ADDR);
+	Wire.onReceive(i2c_recieve_isr);
+	Wire.onRequest(i2c_request_isr);
+	
+	wait_message[0] = TE_MESSAGE_WAIT;
+	
+	return NO_ERROR;
+}
+
+void esp32_message_check_handle()
+{
+	if (message_pending)
+	{
+		handle_esp32_message(decode_et_msg(recieve_buffer));
+		message_pending = 0;
+	}
+}
