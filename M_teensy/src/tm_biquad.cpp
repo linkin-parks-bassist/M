@@ -1,10 +1,5 @@
 #include "tm.h"
 
-int init_biquad_default(tm_transformer *trans)
-{
-	return init_biquad(trans, DISCONNECTED, DISCONNECTED, DEFAULT_BIQUAD_TYPE, DEFAULT_BIQUAD_CUTOFF, DEFAULT_BIQUAD_BANDWIDTH, DEFAULT_BIQUAD_DB_GAIN);
-}
-
 int calc_biquad(float **dest, float **src, void *data_struct)
 {
 	if (!data_struct || !dest || !src)
@@ -212,6 +207,8 @@ int init_biquad_struct_default(tm_biquad_str *str)
 {
 	if (!str)
 		return ERR_NULL_PTR;
+	
+	str->type.value = band_pass;
 	
 	compute_biquad_coefficients(str);
 	

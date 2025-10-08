@@ -947,8 +947,8 @@ int pipe_line_append_transformer_type(tm_pipe_line *pipeline, uint16_t type)
 	
 	if (!trans)
 		return -ERR_ALLOC_FAIL;
-	
-	int ret_val = init_transformer_default(trans, type);
+
+	int ret_val = init_transformer_of_type(trans, type);
 	
 	if (ret_val != NO_ERROR)
 	{
@@ -969,7 +969,7 @@ int pipe_line_insert_transformer_type(tm_pipe_line *pipeline, uint16_t type, uin
 	if (!trans)
 		return -ERR_ALLOC_FAIL;
 	
-	int ret_val = init_transformer_default(trans, type);
+	int ret_val = init_transformer_of_type(trans, type);
 	
 	if (ret_val != NO_ERROR)
 	{

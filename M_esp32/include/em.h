@@ -35,6 +35,9 @@
 #include "em_ui.h"
 
 #include "em_transformer.h"
+#include "em_transformer_init.h"
+#include "em_transformer_table.h"
+
 #include "em_profile.h"
 #include "em_context.h"
 

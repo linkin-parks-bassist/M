@@ -17,14 +17,14 @@ int calc_compressor(float **dest, float **src, void *data_struct)
 	if (comp->attack.updated)
 	{
 		tm_printf("updating alpha...\n");
-		comp->alpha = exp(-1.0 / (AUDIO_SAMPLE_RATE_EXACT * comp->attack.value));
+		comp->alpha = exp(-1.0 / (AUDIO_SAMPLE_RATE_EXACT * comp->attack.value * 0.001));
 		comp->attack.updated = 0;
 	}
 
 	if (comp->release.updated)
 	{
 		tm_printf("updating rho...\n");
-		comp->rho = exp(-1.0 / (AUDIO_SAMPLE_RATE_EXACT * comp->release.value));
+		comp->rho = exp(-1.0 / (AUDIO_SAMPLE_RATE_EXACT * comp->release.value * 0.001));
 		comp->release.updated = 0;
 	}
 	

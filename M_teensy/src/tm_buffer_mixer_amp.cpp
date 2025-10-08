@@ -26,7 +26,10 @@ int calc_amplifier(float **dest, float **src, void *data_struct)
 	tm_amplifier_str *amp = (tm_amplifier_str*)data_struct;
 	
 	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
+	{
+		parameter_update_tick(&amp->gain);
 		dest[0][i] = amp->gain.value * src[0][i];
+	}
 	
 	return NO_ERROR;
 }
@@ -115,6 +118,14 @@ tm_transformer *alloc_amplifier_transformer(vec2i input, vec2i output, float gai
 		return NULL;
 	}
 	return amp;
+}
+
+int init_mixer_struct_default(tm_mixer_str *str)
+{
+	if (!str)
+		return ERR_NULL_PTR;
+	
+	return NO_ERROR;
 }
 
 int init_mixer(tm_transformer *trans, vec2i *inputs, vec2i output, float ratio)

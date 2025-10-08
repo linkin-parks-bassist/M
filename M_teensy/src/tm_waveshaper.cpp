@@ -5,11 +5,6 @@ int 	local_amplitude_weighting_table_initialised = 0;
 
 float identity_function(float x){return x;}
 
-int init_waveshaper_default(tm_transformer *trans)
-{
-	return init_waveshaper(trans, DISCONNECTED, DISCONNECTED, DEFAULT_WAVESHAPER_FUNCTION, DEFAULT_WAVESHAPER_COEFFICIENT);
-}
-
 void init_local_amplitude_weighting_table()
 {
 	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)

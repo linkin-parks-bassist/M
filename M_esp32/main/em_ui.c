@@ -13,6 +13,7 @@ int init_ui_context(em_ui_context *cxt)
 	cxt->transformer_selector.enter_page = enter_transformer_selector;
 	
 	init_transformer_selector(&cxt->transformer_selector);
+	configure_transformer_selector(&cxt->transformer_selector, &global_cxt.profiles[0]);
 	cxt->transformer_selector.create_ui(&cxt->transformer_selector);
 	
 	global_cxt.profiles[0].view_page = malloc(sizeof(em_ui_page));

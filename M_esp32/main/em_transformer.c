@@ -8,7 +8,16 @@
 
 IMPLEMENT_LINKED_LIST(em_parameter_widget);
 
-const char *transformer_type_labels[] = {"Buffer", "Mixer", "Amplifier", "Biquadratic Filter", "Waveshaper", "Distortion", "Compression"};
+char *transformer_type_name(uint16_t type)
+{
+	for (int i = 0; i < N_TRANSFORMER_TYPES; i++)
+	{
+		if (transformer_table[i].type == type)
+			return transformer_table[i].name;
+	}
+	
+	return NULL;
+}
 
 const char *TAG = "Transformer";
 
@@ -23,6 +32,28 @@ int init_transformer(em_transformer *trans)
 	
 	trans->position = 0;
 	
+	int ret_val;
+	
+	ret_val = init_transformer_option_array(trans);
+	
+	if (ret_val != NO_ERROR)
+		return ret_val;
+	
+	ret_val = init_transformer_parameter_array(trans);
+	
+	if (ret_val != NO_ERROR)
+		return ret_val;
+	
+	trans->view_page = NULL;
+	
+	return NO_ERROR;
+}
+
+int init_transformer_parameter_array(em_transformer *trans)
+{
+	if (!trans)
+		return ERR_NULL_PTR;
+	
 	trans->n_parameters = 0;
 	trans->parameter_array_length = INITIAL_PARAMETER_ARRAY_LENGTH;
 	trans->parameters = malloc(sizeof(em_parameter) * trans->parameter_array_length);
@@ -34,8 +65,16 @@ int init_transformer(em_transformer *trans)
 	for (int i = 0; i < trans->parameter_array_length; i++)
 		init_em_parameter(&trans->parameters[i]);
 	
+	return NO_ERROR;
+}
+
+int init_transformer_option_array(em_transformer *trans)
+{
+	if (!trans)
+		return ERR_NULL_PTR;
+	
 	trans->n_options = 0;
-	trans->option_array_length = INITIAL_PARAMETER_ARRAY_LENGTH;
+	trans->option_array_length = INITIAL_OPTION_ARRAY_LENGTH;
 	trans->options = malloc(sizeof(em_option) * trans->option_array_length);
 	if (!trans->options)
 	{
@@ -44,97 +83,6 @@ int init_transformer(em_transformer *trans)
 	}
 	for (int i = 0; i < trans->option_array_length; i++)
 		init_em_option(&trans->options[i]);
-	
-	trans->view_page = NULL;
-	
-	return NO_ERROR;
-}
-
-int init_transformer_of_type(em_transformer *trans, uint16_t type)
-{
-	printf("init_transformer_of_type %d...\n", type);
-	if (!trans)
-		return ERR_NULL_PTR;
-	
-	trans->profile_id 	  = 0;
-	trans->transformer_id = 0;
-	trans->position 	  = 0;
-	trans->type = type;
-	
-	trans->n_parameters 		  = 0;
-	trans->parameter_array_length = 0;
-	
-	trans->parameters 	= NULL;
-	trans->view_page 	= NULL;
-	
-	em_parameter *param;
-	
-	switch (type)
-	{
-		case TRANSFORMER_AMPLIFIER:
-			printf("Aaaaamplifier....\n");
-			param = transformer_add_parameter_rp(trans);
-			init_parameter(param, "Gain", 1.0, 0.0, 2.0);
-			param->id.parameter_id = 0;
-			break;
-		
-		case TRANSFORMER_DISTORTION:
-			param = transformer_add_parameter_rp(trans);
-			init_parameter(param, "Gain", 1.0, 0.0, 4.0);
-			param->id.parameter_id = 0;
-			
-			param = transformer_add_parameter_rp(trans);
-			init_parameter(param, "Wet Mix", 0.7, 0.0, 1.0);
-			param->id.parameter_id = 1;
-			
-			param = transformer_add_parameter_rp(trans);
-			init_parameter(param, "High Mix", 0.7, 0.0, 1.0);
-			param->id.parameter_id = 2;
-			
-			param = transformer_add_parameter_rp(trans);
-			init_parameter(param, "Mid Mix", 0.7, 0.0, 1.0);
-			param->id.parameter_id = 3;
-			
-			param = transformer_add_parameter_rp(trans);
-			init_parameter(param, "Bass Mix", 0.7, 0.0, 1.0);
-			param->id.parameter_id = 4;
-			
-			param = transformer_add_parameter_rp(trans);
-			init_parameter(param, "Mid Cutoff", 1000.0, 1000.0, 5000.0);
-			param->id.parameter_id = 5;
-			
-			param = transformer_add_parameter_rp(trans);
-			init_parameter(param, "Bass Cutoff", 100.0, 100.0, 1000.0);
-			param->id.parameter_id = 6;
-			
-			param = transformer_add_parameter_rp(trans);
-			init_parameter(param, "Ratio", 0.1, 0.0, 0.5);
-			param->id.parameter_id = 7;
-			break;
-		
-		case TRANSFORMER_COMPRESSOR:
-			param = transformer_add_parameter_rp(trans);
-			init_parameter(param, "Ratio", 1.0, 0.0, 8.0);
-			param->id.parameter_id = 0;
-			
-			param = transformer_add_parameter_rp(trans);
-			init_parameter(param, "Threshold", -8.0, 0.0, -30.0);
-			param->id.parameter_id = 1;
-			
-			param = transformer_add_parameter_rp(trans);
-			init_parameter(param, "Attack", 100, 0.0, 200.0);
-			param->id.parameter_id = 2;
-			param->factor = 1.0/1000.0;
-			
-			param = transformer_add_parameter_rp(trans);
-			init_parameter(param, "Release", 100.0, 0.0, 400.0);
-			param->id.parameter_id = 3;
-			param->factor = 1.0/1000.0;
-			break;
-		
-		default:
-			return ERR_BAD_ARGS;
-	}
 	
 	return NO_ERROR;
 }
@@ -252,7 +200,10 @@ void transformer_recieve_id(et_msg message, te_msg response)
 	}
 	else
 	{
+		trans->profile_id = pid;
 		trans->transformer_id = tid;
+		
+		transformer_rectify_param_ids(trans);
 	}
 }
 
@@ -458,7 +409,7 @@ int create_transformer_view_ui(em_ui_page *page)
 	str->grid = lv_obj_create(page->screen);
 	
 	printf("Create top panel...\n");
-	create_top_panel_with_back_button(page, transformer_type_labels[str->trans->type], NULL);
+	create_top_panel_with_back_button(page, transformer_type_name(str->trans->type), NULL);
 	
 	lv_obj_set_style_grid_column_dsc_array(str->grid, str->col_dsc, 0);
 	lv_obj_set_style_grid_row_dsc_array(str->grid, str->row_dsc, 0);
@@ -554,9 +505,16 @@ int init_transformer_selector(em_ui_page *page)
 	if (!str)
 		return ERR_ALLOC_FAIL;
 	
-	str->button_list   = NULL;
-	str->buttons 	   = NULL;
-	str->button_labels = NULL;
+	str->buttons 	 = NULL;
+	str->button_list = NULL;
+	str->page_offset = 0;
+	
+	em_trans_selector_button button;
+    for (int i = 0; i < N_TRANSFORMER_TYPES; i++)
+    {
+		init_transformer_selector_button(&button, i, NULL);
+		str->buttons = em_trans_selector_button_linked_list_append(str->buttons, button);
+	}
 	
 	return NO_ERROR;
 }
@@ -572,77 +530,116 @@ int configure_transformer_selector(em_ui_page *page, void *data)
 	em_transformer_selector_str *ts = page->data_struct;
 	
 	if (!ts)
-		return ERR_ALLOC_FAIL;
+		return ERR_BAD_ARGS;
+	
+	ts->pid = profile->id;
+	ts->profile = profile;
+	
+	em_trans_selector_button_linked_list *current = ts->buttons;
+    
+    while (current)
+    {
+		current->data.profile = profile;
+		current = current->next;
+	}
 	
 	printf("success\n");
 	return NO_ERROR;
 }
 
-#define LINEAR_TRANSFORMER_OPTIONS 3
-
-#define AMPLIFIER_BUTTON  0
-#define DISTORTION_BUTTON 1
-#define COMPRESSOR_BUTTON 2
-
 void add_transformer_from_menu(lv_event_t *e)
 {
-	lv_obj_t *button = lv_event_get_target(e);
-	em_ui_page *page = lv_event_get_user_data(e);
+	em_trans_selector_button *button = lv_event_get_user_data(e);
 	
-	if (!page)
+	// Should never happen
+	if (!button)
 	{
 		ESP_LOGE(TAG, "User tried to add transformer from menu, but the pointer to the page struct is NULL!\n");
 		return;
 	}
 	
-	em_transformer_selector_str *ts = page->data_struct;
+	em_ui_page *pv = NULL;
 	em_transformer *trans = NULL;
 	
-	uint16_t type = -1;
+	uint16_t type = button->type;
 	
-	if (button == ts->buttons[0])
+	printf("User wishes to add a \"%s\"\n", button->name);
+	
+	if (!button->profile)
 	{
-		printf("User wishes to add an amplifier!\n");
-		type = TRANSFORMER_AMPLIFIER;
-	}
-	else if (button == ts->buttons[1])
-	{
-		printf("User wishes to add distortion!\n");
-		type = TRANSFORMER_DISTORTION;
-	}
-	else if (button == ts->buttons[2])
-	{
-		printf("User wishes to add compression!\n");
-		type = TRANSFORMER_COMPRESSOR;
+		ESP_LOGE(TAG, "Button is not attached to a profile!\n");
+		return;
 	}
 	
-	if (!page->parent)
+	if (!button->profile->view_page)
 	{
-		ESP_LOGE(TAG, "Transformer selection page is floating!\n");
+		ESP_LOGE(TAG, "Profile does not have a view page!\n");
 	}
 	else
 	{
-		em_profile_view_str *str = (em_profile_view_str*)page->parent->data_struct;
-		
-		em_profile *profile = str->profile;
-		
-		if (!profile)
-		{
-			ESP_LOGE(TAG, "Profile view page has no associated profile!\n");
-		}
-		else
-		{
-			trans = em_pipeline_append_transformer_type(&profile->pipeline, type);
-			printf("Created new transformerwith type %d, having %d parameters\n", trans->type, trans->n_parameters);
-			refresh_profile_view(page->parent);
-			request_append_transformer(type, trans);
-			
-			transformer_init_ui_page(trans, page->parent);
-			create_transformer_view_ui(trans->view_page);
-		}
-		
-		enter_ui_page(page->parent);
+		pv = button->profile->view_page;
 	}
+	
+	trans = em_profile_append_transformer_type(button->profile, type);
+	printf("Created new transformer with type \"%s\", having %d parameters\n", button->name, trans->n_parameters);
+	refresh_profile_view(pv);
+	request_append_transformer(type, trans);
+	
+	transformer_init_ui_page(trans, pv);
+	create_transformer_view_ui(trans->view_page);
+	
+	enter_ui_page(button->profile->view_page);
+}
+
+IMPLEMENT_LINKED_LIST(em_trans_selector_button);
+
+int init_transformer_selector_button(em_trans_selector_button *button, int index, em_profile *profile)
+{
+	printf("Init transformer selector button. Button = %p, index = %d, profile = %p\n", button, index, profile);
+	if (!button)
+		return ERR_NULL_PTR;
+	
+	if (index < N_TRANSFORMER_TYPES)
+	{
+		printf("Index is valid. Use type %d and name %s\n", transformer_table[index].type, transformer_table[index].name);
+		button->type = transformer_table[index].type;
+		button->name = transformer_table[index].name;
+	}
+	else
+	{
+		button->type = TRANSFORMER_BUFFER;
+		button->name = "Unknown";
+	}
+	
+	button->profile = profile;
+	
+	button->button = NULL;
+	button->label  = NULL;
+	
+	return NO_ERROR;
+}
+
+int create_transformer_selector_button_ui(em_trans_selector_button *button, lv_obj_t *parent)
+{
+	printf("Create transformer selector button ui\n");
+	if (!button)
+		return ERR_NULL_PTR;
+	
+	button->button = lv_btn_create(parent);
+    lv_obj_set_size(button->button, LV_PCT(100), LV_SIZE_CONTENT);
+    
+    printf("Type: %d. Name: ", button->type);
+    printf("%p = %s\n", button->name, button->name ? button->name : "(NULL)");
+	button->label = lv_label_create(button->button);
+	
+	if (button->name)
+		lv_label_set_text(button->label, button->name);
+	
+	lv_obj_center(button->label);
+	
+	lv_obj_add_event_cb(button->button, add_transformer_from_menu, LV_EVENT_CLICKED, button);
+	
+	return NO_ERROR;
 }
 
 int create_transformer_selector_ui(em_ui_page *page)
@@ -665,32 +662,13 @@ int create_transformer_selector_ui(em_ui_page *page)
     lv_obj_align(ts->button_list, LV_ALIGN_TOP_MID, 0, 120);
     lv_obj_set_flex_flow(ts->button_list, LV_FLEX_FLOW_COLUMN);
     
-    ts->buttons 	  = malloc(sizeof(lv_obj_t*) * LINEAR_TRANSFORMER_OPTIONS);
-    ts->button_labels = malloc(sizeof(lv_obj_t*) * LINEAR_TRANSFORMER_OPTIONS);
+    em_trans_selector_button_linked_list *current = ts->buttons;
     
-    ts->buttons[AMPLIFIER_BUTTON] = lv_btn_create(ts->button_list);
-    lv_obj_set_size(ts->buttons[AMPLIFIER_BUTTON], LV_PCT(100), LV_SIZE_CONTENT);
-	ts->button_labels[AMPLIFIER_BUTTON] = lv_label_create(ts->buttons[AMPLIFIER_BUTTON]);
-	lv_label_set_text(ts->button_labels[AMPLIFIER_BUTTON], "Amplifier");
-	lv_obj_center(ts->button_labels[AMPLIFIER_BUTTON]);
-	
-	lv_obj_add_event_cb(ts->buttons[AMPLIFIER_BUTTON], add_transformer_from_menu, LV_EVENT_CLICKED, page);
-    
-    ts->buttons[DISTORTION_BUTTON] = lv_btn_create(ts->button_list);
-    lv_obj_set_size(ts->buttons[DISTORTION_BUTTON], LV_PCT(100), LV_SIZE_CONTENT);
-	ts->button_labels[DISTORTION_BUTTON] = lv_label_create(ts->buttons[DISTORTION_BUTTON]);
-	lv_label_set_text(ts->button_labels[DISTORTION_BUTTON], "Distortion");
-	lv_obj_center(ts->button_labels[DISTORTION_BUTTON]);
-	
-	lv_obj_add_event_cb(ts->buttons[DISTORTION_BUTTON], add_transformer_from_menu, LV_EVENT_CLICKED, page);
-    
-    ts->buttons[COMPRESSOR_BUTTON] = lv_btn_create(ts->button_list);
-    lv_obj_set_size(ts->buttons[COMPRESSOR_BUTTON], LV_PCT(100), LV_SIZE_CONTENT);
-	ts->button_labels[COMPRESSOR_BUTTON] = lv_label_create(ts->buttons[COMPRESSOR_BUTTON]);
-	lv_label_set_text(ts->button_labels[COMPRESSOR_BUTTON], "Compressor");
-	lv_obj_center(ts->button_labels[COMPRESSOR_BUTTON]);
-	
-	lv_obj_add_event_cb(ts->buttons[COMPRESSOR_BUTTON], add_transformer_from_menu, LV_EVENT_CLICKED, page);
+    while (current)
+    {
+		create_transformer_selector_button_ui(&current->data, ts->button_list);
+		current = current->next;
+	}
 	
 	printf("success\n");
 	return NO_ERROR;

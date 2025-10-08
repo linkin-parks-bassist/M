@@ -10,7 +10,7 @@ typedef struct
 	em_transformer *transformers;
 } em_pipeline;
 
-typedef struct
+typedef struct em_profile
 {
 	char *name;
 	uint16_t id;
@@ -28,7 +28,7 @@ int em_pipeline_enlarge_transformer_array(em_pipeline *pipeline);
 
 int em_pipeline_set_n_transformers(em_pipeline *pipeline, int n);
 
-em_transformer *em_pipeline_append_transformer_type (em_pipeline *pipeline, uint16_t type);
+em_transformer *em_profile_append_transformer_type(em_profile *profile, uint16_t type);
 em_transformer *em_pipeline_insert_transformer_type (em_pipeline *pipeline, uint16_t type, int position);
 em_transformer *em_pipeline_prepend_transformer_type(em_pipeline *pipeline, uint16_t type);
 

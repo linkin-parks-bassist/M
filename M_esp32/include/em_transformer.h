@@ -21,7 +21,10 @@ typedef struct
 } em_transformer;
 
 int init_transformer(em_transformer *trans);
-int init_transformer_of_type(em_transformer *trans, uint16_t type);
+
+int init_transformer_parameter_array(em_transformer *trans);
+int init_transformer_option_array(em_transformer *trans);
+
 int em_transformer_enlarge_parameter_array(em_transformer *trans);
 int em_transformer_enlarge_option_array(em_transformer *trans);
 
@@ -75,14 +78,35 @@ int transformer_view_request_parameter_values(em_ui_page *page);
 
 extern const char *transformer_type_labels[];
 
+struct em_profile;
+
+typedef struct
+{
+	lv_obj_t *button;
+	lv_obj_t *label;
+	
+	uint16_t type;
+	char *name;
+	
+	struct em_profile *profile;
+} em_trans_selector_button;
+
+DECLARE_LINKED_LIST(em_trans_selector_button);
+
 typedef struct
 {
 	lv_obj_t *button_list;
-	lv_obj_t **buttons;
-	lv_obj_t **button_labels;
 	
+	em_trans_selector_button_linked_list *buttons;
+	
+	int page_offset;
 	uint16_t pid;
+	struct em_profile *profile;
 } em_transformer_selector_str;
+
+int init_transformer_selector_button(em_trans_selector_button *button, int index, struct em_profile *profile);
+
+char *transformer_type_name(uint16_t type);
 
 int init_transformer_selector(em_ui_page *page);
 int configure_transformer_selector(em_ui_page *page, void *data);

@@ -210,7 +210,7 @@ void virtual_pot_change_cb(lv_event_t *event)
 	
 	update_virtual_pot_value_label(pot);
 	
-	et_msg msg = create_et_msg_set_param(pot->param->id.profile_id, pot->param->id.transformer_id, pot->param->id.parameter_id, pot->param->val * pot->param->factor);
+	et_msg msg = create_et_msg_set_param(pot->param->id.profile_id, pot->param->id.transformer_id, pot->param->id.parameter_id, pot->param->val);
 
 	xQueueSend(et_msg_queue, (void*)&msg, 0);
 }

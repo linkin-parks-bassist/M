@@ -94,7 +94,7 @@ void handle_esp32_message(et_msg msg)
 			break;
 		
 		case ET_MESSAGE_APPEND_TRANSFORMER:
-			tm_printf("Creating new transformer...\n");
+			tm_printf("Creating new transformer of type %d...\n", arg16_2);
 			
 			ret_val = cxt_append_transformer_to_profile(&global_cxt, arg16_1, arg16_2);
 			

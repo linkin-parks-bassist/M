@@ -33,7 +33,7 @@
 
 #include "tm_parameter.h"
 #include "tm_transformer.h"
-#include "tm_transformer_defaults.h"
+#include "tm_transformer_init.h"
 
 #include "tm_buffer_mixer_amp.h"
 #include "tm_biquad.h"

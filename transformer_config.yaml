@@ -10,6 +10,35 @@ transformers:
           max: 2.0
           default: 1.0
     
+    - name: "Mixer"
+      hidden: True
+      n_inputs: 2
+      n_outputs: 1
+      parameters:
+       - name: "Ratio"
+         default: 0.5
+         min: 0.0
+         max: 1.0
+    
+    - name: "Biquad"
+      hidden: True
+      parameters:
+       - name: "Cutoff"
+         default: 440.0
+         min: 0.0
+         max: 5000.0
+         
+       - name: "Bandwidth"
+         default: 200.0
+         min: 0.0
+         max: 1000.0
+       
+       - name: "Gain (dB)"
+         location: db_gain
+         default: 0.0
+         min: -3.0
+         max:  3.0
+    
     - name: "Distortion"
       parameters:
         - name: "Gain"
@@ -50,3 +79,27 @@ transformers:
           max: 0.5
           smoothing: "instant"
     
+    - name: "Compressor"
+      parameters:
+      - name: "Ratio"
+        default: 2.0
+        min: 1.0
+        max: 10.0
+        
+      - name: "Threshold"
+        default: -5.0
+        min: -30.0
+        max:   0.0
+        
+      - name: "Attack"
+        default: 30.0
+        min: 0.01
+        max: 250.0
+        
+      - name: "Release"
+        default: 30.0
+        min: 0.01
+        max: 250.0
+    
+    - name: "Waveshaper"
+      hidden: True

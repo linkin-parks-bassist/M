@@ -100,30 +100,33 @@ int em_pipeline_enlarge_transformer_array(em_pipeline *pipeline)
 	return NO_ERROR;
 }
 
-em_transformer *em_pipeline_append_transformer_type(em_pipeline *pipeline, uint16_t type)
+em_transformer *em_profile_append_transformer_type(em_profile *profile, uint16_t type)
 {
-	if (!pipeline)
+	if (!profile)
 		return NULL;
 	
-	printf("Appending transformer of type %d. Currently there are %d transformers in the pipeline. The array has size %d\n", type, pipeline->n_transformers, pipeline->transformer_array_length);
+	printf("Appending transformer of type %d. Currently there are %d transformers in the profile->pipeline. The array has size %d\n",
+		type, profile->pipeline.n_transformers, profile->pipeline.transformer_array_length);
 	int ret_val;
 	
-	if (pipeline->n_transformers >= pipeline->transformer_array_length)
+	if (profile->pipeline.n_transformers >= profile->pipeline.transformer_array_length)
 	{
-		ret_val = em_pipeline_enlarge_transformer_array(pipeline);
+		ret_val = em_pipeline_enlarge_transformer_array(&profile->pipeline);
 		
 		if (ret_val != NO_ERROR)
 			return NULL;
 	}
 	
-	int position = pipeline->n_transformers++;
+	int position = profile->pipeline.n_transformers++;
 	
-	init_transformer_of_type(&pipeline->transformers[position], type);
-	pipeline->transformers[position].position = position;
+	init_transformer_of_type(&profile->pipeline.transformers[position], type);
+	profile->pipeline.transformers[position].position = position;
+	profile->pipeline.transformers[position].profile_id = profile->id;
 	
-	printf("Appended transformer of type %d. Currently there are %d transformers in the pipeline. The array has size %d\n", type, pipeline->n_transformers, pipeline->transformer_array_length);
+	printf("Appended transformer of type %d. Currently there are %d transformers in the profile->pipeline. The array has size %d\n", type,
+		profile->pipeline.n_transformers, profile->pipeline.transformer_array_length);
 	
-	return &pipeline->transformers[position];
+	return &profile->pipeline.transformers[position];
 }
 
 em_transformer *em_pipeline_insert_transformer_type(em_pipeline *pipeline, uint16_t type, int position)
@@ -525,29 +528,6 @@ int enter_profile_view_back(em_ui_page *page)
 	return NO_ERROR;
 }
 
-const char *transformer_labels[] = {"???", "Buffer", "Amplifier", "Distortion", "Compressor", "Delay", "Reverb"};
-
-int transformer_type_to_array_index(int type)
-{
-	switch (type)
-	{
-		case TRANSFORMER_BUFFER:
-			return 1;
-			
-		case TRANSFORMER_AMPLIFIER:
-			return 2;
-			
-		case TRANSFORMER_DISTORTION:
-			return 3;
-			
-		case TRANSFORMER_COMPRESSOR:
-			return 4;
-		
-		default:
-			return 0;
-	}
-}
-
 int init_transformer_widget(em_transformer_widget *tw, em_profile_view_str *parent, em_transformer *trans)
 {
 	if (!tw || !parent)
@@ -559,7 +539,7 @@ int init_transformer_widget(em_transformer_widget *tw, em_profile_view_str *pare
 	tw->transformer_id = trans ? trans->transformer_id : 0;
 	
 	if (trans)
-		tw->label_text = transformer_labels[transformer_type_to_array_index(trans->type)];
+		tw->label_text = transformer_type_name(trans->type);
 	
 	tw->obj	  = NULL;
 	tw->label = NULL;
