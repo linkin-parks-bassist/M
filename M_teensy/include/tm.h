@@ -17,10 +17,14 @@
 #include <DMAChannel.h>
 #include <TeensyThreads.h>
 
-#include "tm_printf.h"
-#include "tm_error_codes.h"
-
 #include "utility/imxrt_hw.h"
+
+#include "m_transformer_enum.h"
+#include "m_error_codes.h"
+#include "m_status.h"
+#include "m_comms.h"
+
+#include "tm_printf.h"
 
 #include "tm_audio_block.h"
 #include "tm_mempool.h"
@@ -29,7 +33,6 @@
 
 #include "tm_parameter.h"
 #include "tm_transformer.h"
-#include "tm_transformer_enum.h"
 #include "tm_transformer_defaults.h"
 
 #include "tm_buffer_mixer_amp.h"
@@ -47,10 +50,9 @@
 #include "tm_memcpy_audio.h"
 
 #include "tm_context.h"
-#include "tm_esp32.h"
+#include "tm_comms.h"
 
-#include "tm_id.h"
-#include "tm_status.h"
+
 
 #include "tm_debugging.h"
 

@@ -74,71 +74,98 @@ int tm_context_new_profile(tm_context *cxt)
 	
 	init_profile(&cxt->profiles[cxt->n_profiles++]);
 	
-	
-	
 	return cxt->n_profiles - 1;
 }
 
-m_parameter *cxt_get_parameter_by_id(tm_context *cxt, uint16_t profile_id, uint16_t transformer_id, uint16_t parameter_id)
+int cxt_profile_id_valid(tm_context *cxt, uint16_t pid)
+{
+	if (!cxt)
+		return 0;
+	
+	return (pid <= (unsigned int)cxt->n_profiles);
+}
+
+int cxt_transformer_id_valid(tm_context *cxt, uint16_t pid, uint16_t tid)
+{
+	if (!cxt_profile_id_valid(cxt, pid))
+		return 0;
+	
+	if (tid >= (unsigned int)cxt->profiles[pid].pipeline.n_transformers)
+		return 0;
+	
+	return (pipe_line_get_transformer_by_id(&cxt->profiles[pid].pipe_line, tid) != NULL);
+}
+
+int pcxt_profile_id_valid(tm_context *cxt, uint16_t pid, uint16_t tid, uint16_t ppid)
+{
+	if (!cxt_transformer_id_valid(cxt, pid, tid))
+		return 0;
+	
+	tm_transformer *trans = pipe_line_get_transformer_by_id(&cxt->profiles[pid].pipe_line, tid);
+	
+	if (!trans)
+		return 0;
+	
+	return (trans->n_parameters >= ppid && trans->parameters[ppid]);
+}
+
+
+tm_parameter *cxt_get_parameter_by_id(tm_context *cxt, uint16_t pid, uint16_t tid, uint16_t ppid)
 {
 	if (!cxt)
 		return NULL;
 	
-	if (profile_id >= cxt->n_profiles)
+	if (pid >= cxt->n_profiles)
 		return NULL;
 	
-	tm_audio_transformer *trans = pipe_line_get_transformer_by_id(&cxt->profiles[profile_id].pipe_line, transformer_id);
+	tm_transformer *trans = pipe_line_get_transformer_by_id(&cxt->profiles[pid].pipe_line, tid);
 	
-	if (parameter_id >= trans->n_parameters)
+	if (ppid >= trans->n_parameters)
 		return NULL;
 	
-	return trans->parameters[parameter_id];
+	return trans->parameters[ppid];
 }
 
-m_parameter *cxt_get_parameter_by_id_str(tm_context *cxt, m_parameter_id id)
-{
-	if (!cxt)
-		return NULL;
-	
-	if (id.profile_id >= cxt->n_profiles)
-		return NULL;
-	
-	tm_audio_transformer *trans = pipe_line_get_transformer_by_id(&cxt->profiles[id.profile_id].pipe_line, id.transformer_id);
-	
-	if (id.parameter_id >= trans->n_parameters)
-		return NULL;
-	
-	return trans->parameters[id.parameter_id];
-}
-
-int update_paramter_value_by_id(tm_context *cxt, uint16_t profile_id, uint16_t transformer_id, uint16_t parameter_id, m_param_value new_value)
+int cxt_update_parameter_value_by_id(tm_context *cxt, uint16_t pid, uint16_t tid, uint16_t ppid, uint16_t new_value)
 {
 	if (!cxt)
 		return ERR_NULL_PTR;
 	
-	m_parameter *param = cxt_get_parameter_by_id(cxt, profile_id, transformer_id, parameter_id);
+	tm_parameter *param = cxt_get_parameter_by_id(cxt, pid, tid, ppid);
 	
 	if (!param)
 		return ERR_BAD_ARGS;
 	
-	param->val = new_value;
-	
-	return NO_ERROR;
+	return update_parameter(param, new_value);
 }
 
-int update_paramter_value_by_id_str(tm_context *cxt, m_parameter_id id, m_param_value new_value)
+tm_option *cxt_get_option_by_id(tm_context *cxt, uint16_t pid, uint16_t tid, uint16_t oid)
+{
+	if (!cxt)
+		return NULL;
+	
+	if (pid >= cxt->n_profiles)
+		return NULL;
+	
+	tm_transformer *trans = pipe_line_get_transformer_by_id(&cxt->profiles[pid].pipe_line, tid);
+	
+	if (oid >= trans->n_options)
+		return NULL;
+	
+	return trans->options[oid];
+}
+
+int cxt_update_option_value_by_id(tm_context *cxt, uint16_t pid, uint16_t tid, uint16_t oid, float new_value)
 {
 	if (!cxt)
 		return ERR_NULL_PTR;
 	
-	m_parameter *param = cxt_get_parameter_by_id_str(cxt, id);
+	tm_option *option = cxt_get_option_by_id(cxt, pid, tid, oid);
 	
-	if (!param)
+	if (!option)
 		return ERR_BAD_ARGS;
 	
-	param->val = new_value;
-	
-	return NO_ERROR;
+	return update_option(option, new_value);
 }
 
 void tm_safe_reboot(tm_context *cxt)
@@ -157,62 +184,62 @@ int reset_context(tm_context *cxt)
 	return NO_ERROR;
 }
 
-int cxt_append_transformer_to_profile(tm_context *cxt, uint16_t profile_id, uint16_t type)
+int cxt_append_transformer_to_profile(tm_context *cxt, uint16_t pid, uint16_t type)
 {
 	if (!cxt)
 		return -ERR_NULL_PTR;
 	
-	if (profile_id > cxt->n_profiles)
+	if (pid > cxt->n_profiles)
 		return -ERR_BAD_ARGS;
 	
-	int ret_val = pipe_line_append_transformer_type(&cxt->profiles[profile_id].pipe_line, type);
+	int ret_val = pipe_line_append_transformer_type(&cxt->profiles[pid].pipe_line, type);
 	
 	return ret_val;
 }
 
-int cxt_insert_transformer_to_profile (tm_context *cxt, uint16_t profile_id, uint16_t type, uint16_t pos)
+int cxt_insert_transformer_to_profile(tm_context *cxt, uint16_t pid, uint16_t type, uint16_t pos)
 {
 	if (!cxt)
 		return -ERR_NULL_PTR;
 	
-	if (profile_id > cxt->n_profiles)
+	if (pid > cxt->n_profiles)
 		return -ERR_BAD_ARGS;
 	
-	int ret_val = pipe_line_insert_transformer_type(&cxt->profiles[profile_id].pipe_line, type, pos);
+	int ret_val = pipe_line_insert_transformer_type(&cxt->profiles[pid].pipe_line, type, pos);
 	
 	return ret_val;
 }
 
-int cxt_prepend_transformer_to_profile(tm_context *cxt, uint16_t profile_id, uint16_t type)
+int cxt_prepend_transformer_to_profile(tm_context *cxt, uint16_t pid, uint16_t type)
 {
 	if (!cxt)
 		return -ERR_NULL_PTR;
 	
-	if (profile_id > cxt->n_profiles)
+	if (pid > cxt->n_profiles)
 		return -ERR_BAD_ARGS;
 	
-	int ret_val = pipe_line_prepend_transformer_type(&cxt->profiles[profile_id].pipe_line, type);
+	int ret_val = pipe_line_prepend_transformer_type(&cxt->profiles[pid].pipe_line, type);
 	
 	return ret_val;
 }
 
-int cxt_get_n_profile_transformers(tm_context *cxt, uint16_t profile_id)
+int cxt_get_n_profile_transformers(tm_context *cxt, uint16_t pid)
 {
 	if (!cxt)
 		return -ERR_NULL_PTR;
 	
-	if (cxt->n_profiles <= profile_id)
+	if (cxt->n_profiles <= pid)
 		return -ERR_BAD_ARGS;
 	
-	return cxt->profiles[profile_id].pipe_line.n_transformers;
+	return cxt->profiles[pid].pipe_line.n_transformers;
 }
 
-int cxt_get_n_transformer_params(tm_context *cxt, uint16_t profile_id, uint16_t transformer_id)
+int cxt_get_n_transformer_params(tm_context *cxt, uint16_t pid, uint16_t tid)
 {
 	if (!cxt)
 		return -ERR_NULL_PTR;
 	
-	tm_audio_transformer *trans = cxt_get_transformer_by_id(cxt, profile_id, transformer_id);
+	tm_transformer *trans = cxt_get_transformer_by_id(cxt, pid, tid);
 	
 	if (!trans)
 		return -ERR_BAD_ARGS;
@@ -220,12 +247,25 @@ int cxt_get_n_transformer_params(tm_context *cxt, uint16_t profile_id, uint16_t 
 	return trans->n_parameters;
 }
 
-int cxt_get_transformer_type(tm_context *cxt, uint16_t profile_id, uint16_t transformer_id)
+int cxt_get_n_transformer_options(tm_context *cxt, uint16_t pid, uint16_t tid)
 {
 	if (!cxt)
 		return -ERR_NULL_PTR;
 	
-	tm_audio_transformer *trans = cxt_get_transformer_by_id(cxt, profile_id, transformer_id);
+	tm_transformer *trans = cxt_get_transformer_by_id(cxt, pid, tid);
+	
+	if (!trans)
+		return -ERR_BAD_ARGS;
+	
+	return trans->n_options;
+}
+
+int cxt_get_transformer_type(tm_context *cxt, uint16_t pid, uint16_t tid)
+{
+	if (!cxt)
+		return -ERR_NULL_PTR;
+	
+	tm_transformer *trans = cxt_get_transformer_by_id(cxt, pid, tid);
 	
 	if (!trans)
 		return -ERR_BAD_ARGS;
@@ -234,125 +274,58 @@ int cxt_get_transformer_type(tm_context *cxt, uint16_t profile_id, uint16_t tran
 }
 
 
-int cxt_get_transformer_id_by_pos (tm_context *cxt, uint16_t profile_id, uint16_t pos)
+int cxt_get_tid_by_pos(tm_context *cxt, uint16_t pid, uint16_t pos)
 {
 	if (!cxt)
 		return -ERR_NULL_PTR;
 	
-	if (profile_id >= cxt->n_profiles)
+	if (pid >= cxt->n_profiles)
 		return -ERR_BAD_ARGS;
 	
-	if (pos >= cxt->profiles[profile_id].pipe_line.n_transformers)
+	if (pos >= cxt->profiles[pid].pipe_line.n_transformers)
 		return -ERR_BAD_ARGS;
 	
-	if (!cxt->profiles[profile_id].pipe_line.transformers[pos])
+	if (!cxt->profiles[pid].pipe_line.transformers[pos])
 		return -ERR_BAD_ARGS;
 	
-	return cxt->profiles[profile_id].pipe_line.transformers[pos]->id;
+	return cxt->profiles[pid].pipe_line.transformers[pos]->id;
 }
 
-tm_audio_transformer *cxt_get_transformer_by_id(tm_context *cxt, uint16_t profile_id, uint16_t transformer_id)
+tm_transformer *cxt_get_transformer_by_id(tm_context *cxt, uint16_t pid, uint16_t tid)
 {
 	if (!cxt)
 		return NULL;
 	
-	if (profile_id >= cxt->n_profiles)
+	if (pid >= cxt->n_profiles)
 		return NULL;
 	
-	return pipe_line_get_transformer_by_id(&cxt->profiles[profile_id].pipe_line, transformer_id);
+	return pipe_line_get_transformer_by_id(&cxt->profiles[pid].pipe_line, tid);
 }
 
-m_param_type cxt_get_parameter_type(tm_context *cxt, uint16_t profile_id, uint16_t transformer_id, uint16_t parameter_id)
-{
-	m_parameter *param = cxt_get_parameter_by_id(cxt, profile_id, transformer_id, parameter_id);
-	
-	if (!param)
-		return M_PARAM_ERR;
-	
-	return param->type;
-}
-
-m_param_value cxt_get_parameter_value(tm_context *cxt, uint16_t profile_id, uint16_t transformer_id, uint16_t parameter_id)
-{
-	m_parameter *param = cxt_get_parameter_by_id(cxt, profile_id, transformer_id, parameter_id);
-	
-	if (!param)
-		return {.level=0.0};
-	
-	return param->val;
-}
-
-int	cxt_set_parameter_value(tm_context *cxt, uint16_t profile_id, uint16_t transformer_id, uint16_t parameter_id, m_param_value new_value)
+int cxt_set_active_profile(tm_context *cxt, uint16_t pid)
 {
 	if (!cxt)
 		return ERR_NULL_PTR;
 	
-	m_parameter *param = cxt_get_parameter_by_id_str(cxt, {.profile_id=profile_id, .transformer_id=transformer_id, parameter_id=parameter_id});
-	
-	if (!param)
-		return ERR_BAD_ARGS;
-	
-	param->val = new_value;
+	cxt->active_profile = pid;
 	
 	return NO_ERROR;
 }
 
-
-char *cxt_get_parameter_name(tm_context *cxt, uint16_t profile_id, uint16_t transformer_id, uint16_t parameter_id)
-{
-	if (!cxt)
-		return NULL;
-	
-	m_parameter *param = cxt_get_parameter_by_id_str(cxt, {.profile_id=profile_id, .transformer_id=transformer_id, parameter_id=parameter_id});
-	
-	if (!param)
-		return NULL;
-	
-	return param->name;
-}
-
-int cxt_set_parameter_name(tm_context *cxt, uint16_t profile_id, uint16_t transformer_id, uint16_t parameter_id, const char *new_name)
+int cxt_switch_to_profile(tm_context *cxt, uint16_t pid)
 {
 	if (!cxt)
 		return ERR_NULL_PTR;
 	
-	m_parameter *param = cxt_get_parameter_by_id_str(cxt, {.profile_id=profile_id, .transformer_id=transformer_id, parameter_id=parameter_id});
-	
-	if (!param)
-		return ERR_BAD_ARGS;
-	
-	if (param->name)
-		free(param->name);
-	
-	param->name = new_name ? strndup(new_name, PARAM_NAME_MAX_LEN) : NULL;
-	
-	return NO_ERROR;
-}
-
-int cxt_set_active_profile(tm_context *cxt, uint16_t profile_id)
-{
-	if (!cxt)
-		return ERR_NULL_PTR;
-	
-	cxt->active_profile = profile_id;
-	
-	return NO_ERROR;
-}
-
-int cxt_switch_to_profile(tm_context *cxt, uint16_t profile_id)
-{
-	if (!cxt)
-		return ERR_NULL_PTR;
-	
-	if (profile_id == cxt->active_profile)
+	if (pid == cxt->active_profile)
 		return NO_ERROR;
 	
-	if (profile_id >= cxt->n_profiles)
+	if (pid >= cxt->n_profiles)
 		return ERR_BAD_ARGS;
 	
 	tm_printf("Switching to profile %d\n");
 	cxt->profile_switch_triggered = 1;
-	cxt->new_profile = profile_id;
+	cxt->new_profile = pid;
 	
 	return NO_ERROR;
 }
@@ -407,7 +380,7 @@ float smoothed_transition_function(float ratio, float power)
 }
 
 #define AVG_DURATION_UPDATE_COEF 0.99f
-//#define PRINT_TIMES
+#define PRINT_TIMES
 
 int runs = 0;
 
@@ -418,7 +391,7 @@ int cxt_process(tm_context *cxt)
 	static float avg_roundtrip_duration_micros 	= 0.0;
 	static float avg_compute_duration_micros 	= 0.0;
 	
-	tm_pipeline *new_pipeline 	= NULL;
+	//tm_pipeline *new_pipeline 	= NULL;
 	tm_pipeline *active_pipeline = NULL;
 	
 	tm_pipe_line *new_pipe_line 		= NULL;
@@ -431,7 +404,7 @@ int cxt_process(tm_context *cxt)
 	
 	uint32_t start_time = micros();
 	
-	int ret_val;
+	//int ret_val;
 	
 	i2s_input_update();
 	cxt_update_avg_noise(cxt, i2s_input_blocks[1].data);
@@ -472,7 +445,7 @@ int cxt_process(tm_context *cxt)
 		float *output_buffer_2 = allocate_buffer();
 		tm_printf("Allocated output_buffer_2 = %p\n", output_buffer_2);
 		
-		new_pipeline  = &cxt->profiles[cxt->new_profile].pipeline;
+		//new_pipeline  = &cxt->profiles[cxt->new_profile].pipeline;
 		new_pipe_line = &cxt->profiles[cxt->new_profile].pipe_line;
 		
 		tm_printf("new_pipe_line = %p\n", new_pipe_line);
@@ -525,7 +498,7 @@ int cxt_process(tm_context *cxt)
 	}
 	else
 	{
-		ret_val = compute_pipeline(active_pipeline, block);
+		//ret_val = compute_pipeline(active_pipeline, block);
 		compute_pipe_line(active_pipe_line, output_buffer,   input_buffer);
 		
 		/*if (ret_val == ERR_PIPELINE_BUSTED)

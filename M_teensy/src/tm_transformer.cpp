@@ -1,49 +1,11 @@
 #include "tm.h"
 
-int init_transformer_default(tm_audio_transformer *trans, uint16_t type)
-{
-	if (!trans)
-		return ERR_NULL_PTR;
-	
-	trans->bypass = 0;
-	trans->runs = 0;
-	
-	for (int i = 0; i < TRANSFORMER_MAX_INPUTS; i++)
-		trans->inputs[i] = DISCONNECTED;
-	
-	for (int i = 0; i < TRANSFORMER_MAX_OUTPUTS; i++)
-		trans->outputs[i] = DISCONNECTED;
-	
-	int ret_val;
-	
-	switch (type)
-	{
-		case TRANSFORMER_BUFFER: 		ret_val = init_buffer_default	 (trans); 	break;
-		case TRANSFORMER_MIXER: 		ret_val = init_mixer_default	 (trans); 	break;
-		case TRANSFORMER_AMPLIFIER: 	ret_val = init_amp_default		 (trans); 	break;
-		case TRANSFORMER_BIQUAD: 		ret_val = init_biquad_default	 (trans); 	break;
-		case TRANSFORMER_WAVESHAPER: 	ret_val = init_waveshaper_default(trans); 	break;
-		case TRANSFORMER_DISTORTION: 	ret_val = init_distortion_default(trans); 	break;
-		case TRANSFORMER_COMPRESSOR: 	ret_val = init_compressor_default(trans); 	break;
-		
-		default: ret_val = ERR_BAD_ARGS; break;
-	}
-	
-	if (ret_val != NO_ERROR)
-	{
-		if (trans->transformer_data);
-			free(trans->transformer_data);
-	}
-	
-	return ret_val;
-}
-
-int init_transformer(tm_audio_transformer *trans, int type,
+int init_transformer(tm_transformer *trans, int type,
 					 unsigned int n_inputs,  unsigned int n_outputs,
 					 vec2i 		   *inputs,  vec2i 		  *outputs,
-					 int n_parameters,
-					 void *transformer_data,
-					 int (*compute_transformer)(float **dest, float **src, void *transformer_data))
+					 int n_options, int n_parameters,
+					 void *data_struct,
+					 int (*compute_transformer)(float **dest, float **src, void *data_struct))
 {
 	if (!trans)
 		return ERR_NULL_PTR;
@@ -74,11 +36,61 @@ int init_transformer(tm_audio_transformer *trans, int type,
 			trans->outputs[i] = DISCONNECTED;
 	}
 	
-	trans->transformer_data 	= transformer_data;
+	trans->data_struct 	= data_struct;
 	trans->compute_transformer 	= compute_transformer;
 	
+	trans->n_options = 0;
+	trans->option_array_size = n_options;
+	trans->options 	 = (n_options) ? (tm_option**)malloc(sizeof(tm_option*) * n_options) : NULL;
+	
+	for (int i = 0; i < n_options; i++)
+		trans->options[i] = NULL;
+	
+	
+	
+	return NO_ERROR;
+}
+
+int transformer_init_parameter_array(tm_transformer *trans, int n)
+{
+	if (!trans)
+		return ERR_NULL_PTR;
+	
+	if (n == 0)
+	{
+		trans->n_parameters = 0;
+		trans->parameter_array_size = 0;
+		trans->parameters = NULL;
+		return NO_ERROR;
+	}
+	
 	trans->n_parameters = 0;
-	trans->parameters 	= (n_parameters) ? (m_parameter**)malloc(sizeof(m_parameter*) * n_parameters) : NULL;
+	trans->parameter_array_size = n;
+	trans->parameters 	= (n) ? (tm_parameter**)malloc(sizeof(tm_parameter*) * n) : NULL;
+	
+	if (!trans->parameters)
+		return ERR_ALLOC_FAIL;
+	
+	for (int i = 0; i < n; i++)
+		trans->parameters[i] = NULL;
+	
+	return NO_ERROR;
+}
+
+int transformer_init_n_options(tm_transformer *trans, int n)
+{
+	if (!trans)
+		return ERR_NULL_PTR;
+	
+	trans->n_options = 0;
+	trans->option_array_size = n;
+	trans->options 	= (n) ? (tm_option**)malloc(sizeof(tm_option*) * n) : NULL;
+	
+	if (!trans->options)
+		return ERR_ALLOC_FAIL;
+	
+	for (int i = 0; i < n; i++)
+		trans->options[i] = NULL;
 	
 	return NO_ERROR;
 }
@@ -98,7 +110,7 @@ void run_bypass(float **dest, float **src, int n_inputs, int n_valid_inputs, int
 	}
 }
 
-int propagate_transformer(tm_pipeline *pipeline, tm_audio_transformer *trans)
+int propagate_transformer(tm_pipeline *pipeline, tm_transformer *trans)
 {
 	if (!pipeline || !trans)
 		return ERR_NULL_PTR;
@@ -173,7 +185,7 @@ int propagate_transformer(tm_pipeline *pipeline, tm_audio_transformer *trans)
 		calc = 0;
 	
 	if (calc)
-		ret_val = trans->compute_transformer(dest, src, trans->transformer_data);
+		ret_val = trans->compute_transformer(dest, src, trans->data_struct);
 	
 	if (!calc || ret_val != NO_ERROR)
 		run_bypass(dest, src, trans->n_inputs, n_valid_inputs, trans->n_outputs);
@@ -211,12 +223,32 @@ int propagate_transformer(tm_pipeline *pipeline, tm_audio_transformer *trans)
 	return ret_val;
 }
 
-int transformer_add_parameter(tm_audio_transformer *trans, m_parameter *param)
+int transformer_add_option(tm_transformer *trans, tm_option *option)
+{
+	if (!trans)
+		return ERR_NULL_PTR;
+	
+	if (!option)
+		return ERR_BAD_ARGS;
+	
+	if (trans->n_options == trans->option_array_size)
+		return ERR_BAD_ARGS;
+	
+	trans->options[trans->n_options] = option;
+	trans->n_options++;
+	
+	return NO_ERROR;
+}
+
+int transformer_add_parameter(tm_transformer *trans, tm_parameter *param)
 {
 	if (!trans)
 		return ERR_NULL_PTR;
 	
 	if (!param)
+		return ERR_BAD_ARGS;
+	
+	if (trans->n_parameters == trans->parameter_array_size)
 		return ERR_BAD_ARGS;
 	
 	trans->parameters[trans->n_parameters] = param;

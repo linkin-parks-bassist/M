@@ -42,7 +42,7 @@ int string_out_pos;
 char *string_in = NULL;
 int string_in_pos;
 
-m_parameter_id target;
+m_ppid target;
 
 comms_fstm_state_t comms_fstm_state = IDLE;
 
@@ -60,14 +60,10 @@ void handle_esp32_message(et_msg msg)
 	memcpy(&arg16_4, &msg.data[6],  sizeof(uint16_t));
 	memcpy(&arg16_5, &msg.data[8],  sizeof(uint16_t));
 	
-	union
-	{
-		et_msg_chparam_struct chstr;
-		et_msg_rqparam_struct rqstr;
-	} str;
-	
-	m_parameter *param;
-	m_param_value value;
+	tm_parameter *param;
+	tm_option *option;
+	float value_f;
+	uint16_t value_i;
 	
 	int len;
 	
@@ -142,9 +138,9 @@ void handle_esp32_message(et_msg msg)
 			break;
 		
 		case ET_MESSAGE_GET_TRANSFORMER_ID:
-			tm_printf("esp32 asks: what is the id of the transformer in position %d in profile %d? answer: %d\n", arg16_2, arg16_1, cxt_get_transformer_id_by_pos(&global_cxt, arg16_1, arg16_2));
+			tm_printf("esp32 asks: what is the id of the transformer in position %d in profile %d? answer: %d\n", arg16_2, arg16_1, cxt_get_tid_by_pos(&global_cxt, arg16_1, arg16_2));
 			response = create_te_msg(TE_MESSAGE_TRANSFORMER_TYPE, "sss", arg16_1, arg16_2,
-									 cxt_get_transformer_id_by_pos(&global_cxt, arg16_1, arg16_2));
+									 cxt_get_tid_by_pos(&global_cxt, arg16_1, arg16_2));
 			break;
 		
 		case ET_MESSAGE_GET_TRANSFORMER_TYPE:
@@ -159,12 +155,6 @@ void handle_esp32_message(et_msg msg)
 									 cxt_get_n_transformer_params(&global_cxt, arg16_1, arg16_2));
 			break;
 		
-		case ET_MESSAGE_GET_PARAM_TYPE:
-			tm_printf("esp32 asks: what is the type of parameter %d.%d.%d? answer: %d\n", arg16_1, arg16_2, arg16_3, (uint16_t)cxt_get_parameter_type(&global_cxt, arg16_1, arg16_2, arg16_3));
-			response = create_te_msg(TE_MESSAGE_N_PARAMETERS, "sss", arg16_1, arg16_2, arg16_3,
-									 (uint16_t)cxt_get_parameter_type(&global_cxt, arg16_1, arg16_2, arg16_3));
-			break;
-		
 		case ET_MESSAGE_GET_PARAM_VALUE:
 			tm_printf("Request for value of parameter %d.%d.%d...\n", arg16_1, arg16_2, arg16_3);
 			
@@ -172,9 +162,9 @@ void handle_esp32_message(et_msg msg)
 			
 			if (param)
 			{
-				tm_printf("Request valid. Parameter ptr: 0x%08x, value %f = %d\n", param, param->val.level, param->val.option);
+				tm_printf("Request valid. Parameter ptr: 0x%08x, value %f\n", param, param->value);
 				response = create_te_msg(TE_MESSAGE_PARAM_VALUE, "sss", arg16_1, arg16_2, arg16_3);
-				memcpy(&response.data[6], &param->val, sizeof(m_param_value));
+				memcpy(&response.data[6], &param->value, sizeof(float));
 			}
 			else
 			{
@@ -184,59 +174,67 @@ void handle_esp32_message(et_msg msg)
 			break;
 		
 		case ET_MESSAGE_SET_PARAM_VALUE:
-			memcpy(&value, &msg.data[6], sizeof(m_param_value));
+			memcpy(&value_f, &msg.data[6], sizeof(float));
 			
-			tm_printf("Request to set parameter %d.%d.%d to value %f = %d\n", arg16_1, arg16_2, arg16_3, value.level, value.option);
+			tm_printf("Request to set parameter %d.%d.%d to value %f\n", arg16_1, arg16_2, arg16_3, value_f);
 			param = cxt_get_parameter_by_id(&global_cxt, arg16_1, arg16_2, arg16_3);
 			
 			if (param)
 			{
-				tm_printf("The parameter exists; with address %p, and current value %f\n", param, param->val.level);
-				param->val = value;
-				tm_printf("It has been updated to value %f.\n", param->val.level);
-				response = create_te_msg_ok();
+				tm_printf("The parameter exists; with address %p, and current value %f\n", param, param->value);
+				update_parameter(param, value_f);
+				tm_printf("It has been updated to value %f.\n", param->new_value);
+				response = create_te_msg(TE_MESSAGE_PARAM_VALUE, "ssss", arg16_1, arg16_2, arg16_3, value_f);
 			}
 			else
 			{
 				tm_printf("But no such parameter exists!\n");
-				response = create_te_msg_no_data(TE_MESSAGE_BAD_REQUEST);
+				response = create_te_msg_nodata(TE_MESSAGE_BAD_REQUEST);
 			}
 			break;
 		
-		case ET_MESSAGE_GET_PARAM_NAME:
-			if (!parameter_id_valid(&global_cxt, arg16_1, arg16_2, arg16_3))
+		case ET_MESSAGE_GET_N_OPTIONS:
+			tm_printf("esp32 asks: what is the n_options of transformer %d.%d? answer: %d\n", arg16_1, arg16_2, cxt_get_n_transformer_options(&global_cxt, arg16_1, arg16_2));
+			response = create_te_msg(TE_MESSAGE_N_OPTIONS, "sss", arg16_1, arg16_2,
+									 cxt_get_n_transformer_options(&global_cxt, arg16_1, arg16_2));
+			break;
+		
+		case ET_MESSAGE_GET_OPTION_VALUE:
+			tm_printf("Request for value of option %d.%d.%d...\n", arg16_1, arg16_2, arg16_3);
+			
+			option = cxt_get_option_by_id(&global_cxt, arg16_1, arg16_2, arg16_3);
+			
+			if (option)
 			{
-				response = create_te_msg_no_data(TE_MESSAGE_BAD_REQUEST);
-				break;
+				tm_printf("Request valid. Parameter ptr: 0x%08x, value %d\n", option, option->value);
+				response = create_te_msg(TE_MESSAGE_OPTION_VALUE, "sss", arg16_1, arg16_2, arg16_3);
+				memcpy(&response.data[6], &option->value, sizeof(uint16_t));
 			}
-			
-			string_out = cxt_get_parameter_name(&global_cxt, arg16_1, arg16_2, arg16_3);
-			
-			tm_printf("esp32 asks: what is the name of paramater %d.%d.%d? answer: %d\n", arg16_1, arg16_2, arg16_3, string_out ? "NULL" : string_out);
-			
-			response = create_te_msg_parameter_name(arg16_1, arg16_2, arg16_3, string_out);
-			
-			if (response.type == TE_MESSAGE_PARAM_NAME_LONG)
-				string_out_pos = TE_MESSAGE_MAX_LEN - 3 * sizeof(uint16_t);
-			
+			else
+			{
+				tm_printf("Requested option doesn't exist !\n");
+				response.type = TE_MESSAGE_BAD_REQUEST;
+			}
 			break;
 		
-		case ET_MESSAGE_SET_PARAM_NAME:
-			response = create_te_msg_error(cxt_set_parameter_name(&global_cxt, arg16_1, arg16_2, arg16_3, (const char*)&msg.data[6]));
-			break;
-		
-		case ET_MESSAGE_SET_PARAM_NAME_LONG:
-			len = msg.data[6];
-			string_in = (char*)malloc(len + 1);
-			string_in_pos = 0;
+		case ET_MESSAGE_SET_OPTION_VALUE:
+			memcpy(&value_i, &msg.data[6], sizeof(uint16_t));
 			
-			comms_fstm_state = RECIEVING_NEW_PARAM_NAME_LONG;
-			target = {.profile_id = arg16_1, .transformer_id = arg16_2, .parameter_id = arg16_3};
+			tm_printf("Request to set option %d.%d.%d to value %d\n", arg16_1, arg16_2, arg16_3, value_i);
+			option = cxt_get_option_by_id(&global_cxt, arg16_1, arg16_2, arg16_3);
 			
-			for (int i = 0; i + 7 < ET_MESSAGE_MAX_LEN; i++)
-				string_in[string_in_pos++] = msg.data[i + 7];
-			
-			response = create_te_msg_ok();
+			if (option)
+			{
+				tm_printf("The option exists; with address %p, and current value %d\n", option, option->value);
+				update_option(option, value_i);
+				tm_printf("It has been updated to value %d.\n", option->new_value);
+				response = create_te_msg(TE_MESSAGE_OPTION_VALUE, "ssss", arg16_1, arg16_2, arg16_3, option->new_value);
+			}
+			else
+			{
+				tm_printf("But no such option exists!\n");
+				response = create_te_msg_nodata(TE_MESSAGE_BAD_REQUEST);
+			}
 			break;
 		
 		case ET_MESSAGE_SWITCH_PROFILE:
@@ -255,7 +253,7 @@ void handle_esp32_message(et_msg msg)
 			else
 			{
 				tm_printf("No such profile exists!\n");
-				response = create_te_msg_no_data(TE_MESSAGE_BAD_REQUEST);
+				response = create_te_msg_nodata(TE_MESSAGE_BAD_REQUEST);
 			}
 			break;
 		
@@ -266,7 +264,7 @@ void handle_esp32_message(et_msg msg)
 		case ET_MESSAGE_STRING_CONTINUING:
 			if (!string_in)
 			{
-				response = create_te_msg_no_data(TE_MESSAGE_START_OVER);
+				response = create_te_msg_nodata(TE_MESSAGE_START_OVER);
 			}
 			else
 			{
@@ -282,14 +280,6 @@ void handle_esp32_message(et_msg msg)
 					}
 				}
 				
-				if (string_received)
-				{
-					if (comms_fstm_state == RECIEVING_NEW_PARAM_NAME_LONG)
-					{
-						response = create_te_msg_error(cxt_set_parameter_name(&global_cxt,
-							target.profile_id, target.transformer_id, target.parameter_id, string_in));
-					}
-				}
 				response = create_te_msg_ok();
 			}
 			break;

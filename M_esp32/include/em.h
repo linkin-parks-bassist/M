@@ -22,6 +22,7 @@
 #include "m_error_codes.h"
 #include "m_status.h"
 #include "m_vec2i.h"
+#include "m_transformer_enum.h"
 
 #include "em_parameter.h"
 #include "m_comms.h"
@@ -33,11 +34,8 @@
 #include "em_linked_list.h"
 #include "em_ui.h"
 
-#include "em_shared_context.h"
+#include "em_transformer.h"
+#include "em_profile.h"
 #include "em_context.h"
-
-#include "em_transformer_view.h"
-#include "em_parameter_widget.h"
-#include "em_profile_view.h"
 
 #endif

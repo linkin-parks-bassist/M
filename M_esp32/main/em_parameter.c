@@ -61,7 +61,86 @@ void format_float(char *buf, float val, int max_len)
 	buf[pos] = 0;
 }
 
-int nullify_parameter_widget(parameter_widget *pw)
+int init_em_parameter(em_parameter *param)
+{
+	if (!param)
+		return ERR_NULL_PTR;
+	
+	param->val = 0.0;
+	param->min = 0.0;
+	param->max = 1.0;
+	
+	param->factor = 1.0;
+	
+	param->id = (em_parameter_id){.profile_id = 0, .transformer_id = 0, .parameter_id = 0};
+	
+	param->name = NULL;
+	
+	param->widget_type = PARAM_WIDGET_VIRTUAL_POT;
+	
+	return NO_ERROR;
+}
+
+int init_parameter(em_parameter *param, char *name, float level, float min, float max)
+{
+	if (!param)
+		return ERR_NULL_PTR;
+	
+	param->name = name;
+	param->val = level;
+	param->min = min;
+	param->max = max;
+	
+	param->factor = 1.0;
+	
+	return NO_ERROR;
+}
+
+int init_em_option(em_option *option)
+{
+	if (!option)
+		return ERR_NULL_PTR;
+	
+	option->name = NULL;
+	option->val = 0;
+	
+	option->n_options = 0;
+	option->options = NULL;
+	
+	option->widget_type = OPTION_WIDGET_HSLIDER;
+	
+	return NO_ERROR;
+}
+
+int init_option(em_option *option, char *name, uint16_t level)
+{
+	if (!option)
+		return ERR_NULL_PTR;
+	
+	option->name = name;
+	option->val = level;
+	
+	option->n_options = 0;
+	option->options = NULL;
+	
+	option->widget_type = OPTION_WIDGET_HSLIDER;
+	
+	return NO_ERROR;
+}
+
+int parameter_set_id(em_parameter *param, uint16_t pid, uint16_t tid, uint16_t ppid)
+{
+	if (!param)
+		return ERR_NULL_PTR;
+	
+	param->id.profile_id 	= pid;
+	param->id.transformer_id = tid;
+	param->id.parameter_id 	= ppid;
+	
+	return NO_ERROR;
+}
+
+int nullify_em_parameter_widget(em_parameter_widget *pw)
 {
 	if (!pw)
 		return ERR_NULL_PTR;
@@ -75,7 +154,7 @@ int nullify_parameter_widget(parameter_widget *pw)
 	return NO_ERROR;
 }
 
-int configure_parameter_widget(parameter_widget *pw, teensy_parameter *param)
+int configure_em_parameter_widget(em_parameter_widget *pw, em_parameter *param)
 {
 	if (!pw || !param)
 		return ERR_NULL_PTR;
@@ -87,39 +166,24 @@ int configure_parameter_widget(parameter_widget *pw, teensy_parameter *param)
 	 * the compressor where values are measured in seconds but one wants attack,
 	 * for instance, in the ms range. So I allow for, on the UI side, showing it
 	 * as some number, but multiplying by a scaling factor before sending it off */
-	switch (param->type)
-	{
-		case M_PARAM_OPTION:
-			pw->factor.option = 1;
-			break;
-			
-		case M_PARAM_SWITCH:
-			pw->factor.active = 1;
-			break;
-			
-		default:
-		case M_PARAM_LEVEL:
-			pw->factor.level = 1.0f;
-			break;
-	}
 	
-	format_float(pw->val_label_text, pw->param->val.level, PARAM_WIDGET_LABEL_BUFSIZE);
+	format_float(pw->val_label_text, pw->param->val, PARAM_WIDGET_LABEL_BUFSIZE);
 	
 	return NO_ERROR;
 }
 
-void update_virtual_pot_value_label(parameter_widget *pot)
+void update_virtual_pot_value_label(em_parameter_widget *pot)
 {
 	if (!pot)
 		return;
 	
-	format_float(pot->val_label_text, pot->param->val.level, PARAM_WIDGET_LABEL_BUFSIZE);
+	format_float(pot->val_label_text, pot->param->val, PARAM_WIDGET_LABEL_BUFSIZE);
 	lv_label_set_text(pot->val_label, pot->val_label_text);
 }
 
 void virtual_pot_refresh_cb(lv_event_t *event)
 {
-	parameter_widget *pot = lv_event_get_user_data(event);
+	em_parameter_widget *pot = lv_event_get_user_data(event);
 	
 	if (!pot)
 	{
@@ -127,14 +191,14 @@ void virtual_pot_refresh_cb(lv_event_t *event)
 		return;
 	}
 	
-	lv_arc_set_value(pot->obj, ((pot->param->val.level - pot->param->min.level) * 100 ) / (pot->param->max.level - pot->param->min.level));
+	lv_arc_set_value(pot->obj, ((pot->param->val - pot->param->min) * 100 ) / (pot->param->max - pot->param->min));
 	
 	update_virtual_pot_value_label(pot);
 }
 
 void virtual_pot_change_cb(lv_event_t *event)
 {
-	parameter_widget *pot = lv_event_get_user_data(event);
+	em_parameter_widget *pot = lv_event_get_user_data(event);
 	
 	if (!pot)
 	{
@@ -142,64 +206,56 @@ void virtual_pot_change_cb(lv_event_t *event)
 		return;
 	}
 	
-	pot->param->val.level = pot->param->min.level + ((pot->param->max.level - pot->param->min.level) * 0.01 * lv_arc_get_value(pot->obj));
+	pot->param->val = pot->param->min + ((pot->param->max - pot->param->min) * 0.01 * lv_arc_get_value(pot->obj));
 	
 	update_virtual_pot_value_label(pot);
 	
-	et_msg msg = create_et_msg_set_param(pot->param->id, (m_param_value){.level = pot->param->val.level * pot->factor.level});
+	et_msg msg = create_et_msg_set_param(pot->param->id.profile_id, pot->param->id.transformer_id, pot->param->id.parameter_id, pot->param->val * pot->param->factor);
 
 	xQueueSend(et_msg_queue, (void*)&msg, 0);
 }
 
-int parameter_widget_create_ui(parameter_widget *pw, lv_obj_t *parent)
+int parameter_widget_create_ui(em_parameter_widget *pw, lv_obj_t *parent)
 {
+	printf("parameter_widget_create_ui...\n");
 	if (!pw || !pw->param || !parent)
 		return ERR_NULL_PTR;
 	
-	switch (pw->param->type)
+	switch (pw->param->widget_type)
 	{
-		case M_PARAM_LEVEL:
+		case PARAM_WIDGET_VIRTUAL_POT:
 			pw->obj = lv_arc_create(parent);
 			
-			lv_obj_set_size(pw->obj, 150, 150);
+			lv_obj_set_size(pw->obj, 175, 175);
 			lv_arc_set_rotation(pw->obj, 135);
 			lv_arc_set_bg_angles(pw->obj, 0, 270);
 			lv_arc_set_value(pw->obj,
-				((pw->param->val.level - pw->param->min.level) * 100 )
-			   / (pw->param->max.level - pw->param->min.level));
+				((pw->param->val - pw->param->min) * 100 )
+			   / (pw->param->max - pw->param->min));
 			
 			pw->name_label = lv_label_create(pw->obj);
 			lv_label_set_text(pw->name_label, pw->param->name);
 			lv_obj_align(pw->name_label, LV_ALIGN_BOTTOM_MID, 0, 0);
 			
 			pw->val_label = lv_label_create(pw->obj);
-			format_float(pw->val_label_text, pw->param->val.level, PARAM_WIDGET_LABEL_BUFSIZE);
+			format_float(pw->val_label_text, pw->param->val, PARAM_WIDGET_LABEL_BUFSIZE);
 			lv_label_set_text(pw->val_label, pw->val_label_text);
 			lv_obj_center(pw->val_label);
 			
 			lv_obj_add_event_cb(pw->obj, virtual_pot_change_cb, LV_EVENT_VALUE_CHANGED, pw);
 			lv_obj_add_event_cb(pw->obj, virtual_pot_refresh_cb, LV_EVENT_REFRESH, pw);
-			break;
 			
-		case M_PARAM_OPTION:
-			return ERR_UNIMPLEMENTED;
-			break;
-		
-		case M_PARAM_SWITCH:
-			return ERR_UNIMPLEMENTED;
-			break;
-		
-		default:
-			return ERR_UNIMPLEMENTED;
+			printf("yeeh\n");
 			break;
 	}
 	
+	printf("parameter_widget_create_ui: done!\n");
 	return NO_ERROR;
 }
 
 void param_widget_receive(et_msg msg, te_msg response)
 {
-	parameter_widget *pw = (parameter_widget*)msg.cb_arg;
+	em_parameter_widget *pw = (em_parameter_widget*)msg.cb_arg;
 	
 	printf("Recieve callback\n");
 	if (!pw || !pw->param)
@@ -222,10 +278,10 @@ void param_widget_receive(et_msg msg, te_msg response)
 	 && transformer_id == pw->param->id.transformer_id
 	 && parameter_id   == pw->param->id.parameter_id)
 	{
-		memcpy(&pw->param->val, &response.data[6], sizeof(m_param_value));
+		memcpy(&pw->param->val, &response.data[6], sizeof(float));
 		
-		printf("Parameter %d.%d.%d value revieced: %f\n", profile_id, transformer_id, parameter_id, pw->param->val.level);
-		lv_arc_set_value(pw->obj, ((pw->param->val.level - pw->param->min.level) * 100 ) / (pw->param->max.level - pw->param->min.level));
+		printf("Parameter %d.%d.%d value revieced: %f\n", profile_id, transformer_id, parameter_id, pw->param->val);
+		lv_arc_set_value(pw->obj, ((pw->param->val - pw->param->min) * 100 ) / (pw->param->max - pw->param->min));
 		update_virtual_pot_value_label(pw);
 	}
 	else
@@ -236,17 +292,19 @@ void param_widget_receive(et_msg msg, te_msg response)
 	}
 }
 
-int param_widget_request_value(parameter_widget *pw)
+int param_widget_request_value(em_parameter_widget *pw)
 {
+	printf("param_widget_request_value...\n");
 	if (!pw)
 		return ERR_NULL_PTR;
 	
-	et_msg msg = create_et_msg_get_param_value(pw->param->id);
+	et_msg msg = create_et_msg_get_param_value(pw->param->id.profile_id, pw->param->id.transformer_id, pw->param->id.parameter_id);
 	msg.callback = param_widget_receive;
 	msg.cb_arg = pw;
 
 	if (xQueueSend(et_msg_queue, (void*)&msg, 0) != pdPASS)
 		return ERR_QUEUE_FULL;
 	
+	printf("param_widget_request_value done!\n");
 	return NO_ERROR;
 }

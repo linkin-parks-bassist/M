@@ -660,7 +660,7 @@ tm_pipeline_node *pipeline_get_node(tm_pipeline *pipeline, vec2i pos)
 	return &pipeline->nodes[pos.x][pos.y];
 }
 
-int pipeline_add_transformer(tm_pipeline *pipeline, tm_audio_transformer *trans)
+int pipeline_add_transformer(tm_pipeline *pipeline, tm_transformer *trans)
 {
 	if (!pipeline || !trans)
 		return -ERR_NULL_PTR;
@@ -722,7 +722,7 @@ int pipeline_add_transformer_by_type(tm_pipeline *pipeline, uint16_t type)
 	if (!pipeline)
 		return -ERR_NULL_PTR;
 	
-	tm_audio_transformer *trans = (tm_audio_transformer*)malloc(sizeof(tm_audio_transformer));
+	tm_transformer *trans = (tm_transformer*)malloc(sizeof(tm_transformer));
 	
 	if (!trans)
 		return ERR_ALLOC_FAIL;
@@ -742,7 +742,7 @@ int init_pipe_line(tm_pipe_line *pipeline)
 	
 	pipeline->n_transformers = 0;
 	pipeline->transformer_array_length = INITIAL_TRANSFORMER_ARRAY_LENGTH;
-	pipeline->transformers = (tm_audio_transformer**)malloc(sizeof(tm_audio_transformer*) * pipeline->transformer_array_length);
+	pipeline->transformers = (tm_transformer**)malloc(sizeof(tm_transformer*) * pipeline->transformer_array_length);
 	
 	for (int i = 0; i < pipeline->transformer_array_length; i++)
 		pipeline->transformers[i] = NULL;
@@ -811,7 +811,7 @@ int compute_pipe_line(tm_pipe_line *pipeline, float *dest, float *src)
 		ret_val = ERR_NULL_PTR;
 		
 		if (pipeline->transformers[i] && pipeline->transformers[i]->compute_transformer)
-			ret_val = pipeline->transformers[i]->compute_transformer(&out_buffer, &in_buffer, pipeline->transformers[i]->transformer_data);
+			ret_val = pipeline->transformers[i]->compute_transformer(&out_buffer, &in_buffer, pipeline->transformers[i]->data_struct);
 		
 		// If there is a succesful computation, swap the buffers.
 		// If not, keep everything as is; the same buffer will be 
@@ -855,11 +855,11 @@ int pipe_line_expand_transformer_array(tm_pipe_line *pipeline)
 		return ERR_NULL_PTR;
 	
 	int try_size = PROFILES_MALLOC_CHUNK_SIZE;
-	tm_audio_transformer **new_ptr = NULL;
+	tm_transformer **new_ptr = NULL;
 	
 	do
 	{
-		new_ptr = (tm_audio_transformer**)malloc(sizeof(tm_audio_transformer*) * (pipeline->transformer_array_length + try_size));
+		new_ptr = (tm_transformer**)malloc(sizeof(tm_transformer*) * (pipeline->transformer_array_length + try_size));
 		if (!new_ptr)
 			try_size /= 2;
 	} while (!new_ptr && try_size);
@@ -869,7 +869,7 @@ int pipe_line_expand_transformer_array(tm_pipe_line *pipeline)
 	
 	tm_AudioNoInterrupts();
 	
-	memcpy(new_ptr, pipeline->transformers, sizeof(tm_audio_transformer*) * (pipeline->transformer_array_length));
+	memcpy(new_ptr, pipeline->transformers, sizeof(tm_transformer*) * (pipeline->transformer_array_length));
 	free(pipeline->transformers);
 	pipeline->transformers = new_ptr;
 	pipeline->transformer_array_length += try_size;
@@ -882,7 +882,7 @@ int pipe_line_expand_transformer_array(tm_pipe_line *pipeline)
 	return NO_ERROR;
 }
 
-int pipe_line_append_transformer(tm_pipe_line *pipeline, tm_audio_transformer *trans)
+int pipe_line_append_transformer(tm_pipe_line *pipeline, tm_transformer *trans)
 {
 	if (!pipeline || !trans)
 		return -ERR_NULL_PTR;
@@ -906,7 +906,7 @@ int pipe_line_append_transformer(tm_pipe_line *pipeline, tm_audio_transformer *t
 	return trans->id;
 }
 
-int pipe_line_insert_transformer(tm_pipe_line *pipeline, tm_audio_transformer *trans, int pos)
+int pipe_line_insert_transformer(tm_pipe_line *pipeline, tm_transformer *trans, int pos)
 {
 	if (!pipeline || !trans)
 		return -ERR_NULL_PTR;
@@ -933,7 +933,7 @@ int pipe_line_insert_transformer(tm_pipe_line *pipeline, tm_audio_transformer *t
 	return trans->id;
 }
 
-int pipe_line_prepend_transformer(tm_pipe_line *pipeline, tm_audio_transformer *trans)
+int pipe_line_prepend_transformer(tm_pipe_line *pipeline, tm_transformer *trans)
 {
 	return pipe_line_insert_transformer(pipeline, trans, 0);
 }
@@ -943,7 +943,7 @@ int pipe_line_append_transformer_type(tm_pipe_line *pipeline, uint16_t type)
 	if (!pipeline)
 		return -ERR_NULL_PTR;
 	
-	tm_audio_transformer *trans = (tm_audio_transformer*)malloc(sizeof(tm_audio_transformer));
+	tm_transformer *trans = (tm_transformer*)malloc(sizeof(tm_transformer));
 	
 	if (!trans)
 		return -ERR_ALLOC_FAIL;
@@ -964,7 +964,7 @@ int pipe_line_insert_transformer_type(tm_pipe_line *pipeline, uint16_t type, uin
 	if (!pipeline)
 		return -ERR_NULL_PTR;
 	
-	tm_audio_transformer *trans = (tm_audio_transformer*)malloc(sizeof(tm_audio_transformer));
+	tm_transformer *trans = (tm_transformer*)malloc(sizeof(tm_transformer));
 	
 	if (!trans)
 		return -ERR_ALLOC_FAIL;
@@ -985,7 +985,7 @@ int pipe_line_prepend_transformer_type(tm_pipe_line *pipeline, uint16_t type)
 	return pipe_line_insert_transformer_type(pipeline, type, 0);
 }
 
-tm_audio_transformer *pipe_line_get_transformer_by_id(tm_pipe_line *pipeline, uint16_t id)
+tm_transformer *pipe_line_get_transformer_by_id(tm_pipe_line *pipeline, uint16_t id)
 {
 	if (!pipeline)
 		return NULL;
@@ -1027,7 +1027,7 @@ int pipe_line_swap_transformers(tm_pipe_line *pipeline, uint16_t id1, uint16_t i
 	
 	tm_AudioNoInterrupts();
 	
-	tm_audio_transformer *tmp = pipeline->transformers[index1];
+	tm_transformer *tmp = pipeline->transformers[index1];
 	pipeline->transformers[index1] = pipeline->transformers[index2];
 	pipeline->transformers[index2] = tmp;
 	

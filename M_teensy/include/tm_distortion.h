@@ -1,36 +1,40 @@
 #ifndef M_DISTORTION_H_
 #define M_DISTORTION_H_
 
+#define USE_GLOBAL_TEMP_BUFFERS
+
 typedef struct
 {
-	m_parameter type;
+	tm_option type;
 	
-	tm_biquad_data low_pass_1;
-	tm_biquad_data low_pass_2;
-	tm_biquad_data mid_pass_1;
-	tm_biquad_data mid_pass_2;
-	tm_biquad_data high_pass_1;
-	tm_biquad_data high_pass_2;
+	tm_biquad_str low_pass_1;
+	tm_biquad_str low_pass_2;
+	tm_biquad_str mid_pass_1;
+	tm_biquad_str mid_pass_2;
+	tm_biquad_str high_pass_1;
+	tm_biquad_str high_pass_2;
 	
-	tm_waveshaper_data mid_distortion;
-	tm_waveshaper_data high_distortion;
+	tm_waveshaper_str mid_distortion;
+	tm_waveshaper_str high_distortion;
 	
-	m_parameter gain;
-	m_parameter wet_mix;
-	m_parameter high_mix;
-	m_parameter mid_mix;
-	m_parameter bass_mix;
-	m_parameter bass_cutoff;
-	m_parameter mid_cutoff;
-	m_parameter ratio;
-} tm_distortion_data;
+	tm_parameter gain;
+	tm_parameter wet_mix;
+	tm_parameter high_mix;
+	tm_parameter mid_mix;
+	tm_parameter bass_mix;
+	tm_parameter bass_cutoff;
+	tm_parameter mid_cutoff;
+	tm_parameter ratio;
+} tm_distortion_str;
 
-int init_distortion_struct(tm_distortion_data *data_struct, int type,
-						   m_param_level_t bass_cutoff, m_param_level_t mid_cutoff, m_param_level_t gain,
-						   m_param_level_t bass_mix,m_param_level_t mid_mix, m_param_level_t high_mix, m_param_level_t wet_mix);
+int init_distortion_struct(tm_distortion_str *data_struct, int type,
+						   float bass_cutoff, float mid_cutoff, float gain,
+						   float bass_mix,float mid_mix, float high_mix, float wet_mix);
 
-int init_distortion(tm_audio_transformer *trans, vec2i input, vec2i output, int type, m_param_level_t mid_gain, m_param_level_t high_gain);
+int init_distortion(tm_transformer *trans, vec2i input, vec2i output, int type, float mid_gain, float high_gain);
 
-int init_distortion_default(tm_audio_transformer *trans);
+int init_distortion_struct_default(tm_distortion_str *str);
+
+int calc_distortion(float **dest, float **src, void *data_struct);
 
 #endif

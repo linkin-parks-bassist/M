@@ -1,21 +1,6 @@
 #include "tm.h"
 
-int init_buffer_default	(tm_audio_transformer *trans)
-{
-	return init_buffer(trans, DISCONNECTED, DISCONNECTED);
-}
-
-int init_amp_default(tm_audio_transformer *trans)
-{
-	return init_amp(trans, DISCONNECTED, DISCONNECTED, DEFAULT_AMP_GAIN);
-}
-
-int init_mixer_default(tm_audio_transformer *trans)
-{
-	return init_mixer(trans, NULL, DISCONNECTED, DEFAULT_MIXER_RATIO);
-}
-
-int calc_buffer(float **dest, float **src, void *transformer_data)
+int calc_buffer(float **dest, float **src, void *data_struct)
 {
 	if (!dest || !src)
 		return ERR_NULL_PTR;
@@ -28,9 +13,9 @@ int calc_buffer(float **dest, float **src, void *transformer_data)
 	return NO_ERROR;
 }
 
-int calc_amp(float **dest, float **src, void *transformer_data)
+int calc_amplifier(float **dest, float **src, void *data_struct)
 {
-	if (!transformer_data || !dest || !src)
+	if (!data_struct || !dest || !src)
 		return ERR_NULL_PTR;
 	
 	if (!dest[0] || !src[0])
@@ -38,41 +23,41 @@ int calc_amp(float **dest, float **src, void *transformer_data)
 	
 	//tm_printf("Computing amp transformer...\n");
 	
-	tm_amp_data *amp = (tm_amp_data*)transformer_data;
+	tm_amplifier_str *amp = (tm_amplifier_str*)data_struct;
 	
 	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
-		dest[0][i] = amp->gain.val.level * src[0][i];
+		dest[0][i] = amp->gain.value * src[0][i];
 	
 	return NO_ERROR;
 }
 
-int calc_mixer(float **dest, float **src, void *transformer_data)
+int calc_mixer(float **dest, float **src, void *data_struct)
 {
-	if (!transformer_data || !dest || !src)
+	if (!data_struct || !dest || !src)
 		return ERR_NULL_PTR;
 	
 	if (!dest[0] || !(src[0] && src[1]))
 		return ERR_NULL_PTR;
 	
-	tm_mixer_data *mixer = (tm_mixer_data*)transformer_data;
+	tm_mixer_str *mixer = (tm_mixer_str*)data_struct;
 	
 	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
-		dest[0][i] = mixer->ratio.val.level * src[0][i] + (1.0 - mixer->ratio.val.level) * src[1][i];
+		dest[0][i] = mixer->ratio.value * src[0][i] + (1.0 - mixer->ratio.value) * src[1][i];
 	
 	return NO_ERROR;
 }
 
-int init_buffer(tm_audio_transformer *trans, vec2i input, vec2i output)
+int init_buffer(tm_transformer *trans, vec2i input, vec2i output)
 {
 	if (!trans)
 		return ERR_NULL_PTR;
 	
-	return init_transformer(trans, TRANSFORMER_BUFFER, 1, 1, &input, &output, 0, NULL, &calc_buffer);
+	return init_transformer(trans, TRANSFORMER_BUFFER, 1, 1, &input, &output, 1, 0, NULL, &calc_buffer);
 }
 
-tm_audio_transformer *alloc_buffer_transformer(vec2i input, vec2i output)
+tm_transformer *alloc_buffer_transformer(vec2i input, vec2i output)
 {
-	tm_audio_transformer *buffer = (tm_audio_transformer*)malloc(sizeof(tm_audio_transformer));
+	tm_transformer *buffer = (tm_transformer*)malloc(sizeof(tm_transformer));
 	int ret_val;
 	if ((ret_val = init_buffer(buffer, input, output)) != NO_ERROR)
 	{
@@ -83,16 +68,24 @@ tm_audio_transformer *alloc_buffer_transformer(vec2i input, vec2i output)
 	return buffer;
 }
 
-int init_amp(tm_audio_transformer *trans, vec2i input, vec2i output, m_param_level_t gain)
+int init_amplifier_struct_default(tm_amplifier_str *str)
+{
+	if (!str)
+		return ERR_NULL_PTR;
+	
+	return NO_ERROR;
+}
+
+int init_amplifier(tm_transformer *trans, vec2i input, vec2i output, float gain)
 {
 	if (!trans)
 		return ERR_NULL_PTR;
 	
 	int ret_val = NO_ERROR;
 	
-	tm_amp_data *data_struct = (tm_amp_data*)malloc(sizeof(tm_amp_data));
+	tm_amplifier_str *data_struct = (tm_amplifier_str*)malloc(sizeof(tm_amplifier_str));
 	
-	init_transformer(trans, TRANSFORMER_AMPLIFIER, 1, 1, &input, &output, 1, (void*)data_struct, &calc_amp);
+	init_transformer(trans, TRANSFORMER_AMPLIFIER, 1, 1, &input, &output, 0, 1, (void*)data_struct, &calc_amplifier);
 	
 	if (!data_struct)
 	{
@@ -100,23 +93,23 @@ int init_amp(tm_audio_transformer *trans, vec2i input, vec2i output, m_param_lev
 	}
 	else
 	{
-		INIT_PARAM(data_struct->gain, M_PARAM_LEVEL, gain, "Gain");
+		init_parameter_simple(&data_struct->gain, gain);
 		transformer_add_parameter(trans, &data_struct->gain);
 	}
 	
 	return ret_val;
 }
 
-tm_audio_transformer *alloc_amp_transformer(vec2i input, vec2i output, m_param_level_t gain)
+tm_transformer *alloc_amplifier_transformer(vec2i input, vec2i output, float gain)
 {
-	tm_audio_transformer *amp = (tm_audio_transformer*)malloc(sizeof(tm_audio_transformer));
+	tm_transformer *amp = (tm_transformer*)malloc(sizeof(tm_transformer));
 	int ret_val;
-	if ((ret_val = init_amp(amp, input, output, gain)) != NO_ERROR)
+	if ((ret_val = init_amplifier(amp, input, output, gain)) != NO_ERROR)
 	{
 		if (amp)
 		{
-			if (amp->transformer_data)
-				free(amp->transformer_data);
+			if (amp->data_struct)
+				free(amp->data_struct);
 			free(amp);
 		}
 		return NULL;
@@ -124,16 +117,16 @@ tm_audio_transformer *alloc_amp_transformer(vec2i input, vec2i output, m_param_l
 	return amp;
 }
 
-int init_mixer(tm_audio_transformer *trans, vec2i *inputs, vec2i output, m_param_level_t ratio)
+int init_mixer(tm_transformer *trans, vec2i *inputs, vec2i output, float ratio)
 {
 	if (!trans || !inputs)
 		return ERR_NULL_PTR;
 	
-	tm_mixer_data *data_struct = (tm_mixer_data*)malloc(sizeof(tm_mixer_data));
+	tm_mixer_str *data_struct = (tm_mixer_str*)malloc(sizeof(tm_mixer_str));
 	
 	int ret_val = NO_ERROR;
 	
-	init_transformer(trans, TRANSFORMER_MIXER, 2, 1, inputs, &output, 1, (void*)data_struct, &calc_mixer);
+	init_transformer(trans, TRANSFORMER_MIXER, 2, 1, inputs, &output, 0, 1, (void*)data_struct, &calc_mixer);
 	
 	if (!data_struct)
 	{
@@ -141,23 +134,23 @@ int init_mixer(tm_audio_transformer *trans, vec2i *inputs, vec2i output, m_param
 	}
 	else
 	{
-		INIT_PARAM(data_struct->ratio, M_PARAM_LEVEL, ratio, "Ratio");
+		init_parameter_simple(&data_struct->ratio, ratio);
 		transformer_add_parameter(trans, &data_struct->ratio);
 	}
 	
 	return ret_val;
 }
 
-tm_audio_transformer *alloc_mixer_transformer(vec2i *inputs, vec2i output, m_param_level_t ratio)
+tm_transformer *alloc_mixer_transformer(vec2i *inputs, vec2i output, float ratio)
 {
-	tm_audio_transformer *mixer = (tm_audio_transformer*)malloc(sizeof(tm_audio_transformer));
+	tm_transformer *mixer = (tm_transformer*)malloc(sizeof(tm_transformer));
 	int ret_val;
 	if ((ret_val = init_mixer(mixer, inputs, output, ratio)) != NO_ERROR)
 	{
 		if (mixer)
 		{
-			if (mixer->transformer_data)
-				free(mixer->transformer_data);
+			if (mixer->data_struct)
+				free(mixer->data_struct);
 			
 			free(mixer);
 		}

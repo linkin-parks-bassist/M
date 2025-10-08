@@ -37,31 +37,30 @@ int tm_context_new_profile(tm_context *cxt);
 
 extern tm_context global_cxt;
 
-int cxt_set_active_profile(tm_context *cxt, uint16_t profile_id);
-int cxt_switch_to_profile (tm_context *cxt, uint16_t profile_id);
+int cxt_set_active_profile(tm_context *cxt, uint16_t pid);
+int cxt_switch_to_profile (tm_context *cxt, uint16_t pid);
 
-m_parameter *cxt_get_parameter_by_id(tm_context *cxt, uint16_t profile_id, uint16_t transformer_id, uint16_t parameter_id);
-m_parameter *cxt_get_parameter_by_id_str(tm_context *cxt, m_parameter_id id);
-int      update_paramter_value_by_id(tm_context *cxt, uint16_t profile_id, uint16_t transformer_id, uint16_t parameter_id, m_param_value new_value);
-int      update_paramter_value_by_id_str(tm_context *cxt, m_parameter_id id, m_param_value new_value);
+int cxt_profile_id_valid	(tm_context *cxt, uint16_t pid);
+int cxt_transformer_id_valid(tm_context *cxt, uint16_t pid, uint16_t tid);
+int cxt_parameter_id_valid	(tm_context *cxt, uint16_t pid, uint16_t tid, uint16_t ppid);
 
-int cxt_append_transformer_to_profile (tm_context *cxt, uint16_t profile_id, uint16_t type);
-int cxt_insert_transformer_to_profile (tm_context *cxt, uint16_t profile_id, uint16_t type, uint16_t pos);
-int cxt_prepend_transformer_to_profile(tm_context *cxt, uint16_t profile_id, uint16_t type);
+tm_parameter *cxt_get_parameter_by_id(tm_context *cxt, uint16_t pid, uint16_t tid, uint16_t ppid);
+int      	  cxt_update_parameter_value_by_id(tm_context *cxt, uint16_t pid, uint16_t tid, uint16_t ppid, float new_value);
 
-int cxt_get_n_profile_transformers(tm_context *cxt, uint16_t profile_id);
-int cxt_get_n_transformer_params  (tm_context *cxt, uint16_t profile_id, uint16_t transformer_id);
-int cxt_get_transformer_type	  (tm_context *cxt, uint16_t profile_id, uint16_t transformer_id);
-int cxt_get_transformer_id_by_pos (tm_context *cxt, uint16_t profile_id, uint16_t pos);
+tm_option *cxt_get_option_by_id(tm_context *cxt, uint16_t pid, uint16_t tid, uint16_t oid);
+int        cxt_update_option_value_by_id(tm_context *cxt, uint16_t pid, uint16_t tid, uint16_t oid, uint16_t new_value);
 
-tm_audio_transformer *cxt_get_transformer_by_id(tm_context *cxt, uint16_t profile_id, uint16_t transformer_id);
+int cxt_append_transformer_to_profile (tm_context *cxt, uint16_t pid, uint16_t type);
+int cxt_insert_transformer_to_profile (tm_context *cxt, uint16_t pid, uint16_t type, uint16_t pos);
+int cxt_prepend_transformer_to_profile(tm_context *cxt, uint16_t pid, uint16_t type);
 
-m_param_type  cxt_get_parameter_type (tm_context *cxt, uint16_t profile_id, uint16_t transformer_id, uint16_t parameter_id);
-m_param_value cxt_get_parameter_value(tm_context *cxt, uint16_t profile_id, uint16_t transformer_id, uint16_t parameter_id);
-int			  cxt_set_parameter_value(tm_context *cxt, uint16_t profile_id, uint16_t transformer_id, uint16_t parameter_id, m_param_value new_value);
+int cxt_get_n_profile_transformers(tm_context *cxt, uint16_t pid);
+int cxt_get_n_transformer_params  (tm_context *cxt, uint16_t pid, uint16_t tid);
+int cxt_get_n_transformer_options (tm_context *cxt, uint16_t pid, uint16_t tid);
+int cxt_get_transformer_type	  (tm_context *cxt, uint16_t pid, uint16_t tid);
+int cxt_get_tid_by_pos 			  (tm_context *cxt, uint16_t pid, uint16_t pos);
 
-char *cxt_get_parameter_name	(tm_context *cxt, uint16_t profile_id, uint16_t transformer_id, uint16_t parameter_id);
-int   cxt_set_parameter_name	(tm_context *cxt, uint16_t profile_id, uint16_t transformer_id, uint16_t parameter_id, const char *new_name);
+tm_transformer *cxt_get_transformer_by_id(tm_context *cxt, uint16_t pid, uint16_t tid);
 
 int cxt_process(tm_context *cxt);
 

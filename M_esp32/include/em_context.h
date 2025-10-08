@@ -1,13 +1,33 @@
 #ifndef M_ESP32_CONTEXT_H_
 #define M_ESP32_CONTEXT_H_
 
+#define MAX_N_PROFILES 256
+
 typedef struct
 {
-	teensy_context teensy;
-} esp32_context;
+	int n_profiles;
+	int active_profile;
+	
+	int profile_array_length;
+	
+	em_profile *profiles;
+	
+	em_ui_context ui_cxt;
+} em_context;
 
-extern esp32_context global_cxt;
+extern em_context global_cxt;
 
-int init_esp32_context(esp32_context *cxt);
+int init_em_context(em_context *cxt);
+
+int em_context_enlarge_profile_array(em_context *cxt);
+int em_context_set_n_profiles(em_context *cxt, int n);
+int em_context_add_profile(em_context *cxt);
+
+em_transformer *cxt_get_transformer_by_id(em_context *cxt, uint16_t profile_id, uint16_t transformer_id);
+em_parameter *cxt_get_parameter_by_id(em_context *cxt, uint16_t profile_id, uint16_t transformer_id, uint16_t parameter_id);
+em_option *cxt_get_option_by_id(em_context *cxt, uint16_t profile_id, uint16_t transformer_id, uint16_t option_id);
+
+int cxt_transformer_id_to_position(em_context *cxt, uint16_t profile_id, uint16_t transformer_id);
+int cxt_transformer_position_to_id(em_context *cxt, uint16_t profile_id, uint16_t transformer_pos);
 
 #endif

@@ -118,7 +118,7 @@ static lv_disp_t *display_init(esp_lcd_panel_handle_t panel_handle)
 
 	// Normally, for RGB LCD, just one buffer is used for LVGL rendering
 	buffer_size = LVGL_PORT_H_RES * LVGL_PORT_BUFFER_HEIGHT; // Calculate buffer size
-	buf1 = heap_caps_malloc(buffer_size * sizeof(lv_color_t), LVGL_PORT_BUFFER_MALLOC_CAPS); // Allocate memory
+	buf1 = heap_caps_malloc(buffer_size * sizeof(lv_color_t), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT); // Allocate memory
 	assert(buf1); // Ensure allocation succeeded
 	buf2 = heap_caps_malloc(buffer_size * sizeof(lv_color_t),
                         MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);

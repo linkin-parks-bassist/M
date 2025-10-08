@@ -4,32 +4,27 @@
 // Small constant to avoid taking log(0)
 #define EPSILON 0.00000001
 
-int init_compressor_default(tm_audio_transformer *trans)
+int calc_compressor(float **dest, float **src, void *data_struct)
 {
-	return init_compressor(trans, DISCONNECTED, DISCONNECTED,
-		DEFAULT_COMPRESSOR_RATIO, DEFAULT_COMPRESSOR_THRESHOLD, DEFAULT_COMPRESSOR_ATTACK, DEFAULT_COMPRESSOR_RELEASE);
-}
-
-int calc_compressor(float **dest, float **src, void *transformer_data)
-{
-	if (!transformer_data || !dest || !src)
+	if (!data_struct || !dest || !src)
 		return ERR_NULL_PTR;
 	
 	if (!dest[0] || !src[0])
 		return ERR_NULL_PTR;
 	
-	tm_compressor_data *comp = (tm_compressor_data*)transformer_data;
+	tm_compressor_str *comp = (tm_compressor_str*)data_struct;
 	
 	if (comp->attack.updated)
 	{
 		tm_printf("updating alpha...\n");
-		comp->alpha = exp(-1.0 / (AUDIO_SAMPLE_RATE_EXACT * comp->attack.val.level));
+		comp->alpha = exp(-1.0 / (AUDIO_SAMPLE_RATE_EXACT * comp->attack.value));
 		comp->attack.updated = 0;
 	}
+
 	if (comp->release.updated)
 	{
 		tm_printf("updating rho...\n");
-		comp->rho = exp(-1.0 / (AUDIO_SAMPLE_RATE_EXACT * comp->release.val.level));
+		comp->rho = exp(-1.0 / (AUDIO_SAMPLE_RATE_EXACT * comp->release.value));
 		comp->release.updated = 0;
 	}
 	
@@ -47,8 +42,8 @@ int calc_compressor(float **dest, float **src, void *transformer_data)
 		
 		L = 10 * log10f(e + EPSILON);
 		
-		if (L > comp->threshold.val.level)
-			G = comp->threshold.val.level + (1.0 / comp->ratio.val.level) * (L - comp->threshold.val.level) - L;
+		if (L > comp->threshold.value)
+			G = comp->threshold.value + (1.0 / comp->ratio.value) * (L - comp->threshold.value) - L;
 		else
 			G = 0.0;
 		
@@ -62,39 +57,48 @@ int calc_compressor(float **dest, float **src, void *transformer_data)
 	return NO_ERROR;
 }
 
+int init_compressor_struct_default(tm_compressor_str *str)
+{
+	if (!str)
+		return ERR_NULL_PTR;
+	
+	str->e_final = 0.0;
+	
+	return NO_ERROR;
+}
 
-int init_compressor_struct(tm_compressor_data *data_struct, float ratio, float threshold, float attack, float release)
+int init_compressor_struct(tm_compressor_str *data_struct, float ratio, float threshold, float attack, float release)
 {
 	if (!data_struct)
 		return ERR_NULL_PTR;
 	
-	INIT_PARAM(data_struct->ratio, 		M_PARAM_LEVEL, ratio, 		"Ratio");
-	INIT_PARAM(data_struct->threshold, 	M_PARAM_LEVEL, threshold, 	"Threshold");
-	INIT_PARAM(data_struct->attack, 	M_PARAM_LEVEL, attack, 		"Attack");
-	INIT_PARAM(data_struct->release, 	M_PARAM_LEVEL, release, 	"Release");
+	init_parameter_simple(&data_struct->ratio, ratio);
+	init_parameter_simple(&data_struct->threshold, threshold);
+	init_parameter_simple(&data_struct->attack, attack);
+	init_parameter_simple(&data_struct->release, release);
 	
 	data_struct->e_final	= 0.0;
 	
 	return NO_ERROR;
 }
 
-int init_compressor(tm_audio_transformer *trans, vec2i input, vec2i output, float ratio, float threshold, float attack, float release)
+int init_compressor(tm_transformer *trans, vec2i input, vec2i output, float ratio, float threshold, float attack, float release)
 {
 	if (!trans)
 		return ERR_NULL_PTR;
 	
-	tm_compressor_data *data_struct = (tm_compressor_data*)malloc(sizeof(tm_compressor_data));
+	tm_compressor_str *data_struct = (tm_compressor_str*)malloc(sizeof(tm_compressor_str));
 	
 	if (!data_struct)
 		return ERR_ALLOC_FAIL;
 	
 	init_compressor_struct(data_struct, ratio, threshold, attack, release);
 	
-	int ret_val = init_transformer(trans, TRANSFORMER_COMPRESSOR, 1, 1, &input, &output, 4, data_struct, calc_compressor);
+	int ret_val = init_transformer(trans, TRANSFORMER_COMPRESSOR, 1, 1, &input, &output, 0, 4, data_struct, calc_compressor);
 	
 	if (ret_val != NO_ERROR)
 	{
-		trans->transformer_data = NULL;
+		trans->data_struct = NULL;
 		free(data_struct);
 		return ret_val;
 	}
@@ -107,9 +111,9 @@ int init_compressor(tm_audio_transformer *trans, vec2i input, vec2i output, floa
 	return NO_ERROR;
 }
 
-tm_audio_transformer *alloc_compressor(vec2i input, vec2i output, float ratio, float threshold, float attack, float release)
+tm_transformer *alloc_compressor(vec2i input, vec2i output, float ratio, float threshold, float attack, float release)
 {
-	tm_audio_transformer *trans = (tm_audio_transformer*)malloc(sizeof(tm_audio_transformer));
+	tm_transformer *trans = (tm_transformer*)malloc(sizeof(tm_transformer));
 	int ret_val;
 	if ((ret_val = init_compressor(trans, input, output, ratio, threshold, attack, release)) != NO_ERROR)
 	{

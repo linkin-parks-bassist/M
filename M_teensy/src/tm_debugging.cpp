@@ -114,7 +114,7 @@ void print_pipe_line_info(tm_pipe_line *pipeline, int depth)
 		tm_printf("\n");
 }
 
-void print_transformer_info(tm_audio_transformer *trans, int depth)
+void print_transformer_info(tm_transformer *trans, int depth)
 {
 	tm_printf("\n~~~TRANSFORMER INFO~~~\n");
 	
@@ -161,7 +161,7 @@ void print_transformer_info(tm_audio_transformer *trans, int depth)
 	
 	tm_printf(")\n");
 	
-	tm_printf("Data struct address: %p\n", trans->transformer_data);
+	tm_printf("Data struct address: %p\n", trans->data_struct);
 	
 	if (!depth)
 		tm_printf("\n");

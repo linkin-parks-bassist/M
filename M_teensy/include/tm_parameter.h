@@ -7,59 +7,61 @@
 #include <stddef.h>
 #endif
 
-#define PARAM_NAME_MAX_LEN 254
+#define PARAM_NAME_MAX_LEN 16
 
-typedef float 	 m_param_level_t;
-typedef uint16_t m_param_option_t;
-typedef uint8_t	 m_param_switch_t;
+#define PARAMETER_UPDATE_INSTANT			0
+#define PARAMETER_UPDATE_MONOBLOCK_LINEAR 	1
+#define PARAMETER_UPDATE_BIBLOCK_LINEAR 	2
+#define PARAMETER_UPDATE_QUADBLOCK_LINEAR 	3
 
-typedef enum
-{
-	M_PARAM_LEVEL,
-	M_PARAM_OPTION,
-	M_PARAM_SWITCH,
-	M_PARAM_ERR
-} m_param_type;
-
-typedef union
-{
-	m_param_level_t  level;
-	m_param_option_t option;
-	m_param_switch_t active;
-	uint8_t bytes[4];
-} m_param_value;
+/* At first, I tried doing this with unions and a type enum but...
+ * I just didn't like it. So I'm just separating them */
 
 typedef struct
 {
-	m_param_type type;
-	m_param_value val;
-	m_param_value min;
-	m_param_value max;
+	float value;
+	float min;
+	float max;
 	
 	int updated;
-	char *name;
-} m_parameter;
+	float old_value;
+	float new_value;
+	
+	int update_policy;
+	int update_progress;
+} tm_parameter;
 
 typedef struct
 {
-	uint16_t profile_id;
-	uint16_t transformer_id;
-	uint16_t parameter_id;
-} m_parameter_id;
+	uint16_t value;
+	
+	int updated;
+	uint16_t old_value;
+	uint16_t new_value;
+	
+	int update_policy;
+	int update_progress;
+} tm_option;
 
-#define INIT_PARAM(p, t, v, n) 											\
-	p.type = t; 														\
-	switch (t) 															\
-	{ 																	\
-		case M_PARAM_OPTION: p.val.option = (m_param_option_t)v; break;	\
-		case M_PARAM_SWITCH: p.val.active = (m_param_switch_t)v; break;	\
-		default:			 p.val.level  = (m_param_level_t )v; break;	\
-	}																	\
-	p.name = n ? strdup(n) : NULL;										\
-	p.updated = 1;
+typedef struct
+{
+	uint16_t pid;
+	uint16_t tid;
+	uint16_t ppid;
+} m_ppid;
 
-int init_parameter(m_parameter *param, m_param_type type, m_param_value initial);
+int init_option_simple(tm_option *option, int initial);
+int init_option(tm_option *option, int initial, int update_policy);
 
-size_t m_param_val_size(m_param_type type);
+int init_parameter_simple(tm_parameter *param, float initial);
+int init_parameter(tm_parameter *param, float initial, float min, float max, int update_policy);
+
+int update_parameter(tm_parameter *param, float new_value);
+int update_parameter_update(tm_parameter *param, float new_value);
+int update_option(tm_option *option, uint16_t new_value);
+
+int parameter_update_tick(tm_parameter *param);
+int parameter_update_finish(tm_parameter *param);
+int option_update_tick(tm_parameter *param);
 
 #endif

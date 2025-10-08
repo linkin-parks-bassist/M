@@ -1,6 +1,7 @@
 #include "tm.h"
 
 /* I'll need some temp buffers for computing distortion */
+#ifdef USE_GLOBAL_TEMP_BUFFERS
 tm_audio_block_float *tmp_block;
 float *tmp;
 tm_audio_block_float *low_block;
@@ -15,11 +16,6 @@ tm_audio_block_float *high_distorted_block;
 float *high_distorted;
 
 int distortion_temp_buffers_allocated = 0;
-
-int init_distortion_default(tm_audio_transformer *trans)
-{
-	return init_distortion(trans, DISCONNECTED, DISCONNECTED, DEFAULT_DISTORTION_TYPE, DEFAULT_DISTORTION_GAIN, DEFAULT_DISTORTION_RATIO);
-}
 
 int alloc_distortion_temp_buffers()
 {
@@ -41,6 +37,7 @@ int alloc_distortion_temp_buffers()
 	
 	return NO_ERROR;
 }
+#endif
 
 float normalised_arctan(float x)
 {
@@ -62,16 +59,36 @@ float soft_fold(float x)
 	return x / (1 + fabsf(x));
 }
 
-int init_distortion_struct(tm_distortion_data *data_struct, int type,
-						   m_param_level_t bass_cutoff, m_param_level_t mid_cutoff, m_param_level_t gain, m_param_level_t ratio,
-						   m_param_level_t bass_mix, m_param_level_t mid_mix,m_param_level_t high_mix, m_param_level_t wet_mix)
+int init_distortion_struct_default(tm_distortion_str *str)
+{
+	if (!str)
+		return ERR_NULL_PTR;
+	
+	init_option_simple(&str->type, DISTORTION_TANH);
+	
+	init_waveshaper_struct(&str->mid_distortion,  tanh, 0);
+	init_waveshaper_struct(&str->high_distortion, tanh, 0);
+	
+	init_biquad_struct_lowpass (&str->low_pass_1,  str->bass_cutoff.value);
+	init_biquad_struct_lowpass (&str->low_pass_2,  str->bass_cutoff.value);
+	init_biquad_struct_bandpass(&str->mid_pass_1,  sqrt(str->bass_cutoff.value * str->mid_cutoff.value), log2f(str->mid_cutoff.value / str->bass_cutoff.value));
+	init_biquad_struct_bandpass(&str->mid_pass_2,  sqrt(str->bass_cutoff.value * str->mid_cutoff.value), log2f(str->mid_cutoff.value / str->bass_cutoff.value));
+	init_biquad_struct_highpass(&str->high_pass_1, str->mid_cutoff.value);
+	init_biquad_struct_highpass(&str->high_pass_2, str->mid_cutoff.value);
+	
+	return NO_ERROR;
+}
+
+int init_distortion_struct(tm_distortion_str *data_struct, int type,
+						   float bass_cutoff, float mid_cutoff, float gain, float ratio,
+						   float bass_mix, float mid_mix,float high_mix, float wet_mix)
 {
 	if (!data_struct)
 		return ERR_NULL_PTR;
 	
 	float (*shape)(float x);
 	
-	INIT_PARAM(data_struct->type, M_PARAM_OPTION, type, "Type");
+	init_option_simple(&data_struct->type, type);
 	
 	switch (type)
 	{
@@ -105,28 +122,32 @@ int init_distortion_struct(tm_distortion_data *data_struct, int type,
 	init_biquad_struct_highpass(&data_struct->high_pass_1, mid_cutoff);
 	init_biquad_struct_highpass(&data_struct->high_pass_2, mid_cutoff);
 	
-	INIT_PARAM(data_struct->gain, 			M_PARAM_LEVEL, gain, 		"Gain");
-	INIT_PARAM(data_struct->wet_mix, 		M_PARAM_LEVEL, wet_mix, 	"Wet Mix");
+	init_parameter_simple(&data_struct->gain, gain);
+	data_struct->gain.update_policy = PARAMETER_UPDATE_INSTANT;
 	
-	INIT_PARAM(data_struct->mid_mix, 		M_PARAM_LEVEL, mid_mix, 	"Mid Mix");
-	INIT_PARAM(data_struct->bass_mix, 		M_PARAM_LEVEL, bass_mix, 	"Bass Mix");
-	INIT_PARAM(data_struct->high_mix, 		M_PARAM_LEVEL, high_mix, 	"Presence");
+	init_parameter_simple(&data_struct->wet_mix, wet_mix);
 	
-	INIT_PARAM(data_struct->bass_cutoff, 	M_PARAM_LEVEL, bass_cutoff, "Bass Cutoff");
-	INIT_PARAM(data_struct->mid_cutoff, 	M_PARAM_LEVEL, mid_cutoff, 	"Mid Cutoff");
+	init_parameter_simple(&data_struct->mid_mix, mid_mix);
+	init_parameter_simple(&data_struct->bass_mix, bass_mix);
+	init_parameter_simple(&data_struct->high_mix, high_mix);
 	
-	INIT_PARAM(data_struct->ratio, 			M_PARAM_LEVEL, ratio, 		"Ratio");
+	init_parameter_simple(&data_struct->bass_cutoff, bass_cutoff);
+	init_parameter_simple(&data_struct->mid_cutoff, mid_cutoff);
+	
+	init_parameter_simple(&data_struct->ratio, ratio);
+	data_struct->ratio.update_policy = PARAMETER_UPDATE_INSTANT;
 	
 	return NO_ERROR;
 }
 
-int calc_distortion(float **dest, float **src, void *transformer_data)
+int calc_distortion(float **dest, float **src, void *data_struct)
 {
-	if (!dest || !src || !transformer_data)
+	if (!dest || !src || !data_struct)
 		return ERR_NULL_PTR;
 	
-	tm_distortion_data *data_struct = (tm_distortion_data*)transformer_data;
+	tm_distortion_str *str = (tm_distortion_str*)data_struct;
 	
+	#ifdef USE_GLOBAL_TEMP_BUFFERS
 	if (!distortion_temp_buffers_allocated)
 	{
 		if (alloc_distortion_temp_buffers() != NO_ERROR)
@@ -135,42 +156,131 @@ int calc_distortion(float **dest, float **src, void *transformer_data)
 				dest[0][i] = src[0][i];
 		}
 	}
+	#else
+	float *tmp = allocate_buffer();
+	float *low = allocate_buffer();
+	float *mid = allocate_buffer();
+	float *high = allocate_buffer();
+	float *mid_distorted = allocate_buffer();
+	float *high_distorted = allocate_buffer();
+	#endif
 	
-	if (data_struct->gain.updated || data_struct->ratio.updated)
+	if (!tmp || !low || !mid || !high || !mid_distorted || !high_distorted)
 	{
-		data_struct->mid_distortion.coefficient.val.level  = data_struct->gain.val.level;
-		data_struct->high_distortion.coefficient.val.level = data_struct->gain.val.level * data_struct->ratio.val.level;
+		tm_printf("ALLOC FAIL\n");
+		return ERR_ALLOC_FAIL;
 	}
 	
-	calc_biquad(&tmp,  src,  (void*)&data_struct->low_pass_1);
-	calc_biquad(&low,  &tmp, (void*)&data_struct->low_pass_2);
+	if (str->gain.updated || str->ratio.updated)
+	{
+		parameter_update_finish(&str->gain);
+		update_parameter_update(&str->mid_distortion.coefficient, str->gain.new_value);
+	}
 	
-	calc_biquad(&tmp,  src,  (void*)&data_struct->mid_pass_1);
-	calc_biquad(&mid,  &tmp, (void*)&data_struct->mid_pass_2);
+	if (str->gain.updated || str->ratio.updated)
+	{
+		parameter_update_finish(&str->ratio);
+		update_parameter_update(&str->high_distortion.coefficient, str->gain.value * str->ratio.value);
+	}
 	
-	calc_biquad(&tmp,  src,  (void*)&data_struct->high_pass_1);
-	calc_biquad(&high, &tmp, (void*)&data_struct->high_pass_2);
+	int update_cutoffs = 0;
 	
-	calc_waveshaper(&mid_distorted,  &mid,  (void*)&data_struct->mid_distortion );
-	calc_waveshaper(&high_distorted, &high, (void*)&data_struct->high_distortion);
+	if (str->mid_cutoff.updated)
+	{
+		update_cutoffs = 1;
+		parameter_update_finish(&str->mid_cutoff);
+		update_parameter_update(&str->high_pass_1.cutoff, str->mid_cutoff.value);
+		update_parameter_update(&str->high_pass_2.cutoff, str->mid_cutoff.value);
+	}
+	
+	if (str->bass_cutoff.updated)
+	{
+		update_cutoffs = 1;
+		parameter_update_finish(&str->bass_cutoff);
+		update_parameter_update(&str->low_pass_1.cutoff, str->bass_cutoff.value);
+		update_parameter_update(&str->low_pass_2.cutoff, str->bass_cutoff.value);
+	}
+	
+	if (update_cutoffs)
+	{
+		update_parameter_update(&str->mid_pass_1.cutoff, sqrt(str->bass_cutoff.value * str->mid_cutoff.value));
+		update_parameter_update(&str->mid_pass_2.cutoff, sqrt(str->bass_cutoff.value * str->mid_cutoff.value));
+		
+		update_parameter_update(&str->mid_pass_1.bandwidth, log2f(str->mid_cutoff.value / str->bass_cutoff.value));
+		update_parameter_update(&str->mid_pass_2.bandwidth, log2f(str->mid_cutoff.value / str->bass_cutoff.value));
+	}
+	
+	/*tm_printf("~DISTORTION~\n");
+	tm_printf("Gain:        %6f\n", str->gain.value);
+	tm_printf("Wet mix:     %6f\n", str->wet_mix.value);
+	tm_printf("High mix:    %6f\n", str->high_mix.value);
+	tm_printf("Mid mix:     %6f\n", str->mid_mix.value);
+	tm_printf("Mid dist:    %6f\n", str->mid_distortion.coefficient.value);
+	tm_printf("High dist:   %6f\n", str->high_distortion.coefficient.value);
+	tm_printf("Bass mix:    %6f\n", str->bass_mix.value);
+	tm_printf("Mid cutoff:  %6f\n", str->mid_cutoff.value);
+	tm_printf("Bass cutoff: %6f\n", str->bass_cutoff.value);
+	tm_printf("Ratio:       %6f\n", str->ratio.value);*/
+	
+	//pretty_print_block_float(src[0], "Input:");
+	
+	
+	
+	calc_biquad(&tmp,  src,  (void*)&str->low_pass_1);
+	calc_biquad(&low,  &tmp, (void*)&str->low_pass_2);
+	
+	calc_biquad(&tmp,  src,  (void*)&str->mid_pass_1);
+	calc_biquad(&mid,  &tmp, (void*)&str->mid_pass_2);
+	
+	calc_biquad(&tmp,  src,  (void*)&str->high_pass_1);
+	calc_biquad(&high, &tmp, (void*)&str->high_pass_2);
+	
+	calc_waveshaper(&mid_distorted,  &mid,  (void*)&str->mid_distortion );
+	calc_waveshaper(&high_distorted, &high, (void*)&str->high_distortion);
+	
+	//pretty_print_block_float(low, "Lows:");
+	//pretty_print_block_float(mid, "Mids:");
+	//pretty_print_block_float(high, "Highs:");
+	//pretty_print_block_float(high, "Mids (distorted):");
+	//pretty_print_block_float(high, "Highs (distorted):");
+	
+	// 1800
 	
 	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
 	{
-		dest[0][i] = data_struct->wet_mix.val.level * (data_struct->bass_mix.val.level * low[i]
-													 + data_struct->mid_mix.val.level   * mid_distorted[i]
-													 + data_struct->high_mix.val.level  * high_distorted[i])
-				   + (1.0 - data_struct->wet_mix.val.level) * src[0][i];
+		parameter_update_tick(&str->wet_mix);
+		parameter_update_tick(&str->bass_mix);
+		parameter_update_tick(&str->mid_mix);
+		parameter_update_tick(&str->high_mix);
+		
+		dest[0][i] = str->wet_mix.value * (str->bass_mix.value * low[i]
+													 + str->mid_mix.value   * mid_distorted[i]
+													 + str->high_mix.value  * high_distorted[i])
+				   + (1.0 - str->wet_mix.value) * src[0][i];
 	}
+	
+	// 1850
+	
+	//pretty_print_block_float(dest[0], "Output:");
+	
+	#ifndef USE_GLOBAL_TEMP_BUFFERS
+	release_buffer(tmp);
+	release_buffer(low);
+	release_buffer(mid);
+	release_buffer(high);
+	release_buffer(mid_distorted);
+	release_buffer(high_distorted);
+	#endif
 	
 	return NO_ERROR;
 }
 
-int init_distortion(tm_audio_transformer *trans, vec2i input, vec2i output, int type, m_param_level_t gain, m_param_level_t ratio)
+int init_distortion(tm_transformer *trans, vec2i input, vec2i output, int type, float gain, float ratio)
 {
 	if (!trans)
 		return ERR_NULL_PTR;
 	
-	tm_distortion_data *data_struct = (tm_distortion_data*)malloc(sizeof(tm_distortion_data));
+	tm_distortion_str *data_struct = (tm_distortion_str*)malloc(sizeof(tm_distortion_str));
 	
 	if (!data_struct)
 		return ERR_ALLOC_FAIL;
@@ -179,27 +289,35 @@ int init_distortion(tm_audio_transformer *trans, vec2i input, vec2i output, int 
 	init_distortion_struct(data_struct, type, 100.0, 1000.0, gain, ratio, 0.4, 0.3, 0.3, 0.7);
 	
 	tm_printf("Init transformer struct...\n");
-	int ret_val = init_transformer(trans, TRANSFORMER_DISTORTION, 1, 1, &input, &output, 10, (void*)data_struct, calc_distortion);
+	int ret_val = init_transformer(trans, TRANSFORMER_DISTORTION, 1, 1, &input, &output, 1, 10, (void*)data_struct, calc_distortion);
 	
 	if (ret_val != NO_ERROR)
 	{
-		trans->transformer_data = NULL;
+		trans->data_struct = NULL;
 		free(data_struct);
 		return ret_val;
 	}
 	
 	tm_printf("Add parameters...\n");
 	
-	transformer_add_parameter(trans, &data_struct->type);
+	transformer_add_option(trans, &data_struct->type);
 	
 	transformer_add_parameter(trans, &data_struct->gain);
+	tm_printf("Gain = parameter %d\n", trans->n_parameters - 1);
 	transformer_add_parameter(trans, &data_struct->wet_mix);
+	tm_printf("Wet mix = parameter %d\n", trans->n_parameters - 1);
 	transformer_add_parameter(trans, &data_struct->high_mix);
+	tm_printf("High mix = parameter %d\n", trans->n_parameters - 1);
 	transformer_add_parameter(trans, &data_struct->mid_mix);
+	tm_printf("Mid mix = parameter %d\n", trans->n_parameters - 1);
 	transformer_add_parameter(trans, &data_struct->bass_mix);
+	tm_printf("Bass mix = parameter %d\n", trans->n_parameters - 1);
 	transformer_add_parameter(trans, &data_struct->mid_cutoff);
+	tm_printf("Mid cutoff = parameter %d\n", trans->n_parameters - 1);
 	transformer_add_parameter(trans, &data_struct->bass_cutoff);
+	tm_printf("Bass cutoff = parameter %d\n", trans->n_parameters - 1);
 	transformer_add_parameter(trans, &data_struct->ratio);
+	tm_printf("Ratio = parameter %d\n", trans->n_parameters - 1);
 	
 	return NO_ERROR;
 }

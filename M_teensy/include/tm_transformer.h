@@ -6,7 +6,7 @@
 #define TRANSFORMER_MAX_INPUTS		4
 #define TRANSFORMER_MAX_OUTPUTS		4
 
-#include "tm_transformer_enum.h"
+#include "m_transformer_enum.h"
 
 #define FADER_FADE_IN  0
 #define FADER_FADE_OUT 1
@@ -16,6 +16,12 @@
 #define PRINT_TRANSFORMER_INFO
 
 #define TRANSFORMER_SWITCH_ACTION_BYPASS 0
+
+#define TRANSFORMER_TRANSITION_INSTANT			0
+#define TRANSFORMER_TRANSITION_MONOBLOCK_LINEAR 1
+#define TRANSFORMER_TRANSITION_BIBLOCK_LINEAR 	2
+#define TRANSFORMER_TRANSITION_QUADBLOCK_LINEAR 3
+#define TRANSFORMER_TRANSITION_TAIL				4
 
 typedef struct
 {
@@ -29,24 +35,34 @@ typedef struct
 	vec2i inputs [TRANSFORMER_MAX_INPUTS ];
 	vec2i outputs[TRANSFORMER_MAX_OUTPUTS];
 
+	int n_options;
+	int option_array_size;
+	tm_option **options;
+
 	int n_parameters;
-	m_parameter **parameters;
+	int parameter_array_size;
+	tm_parameter **parameters;
 	
-	void *transformer_data;
-	int (*compute_transformer)(float **dest, float **src, void *transformer_data);
+	void *data_struct;
+	int (*compute_transformer)(float **dest, float **src, void *data_struct);
 	
 	int runs;
-} tm_audio_transformer;
+	int transition_policy;
+} tm_transformer;
 
-int init_transformer(tm_audio_transformer *trans, int type,
+int init_transformer(tm_transformer *trans, int type,
 					 unsigned int n_inputs,  unsigned int n_outputs,
 					 vec2i 		   *inputs,  vec2i 		  *outputs,
-					 int n_parameters,
-					 void *transformer_data,
-					 int (*compute_transformer)(float **dest, float **src, void *transformer_data));
+					 int n_options, int n_parameters,
+					 void *data_struct,
+					 int (*compute_transformer)(float **dest, float **src, void *data_struct));
 
-int transformer_add_parameter(tm_audio_transformer *trans, m_parameter *param);
+int transformer_add_option(tm_transformer *trans, tm_option *option);
+int transformer_add_parameter(tm_transformer *trans, tm_parameter *param);
 
-int init_transformer_default(tm_audio_transformer *trans, uint16_t type);
+int transformer_init_parameter_array(tm_transformer *trans, int n);
+int transformer_init_n_options(tm_transformer *trans, int n);
+
+int init_transformer_default(tm_transformer *trans, uint16_t type);
 
 #endif

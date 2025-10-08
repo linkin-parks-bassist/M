@@ -5,7 +5,7 @@ int 	local_amplitude_weighting_table_initialised = 0;
 
 float identity_function(float x){return x;}
 
-int init_waveshaper_default(tm_audio_transformer *trans)
+int init_waveshaper_default(tm_transformer *trans)
 {
 	return init_waveshaper(trans, DISCONNECTED, DISCONNECTED, DEFAULT_WAVESHAPER_FUNCTION, DEFAULT_WAVESHAPER_COEFFICIENT);
 }
@@ -18,17 +18,19 @@ void init_local_amplitude_weighting_table()
 	local_amplitude_weighting_table_initialised = 1;
 }
 
-int calc_waveshaper(float **dest, float **src, void *transformer_data)
+#define RATE (1.0/(64 * 128))
+
+int calc_waveshaper(float **dest, float **src, void *data_struct)
 {
-	if (!transformer_data || !dest || !src)
+	if (!data_struct || !dest || !src)
 		return ERR_NULL_PTR;
 	
 	if (!dest[0] || !src[0])
 		return ERR_NULL_PTR;
 	
-	tm_waveshaper_data *data_struct = (tm_waveshaper_data*)transformer_data;
+	tm_waveshaper_str *str = (tm_waveshaper_str*)data_struct;
 	
-	if (!data_struct->shape)
+	if (!str->shape)
 	{
 		for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
 			dest[0][i] = src[0][i];
@@ -38,7 +40,7 @@ int calc_waveshaper(float **dest, float **src, void *transformer_data)
 	if (!local_amplitude_weighting_table_initialised)
 		init_local_amplitude_weighting_table();
 	
-	float local_amplitude = data_struct->local_amplitude;
+	float local_amplitude = str->local_amplitude;
 	/*float tmp;
 	
 	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
@@ -50,8 +52,9 @@ int calc_waveshaper(float **dest, float **src, void *transformer_data)
 	
 	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
 	{
+		if (str->coefficient.updated)
+			parameter_update_tick(&str->coefficient);
 		
-		#define RATE (1.0/(64 * 128))
 		if (fabs(src[0][i]) > local_amplitude)
 			local_amplitude = fabs(src[0][i]);
 		else
@@ -63,24 +66,37 @@ int calc_waveshaper(float **dest, float **src, void *transformer_data)
 		}
 		else
 		{
-			dest[0][i] = local_amplitude *  data_struct->shape(data_struct->coefficient.val.level * (src[0][i] * (1.0 / local_amplitude)));
+			dest[0][i] = local_amplitude *  str->shape(str->coefficient.value * (src[0][i] * (1.0 / local_amplitude)));
 		}
 	}
 	
 	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
-		data_struct->prev_block[i] = src[0][i];
+		str->prev_block[i] = src[0][i];
 	
-	data_struct->local_amplitude = local_amplitude;
+	str->local_amplitude = local_amplitude;
 	
 	return NO_ERROR;
 }
 
-int init_waveshaper_struct(tm_waveshaper_data *data_struct, float (*shape)(float x), float coef)
+int init_waveshaper_struct_default(tm_waveshaper_str *str)
+{
+	if (!str)
+		return ERR_NULL_PTR;
+	
+	str->shape = identity_function;
+	
+	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
+		str->prev_block[i] = 0.0;
+	
+	str->local_amplitude = 0.0;
+	
+	return NO_ERROR;
+}
+
+int init_waveshaper_struct(tm_waveshaper_str *data_struct, float (*shape)(float x), float coef)
 {
 	if (!data_struct)
 		return ERR_NULL_PTR;
-	
-	INIT_PARAM(data_struct->coefficient, M_PARAM_LEVEL, coef, "Coefficient");
 	
 	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
 		data_struct->prev_block[i] = 0.0;
@@ -88,10 +104,12 @@ int init_waveshaper_struct(tm_waveshaper_data *data_struct, float (*shape)(float
 	data_struct->shape = shape;
 	data_struct->local_amplitude = 0.0;
 	
+	init_parameter_simple(&data_struct->coefficient, coef);
+	
 	return NO_ERROR;
 }
 
-int init_waveshaper(tm_audio_transformer *trans, vec2i input, vec2i output, float (*shape)(float x), float coef)
+int init_waveshaper(tm_transformer *trans, vec2i input, vec2i output, float (*shape)(float x), float coef)
 {
 	if (!trans)
 		return ERR_NULL_PTR;
@@ -107,14 +125,13 @@ int init_waveshaper(tm_audio_transformer *trans, vec2i input, vec2i output, floa
 	trans->inputs [0] = input;
 	trans->outputs[0] = output;
 	
-	tm_waveshaper_data *data_struct = (tm_waveshaper_data*)malloc(sizeof(tm_waveshaper_data));
+	tm_waveshaper_str *data_struct = (tm_waveshaper_str*)malloc(sizeof(tm_waveshaper_str));
 	
 	init_waveshaper_struct(data_struct, shape, coef);
 	
-	trans->transformer_data = (void*)data_struct;
+	trans->data_struct = (void*)data_struct;
 	trans->compute_transformer = &calc_waveshaper;
 	
-	INIT_PARAM(data_struct->coefficient, M_PARAM_LEVEL, coef, "Coefficient");
 	transformer_add_parameter(trans, &data_struct->coefficient);
 	
 	return NO_ERROR;

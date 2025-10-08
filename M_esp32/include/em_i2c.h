@@ -11,9 +11,6 @@
 #define I2C_MASTER_RX_BUF_DISABLE   0						  /*!< I2C master doesn't need buffer */
 #define I2C_MASTER_TIMEOUT_MS	   	10
 
-/**
- * @brief I2C master initialization
- */
 esp_err_t i2c_master_init();
 
 int i2c_transmit(uint8_t addr, uint8_t *buf, int n);

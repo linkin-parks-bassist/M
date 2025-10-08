@@ -1,18 +1,37 @@
 #include "em.h"
 
-
 IMPLEMENT_LINKED_PTR_LIST(lv_obj_t);
 
-ui_page test_page;
-
-teensy_transformer distortion;
-
-void test_page_back_button_cb(lv_event_t *event)
+int init_ui_context(em_ui_context *cxt)
 {
-	printf("back!!!\n");
+	if (!cxt)
+		return ERR_NULL_PTR;
+	
+	init_ui_page(&cxt->transformer_selector);
+	
+	cxt->transformer_selector.create_ui = create_transformer_selector_ui;
+	cxt->transformer_selector.enter_page = enter_transformer_selector;
+	
+	init_transformer_selector(&cxt->transformer_selector);
+	cxt->transformer_selector.create_ui(&cxt->transformer_selector);
+	
+	global_cxt.profiles[0].view_page = malloc(sizeof(em_ui_page));
+	
+	init_ui_page(global_cxt.profiles[0].view_page);
+	
+	global_cxt.profiles[0].view_page->configure 	= configure_profile_view;
+	global_cxt.profiles[0].view_page->create_ui 	= create_profile_view_ui;
+	global_cxt.profiles[0].view_page->enter_page = enter_profile_view;
+	global_cxt.profiles[0].view_page->refresh 	= refresh_profile_view;
+	
+	init_profile_view(global_cxt.profiles[0].view_page);
+	configure_profile_view(global_cxt.profiles[0].view_page, &global_cxt.profiles[0]);
+	create_profile_view_ui(global_cxt.profiles[0].view_page);
+	
+	return NO_ERROR;
 }
 
-int ui_page_set_background_default(ui_page *page)
+int em_ui_page_set_background_default(em_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -26,132 +45,28 @@ int ui_page_set_background_default(ui_page *page)
 	return NO_ERROR;
 }
 
-void create_test_page_ui(ui_page *page)
-{
-	if (!page)
-		return;
-	
-	page->screen = lv_obj_create(NULL);
-	
-	ui_page_set_background_default(page);
-	
-	create_top_panel_with_back_button(page, "Test page", test_page_back_button_cb);
-}
-
-void free_test_page_ui(ui_page *page)
+void free_test_page_ui(em_ui_page *page)
 {
 	
 }
 
-void enter_test_page(ui_page *page)
+void enter_test_page(em_ui_page *page)
 {
 	lv_scr_load(page->screen);
 }
 
-void refresh_test_page(ui_page *page)
+void refresh_test_page(em_ui_page *page)
 {
 	
 }
-
-ui_page distortion_view;
 
 void make_ui(lv_disp_t *disp)
 {
 	printf("Setting up UI...\n");
-	distortion.profile_id = 1;
-	distortion.transformer_id = 0;
 	
-	distortion.type = TRANSFORMER_DISTORTION;
+	init_ui_context(&global_cxt.ui_cxt);
 	
-	distortion.n_parameters = 8;
-	distortion.parameters = malloc(sizeof(teensy_parameter) * 8);
-	
-	distortion.parameters[0].type 		= M_PARAM_LEVEL;
-	distortion.parameters[0].min.level 	= 0.0;
-	distortion.parameters[0].max.level 	= 10.0;
-	distortion.parameters[0].name 		= "Gain";
-	distortion.parameters[0].id 		= (m_parameter_id){1, 0, 1};
-	
-	distortion.parameters[1].type 		= M_PARAM_LEVEL;
-	distortion.parameters[1].min.level 	= 0.0;
-	distortion.parameters[1].max.level 	= 1.0;
-	distortion.parameters[1].name 		= "Wet Mix";
-	distortion.parameters[1].id 		= (m_parameter_id){1, 0, 2};
-	
-	distortion.parameters[2].type 		= M_PARAM_LEVEL;
-	distortion.parameters[2].min.level 	= 0.0;
-	distortion.parameters[2].max.level 	= 1.0;
-	distortion.parameters[2].name 		= "High Mix";
-	distortion.parameters[2].id 		= (m_parameter_id){1, 0, 3};
-	
-	distortion.parameters[3].type 		= M_PARAM_LEVEL;
-	distortion.parameters[3].min.level 	= 0.0;
-	distortion.parameters[3].max.level 	= 1.0;
-	distortion.parameters[3].name 		= "Mid Mix";
-	distortion.parameters[3].id 		= (m_parameter_id){1, 0, 4};
-	
-	distortion.parameters[4].type 		= M_PARAM_LEVEL;
-	distortion.parameters[4].min.level 	= 0.0;
-	distortion.parameters[4].max.level 	= 1.0;
-	distortion.parameters[4].name 		= "Bass Mix";
-	distortion.parameters[4].id 		= (m_parameter_id){1, 0, 5};
-	
-	distortion.parameters[5].type 		= M_PARAM_LEVEL;
-	distortion.parameters[5].min.level 	= 500.0;
-	distortion.parameters[5].max.level 	= 5000.0;
-	distortion.parameters[5].name 		= "Mid Cutoff";
-	distortion.parameters[5].id 		= (m_parameter_id){1, 0, 6};
-	
-	distortion.parameters[6].type 		= M_PARAM_LEVEL;
-	distortion.parameters[6].min.level 	= 50.0;
-	distortion.parameters[6].max.level 	= 250.0;
-	distortion.parameters[6].name 		= "Bass Cutoff";
-	distortion.parameters[6].id 		= (m_parameter_id){1, 0, 7};
-	
-	distortion.parameters[7].type 		= M_PARAM_LEVEL;
-	distortion.parameters[7].min.level 	= 0.0;
-	distortion.parameters[7].max.level 	= 1.0;
-	distortion.parameters[7].name 		= "Ratio";
-	distortion.parameters[7].id 		= (m_parameter_id){1, 0, 8};
-	
-	init_ui_page(&distortion_view);
-	
-	distortion_view.init = init_transformer_view_struct;
-	distortion_view.configure = configure_transformer_view;
-	distortion_view.create_ui = init_transformer_view_ui;
-	distortion_view.enter_page = enter_transformer_view;
-	
-	queue_msg_to_teensy(create_et_msg		 (ET_MESSAGE_SWITCH_PROFILE, 	 "s",  1));
-	
-	distortion_view.init(&distortion_view);
-	distortion_view.configure(&distortion_view, (void*)&distortion);
-	distortion_view.create_ui(&distortion_view);
-	distortion_view.enter_page(&distortion_view);
-}
-
-static void value_changed_event_cb(lv_event_t * e)
-{
-	lv_obj_t *arc   = lv_event_get_target(e);
-	lv_obj_t *label = lv_event_get_user_data(e);
-
-	lv_label_set_text_fmt(label, "%d%%", lv_arc_get_value(arc));
-
-	et_msg msg;
-	msg.type = ET_MESSAGE_SET_PARAM_VALUE;
-	
-	et_msg_chparam_struct str;
-	
-	str.id.profile_id 		= 1;
-	str.id.transformer_id 	= 0;
-	str.id.parameter_id 	= 0;
-	str.new_value.level		= 4.0 * 3.0 * lv_arc_get_value(arc) / 300.0;
-	
-	memcpy(&msg.data[0], &str.id.profile_id, 		2);
-	memcpy(&msg.data[2], &str.id.transformer_id, 	2);
-	memcpy(&msg.data[4], &str.id.parameter_id, 	2);
-	memcpy(&msg.data[6], &str.new_value, 		sizeof(m_param_value));
-	
-	xQueueSend(et_msg_queue, (void*)&msg, 0);
+	enter_profile_view(global_cxt.profiles[0].view_page);
 }
 
 static lv_style_t bg_style;
@@ -179,7 +94,7 @@ void init_global_bg(lv_disp_t *disp)
                         NULL);
 }
 
-int init_ui_page(ui_page *page)
+int init_ui_page(em_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -187,7 +102,6 @@ int init_ui_page(ui_page *page)
 	page->screen 			= NULL;
 	page->top_panel			= NULL;
 	
-	page->init				= NULL;
 	page->configure			= NULL;
 	page->create_ui 		= NULL;
 	page->free_ui 			= NULL;
@@ -195,13 +109,14 @@ int init_ui_page(ui_page *page)
 	page->refresh			= NULL;
 	
 	page->data_struct 		= NULL;
+	page->parent	 		= NULL;
 	
 	return NO_ERROR;
 }
 
-ui_page *create_ui_page()
+em_ui_page *create_ui_page()
 {
-	ui_page *res = malloc(sizeof(ui_page));
+	em_ui_page *res = malloc(sizeof(em_ui_page));
 	
 	if (!res)
 		return NULL;
@@ -211,8 +126,51 @@ ui_page *create_ui_page()
 	return res;
 }
 
-int enter_ui_page(ui_page *page)
+int enter_ui_page_forward(em_ui_page *page)
 {
+	printf("enter ui page...\n");
+	
+	if (!page)
+		return ERR_NULL_PTR;
+	
+	if (!page->screen)
+		return ERR_BAD_ARGS;
+	
+	if (page->enter_page_forward)
+		page->enter_page_forward(page);
+	else
+		lv_scr_load_anim(page->screen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 300, 0, false);
+	
+	return NO_ERROR;
+}
+
+int enter_ui_page(em_ui_page *page)
+{
+	printf("enter ui page...\n");
+	
+	if (!page)
+		return ERR_NULL_PTR;
+	
+	if (!page->screen)
+		return ERR_BAD_ARGS;
+	
+	if (page->enter_page_back)
+		page->enter_page_back(page);
+	else
+		lv_scr_load(page->screen);
+	
+	return NO_ERROR;
+}
+
+int enter_ui_page_indirect(em_ui_page **_page)
+{
+	printf("enter ui page indirect...\n");
+	
+	if (!_page)
+		return ERR_NULL_PTR;
+	
+	em_ui_page *page = *_page;
+	
 	if (!page)
 		return ERR_NULL_PTR;
 	
@@ -227,13 +185,76 @@ int enter_ui_page(ui_page *page)
 	return NO_ERROR;
 }
 
-void enter_ui_page_cb(lv_event_t *e)
+int enter_ui_page_indirect_forward(em_ui_page **_page)
 {
-	ui_page *page = (ui_page*)lv_event_get_user_data(e);
-	enter_ui_page(page);
+	printf("enter ui page indirect...\n");
+	
+	if (!_page)
+		return ERR_NULL_PTR;
+	
+	em_ui_page *page = *_page;
+	
+	if (!page)
+		return ERR_NULL_PTR;
+	
+	if (!page->screen)
+		return ERR_BAD_ARGS;
+	
+	if (page->enter_page)
+		page->enter_page(page);
+	else
+		lv_scr_load_anim(page->screen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 300, 0, false);
+	
+	return NO_ERROR;
 }
 
-void ui_page_return_to_parent(ui_page *page)
+int enter_ui_page_indirect_back(em_ui_page **_page)
+{
+	printf("enter ui page indirect...\n");
+	
+	if (!_page)
+		return ERR_NULL_PTR;
+	
+	em_ui_page *page = *_page;
+	
+	if (!page)
+		return ERR_NULL_PTR;
+	
+	if (!page->screen)
+		return ERR_BAD_ARGS;
+	
+	if (page->enter_page_back)
+		page->enter_page_back(page);
+	else if (page->enter_page)
+		page->enter_page(page);
+	else
+		lv_scr_load_anim(page->screen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 30, 0, false);
+	
+	return NO_ERROR;
+}
+
+void enter_ui_page_cb(lv_event_t *e)
+{
+	printf("enter ui page callback triggered\n");
+	em_ui_page **_page = (em_ui_page**)lv_event_get_user_data(e);
+	enter_ui_page_indirect(_page);
+}
+
+void enter_ui_page_forward_cb(lv_event_t *e)
+{
+	printf("enter ui page callback triggered\n");
+	em_ui_page **_page = (em_ui_page**)lv_event_get_user_data(e);
+	enter_ui_page_indirect_forward(_page);
+}
+
+void enter_ui_page_back_cb(lv_event_t *e)
+{
+	printf("enter ui page callback triggered\n");
+	em_ui_page **_page = (em_ui_page**)lv_event_get_user_data(e);
+	enter_ui_page_indirect_back(_page);
+}
+
+void em_ui_page_return_to_parent(em_ui_page *page)
 {
 	if (!page)
 		return;
@@ -247,12 +268,12 @@ void ui_page_return_to_parent(ui_page *page)
 		enter_ui_page(page->parent);
 }
 
-int create_top_panel(ui_page *page, char *title_text)
+int create_top_panel(em_ui_page *page, char *title_text)
 {
 	if (!page)
 		return ERR_NULL_PTR;
 	
-	page->top_panel = malloc(sizeof(ui_page_top_panel));
+	page->top_panel = malloc(sizeof(em_ui_page_top_panel));
 	
 	if (!page->top_panel)
 		return ERR_ALLOC_FAIL;
@@ -287,14 +308,9 @@ int create_top_panel(ui_page *page, char *title_text)
     return NO_ERROR;
 }
 
-int create_top_panel_with_back_button(ui_page *page, const char *title_text, lv_event_cb_t back_cb)
+int create_top_panel_with_back_button(em_ui_page *page, const char *title_text, lv_event_cb_t back_cb)
 {
-	int ret_val = create_top_panel(page, title_text);
-	
-	if (ret_val != NO_ERROR)
-		return ret_val;
-	
-	page->top_panel = malloc(sizeof(ui_page_top_panel));
+	page->top_panel = malloc(sizeof(em_ui_page_top_panel));
 	
 	if (!page->top_panel)
 		return ERR_ALLOC_FAIL;
@@ -321,9 +337,15 @@ int create_top_panel_with_back_button(ui_page *page, const char *title_text, lv_
     lv_obj_center(page->top_panel->back_button_symbol);
     
     if (back_cb)
+    {
+		printf("'back' callback provided; connecting...\n");
 		lv_obj_add_event_cb(page->top_panel->back_button, back_cb, LV_EVENT_CLICKED, page);
-	else if (page->parent)
-		lv_obj_add_event_cb(page->top_panel->back_button, enter_ui_page_cb, LV_EVENT_CLICKED, page->parent);
+	}
+	else
+	{
+		printf("No 'back' callback provided; assigning default...\n");
+		lv_obj_add_event_cb(page->top_panel->back_button, enter_ui_page_back_cb, LV_EVENT_CLICKED, &page->parent);
+	}
 
     page->top_panel->title_text = title_text;
     
