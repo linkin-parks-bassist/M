@@ -5,11 +5,6 @@
 
 #include "src/tm.h"
 
-tm_pipeline pipelines[4];
-
-tm_audio_transformer distortion;
-tm_audio_transformer compressor;
-
 tm_context global_cxt;
 
 
@@ -36,7 +31,7 @@ void setup()
 	}*/
 	
 	tm_printf("Initialising memory pools... ");
-	init_metm_pools();
+	init_mem_pools();
 	tm_printf("done.\n");
 	
 	tm_printf("Initialising context struct... ");
@@ -47,8 +42,6 @@ void setup()
 	
 	tm_printf("Initialising SGTL5000... ");
 	sgtl5000_enable();
-	sgtl5000_line_in_level(4);
-	sgtl5000_volume(0.5);
 	tm_printf("done.\n");
 	
 	
@@ -75,6 +68,9 @@ int LED = 1;
 #define DEBUG_PRINTS
 #define DEBUG_PRINT_MILLIS 2000
 
+//#define SGTL5000_CHECK 
+#define SGTL5000_CHECK_PERIOD 100
+
 void loop()
 {
 	#ifdef DEBUG_PRINTS
@@ -98,6 +94,15 @@ void loop()
 	}
 	#endif
 	
+	#ifdef SGTL5000_CHECK
+	if (!sgtl5000_healthy())
+	{
+		tm_printf("SGTL5000 died!\n");
+		sgtl5000_soft_reboot();
+	}
+	#endif
+	
+	profile_update(&global_cxt.profiles[global_cxt.active_profile]);
 	esp32_message_check_handle();
 	
 	if (global_cxt.unconfigured_pipeline)

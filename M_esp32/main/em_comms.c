@@ -58,7 +58,10 @@ static int send_msg_to_teensy(et_msg msg)
 	int len = encode_et_msg(buf, msg);
 	
 	if (len == 0)
+	{
+		printf("encode_et_msg returned length 0!!\n");
 		return ERR_ET_MSG_INVALID;
+	}
 	
 	ESP_LOGI(TAG, "Sending type %d message to Teensy...\n", msg.type);
 	int ret_val = i2c_transmit(TEENSY_ADDR, buf, len);
@@ -129,18 +132,12 @@ void handle_em_response(et_msg msg, te_msg response)
 			break;
 		
 		case TE_MESSAGE_N_TRANSFORMERS:
-			if (arg16_1 < global_cxt.n_profiles)
-			{
-				em_pipeline_set_n_transformers(&global_cxt.profiles[arg16_1].pipeline, arg16_2);
-			}
-			else
-			{
-				ESP_LOGE(TAG, "Something has gone terribly wrong\n");
-			}
+			
+			
 			break;
 		
 		case TE_MESSAGE_TRANSFORMER_ID:
-			global_cxt.profiles[arg16_1].pipeline.transformers[arg16_2].transformer_id = arg16_3;
+			
 			break;
 		
 		case TE_MESSAGE_TRANSFORMER_TYPE:

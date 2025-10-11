@@ -48,7 +48,7 @@ comms_fstm_state_t comms_fstm_state = IDLE;
 
 void handle_esp32_message(et_msg msg)
 {
-	tm_printf("Recieved message type: %d\n", msg.type);
+	tm_printf("Recieved message of type %s\n", et_msg_code_to_string(msg.type));
 	int ret_val;
 	int string_received = 0;
 	
@@ -98,32 +98,27 @@ void handle_esp32_message(et_msg msg)
 			
 			ret_val = cxt_append_transformer_to_profile(&global_cxt, arg16_1, arg16_2);
 			
-			if (ret_val < 0)
-				response = create_te_msg_error(-ret_val);
-			else
-				response = create_te_msg_transformer_id(arg16_1, ret_val);
-			break;
-			
-		case ET_MESSAGE_INSERT_TRANSFORMER:
-			tm_printf("Creating new transformer...\n");
-			
-			ret_val = cxt_insert_transformer_to_profile(&global_cxt, arg16_1, arg16_2, arg16_3);
-			
+			tm_printf("Obtained transformer id %d; sending back\n", ret_val);
 			if (ret_val < 0)
 				response = create_te_msg_error(-ret_val);
 			else
 				response = create_te_msg_transformer_id(arg16_1, ret_val);
 			break;
 		
-		case ET_MESSAGE_PREPEND_TRANSFORMER:
-			tm_printf("Creating new transformer...\n");
+		case ET_MESSAGE_MOVE_TRANSFORMER:
+			tm_printf("Moving transformer...\n");
 			
-			ret_val = cxt_prepend_transformer_to_profile(&global_cxt, arg16_1, arg16_2);
+			ret_val = cxt_move_transformer(&global_cxt, arg16_1, arg16_2);
 			
-			if (ret_val < 0)
-				response = create_te_msg_error(-ret_val);
-			else
-				response = create_te_msg_transformer_id(arg16_1, ret_val);
+			response = create_te_msg_error(ret_val);
+			break;
+			
+		case ET_MESSAGE_REMOVE_TRANSFORMER:
+			tm_printf("Removing transformer...\n");
+			
+			ret_val = cxt_remove_transformer_from_profile(&global_cxt, arg16_1, arg16_2);
+			
+			response = create_te_msg_error(ret_val);
 			break;
 		
 		case ET_MESSAGE_GET_N_PROFILES:
@@ -177,20 +172,20 @@ void handle_esp32_message(et_msg msg)
 			memcpy(&value_f, &msg.data[6], sizeof(float));
 			
 			tm_printf("Request to set parameter %d.%d.%d to value %f\n", arg16_1, arg16_2, arg16_3, value_f);
-			param = cxt_get_parameter_by_id(&global_cxt, arg16_1, arg16_2, arg16_3);
 			
-			if (param)
+			ret_val = cxt_update_parameter_value_by_id(&global_cxt, arg16_1, arg16_2, arg16_3, value_f);
+			
+			if (ret_val != NO_ERROR)
 			{
-				tm_printf("The parameter exists; with address %p, and current value %f\n", param, param->value);
-				update_parameter(param, value_f);
-				tm_printf("It has been updated to value %f.\n", param->new_value);
-				response = create_te_msg(TE_MESSAGE_PARAM_VALUE, "ssss", arg16_1, arg16_2, arg16_3, value_f);
+				printf("Failed! Error: %s\n", m_error_code_to_string(ret_val));
+				response = create_te_msg_error(ret_val);
 			}
 			else
 			{
-				tm_printf("But no such parameter exists!\n");
-				response = create_te_msg_nodata(TE_MESSAGE_BAD_REQUEST);
+				response = create_te_msg_parameter_value(arg16_1, arg16_2, arg16_3, value_f);
 			}
+			
+			
 			break;
 		
 		case ET_MESSAGE_GET_N_OPTIONS:
@@ -294,6 +289,7 @@ void handle_esp32_message(et_msg msg)
 
 void i2c_recieve_isr(int n)
 {
+	printf("i2c_recieve_isr\n");
 	tm_AudioNoInterrupts();
 	
 	if (message_pending)
@@ -327,8 +323,8 @@ void i2c_recieve_isr(int n)
 		}
 	}
 	
-	for (int i = 0; i < n; i++)
-		tm_printf("%d%s", recieve_buffer[i], (i < n - 1) ? ", " : "\n");
+	//for (int i = 0; i < n; i++)
+	//	tm_printf("%d%s", recieve_buffer[i], (i < n - 1) ? ", " : "\n");
 	
 	tm_AudioInterrupts();
 }
@@ -336,7 +332,7 @@ void i2c_recieve_isr(int n)
 void i2c_request_isr()
 {
 	tm_AudioNoInterrupts();
-	tm_printf("i2c request isr\n");
+	//tm_printf("i2c request isr\n");
 	
 	if (response_ready)
 	{
@@ -345,9 +341,11 @@ void i2c_request_isr()
 		encode_te_msg(send_buffer, response);
 		
 		Wire.write(send_buffer, TE_MESSAGE_MAX_LEN);
-		tm_printf("Sent response:\n\t");
-		for (int i = 0; i < TE_MESSAGE_MAX_LEN; i++)
-			tm_printf("0x%02x%s", send_buffer[i], (i == TE_MESSAGE_MAX_LEN - 1) ? "\n" : " ");
+		
+		tm_printf("Responding with message of type %s\n", te_msg_code_to_string(response.type));
+		//tm_printf("Sent response:\n\t");
+		//for (int i = 0; i < TE_MESSAGE_MAX_LEN; i++)
+		//	tm_printf("0x%02x%s", send_buffer[i], (i == TE_MESSAGE_MAX_LEN - 1) ? "\n" : " ");
 	}
 	else
 	{

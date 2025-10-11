@@ -49,9 +49,10 @@ void print_profile_info(tm_profile *profile, int depth)
 	
 	if (depth)
 	{
-		tm_printf("Pipeline:\n");
+		tm_printf("Pipelines (front/back):\n");
 
-		print_pipe_line_info(&profile->pipe_line, depth - 1);
+		print_pipe_line_info(profile->front_pipeline, depth - 1);
+		print_pipe_line_info(profile->back_pipeline, depth - 1);
 	}
 	
 	if (!depth)
@@ -123,43 +124,7 @@ void print_transformer_info(tm_transformer *trans, int depth)
 	if (!trans)
 		return;
 	
-	tm_printf("Transformer type: %d (", trans->type);
-	switch (trans->type)
-	{
-		case TRANSFORMER_BUFFER:
-			tm_printf("buffer");
-			break;
-			
-		case TRANSFORMER_AMPLIFIER:
-			tm_printf("amplifier");
-			break;
-		
-		case TRANSFORMER_MIXER:
-			tm_printf("mixer");
-			break;
-		
-		case TRANSFORMER_BIQUAD:
-			tm_printf("biquad");
-			break;
-		
-		case TRANSFORMER_DISTORTION:
-			tm_printf("arctan distortion");
-			break;
-		
-		case TRANSFORMER_WAVESHAPER:
-			tm_printf("compression");
-			break;
-		
-		case TRANSFORMER_COMPRESSOR:
-			tm_printf("compression");
-			break;
-		
-		default:
-			tm_printf("unknown !\n");
-			break;
-	}
-	
-	tm_printf(")\n");
+	tm_printf("Transformer type: %d (%s)\n", trans->type, transformer_type_to_string(trans->type));
 	
 	tm_printf("Data struct address: %p\n", trans->data_struct);
 	

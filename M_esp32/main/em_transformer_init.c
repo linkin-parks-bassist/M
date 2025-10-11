@@ -154,6 +154,78 @@ int init_transformer_waveshaper(em_transformer *trans)
 }
 
 
+int init_transformer_low_pass_filter(em_transformer *trans)
+{
+	if (!trans)
+		return ERR_NULL_PTR;
+
+	trans->type = TRANSFORMER_LOW_PASS_FILTER;
+
+	em_parameter *param;
+
+	param = transformer_add_parameter_rp(trans);
+	param->id.parameter_id = 0;
+	init_parameter(param, "Cutoff Frequency", 100, -10000000, 10000000);
+
+	return NO_ERROR;
+}
+
+
+int init_transformer_high_pass_filter(em_transformer *trans)
+{
+	if (!trans)
+		return ERR_NULL_PTR;
+
+	trans->type = TRANSFORMER_HIGH_PASS_FILTER;
+
+	em_parameter *param;
+
+	param = transformer_add_parameter_rp(trans);
+	param->id.parameter_id = 0;
+	init_parameter(param, "Cutoff Frequency", 1000, -10000000, 10000000);
+
+	return NO_ERROR;
+}
+
+
+int init_transformer_band_pass_filter(em_transformer *trans)
+{
+	if (!trans)
+		return ERR_NULL_PTR;
+
+	trans->type = TRANSFORMER_BAND_PASS_FILTER;
+
+	em_parameter *param;
+
+	param = transformer_add_parameter_rp(trans);
+	param->id.parameter_id = 0;
+	init_parameter(param, "Center Frequency", 1000, -10000000, 10000000);
+
+	param = transformer_add_parameter_rp(trans);
+	param->id.parameter_id = 1;
+	init_parameter(param, "Band width", 100, -10000000, 10000000);
+
+	return NO_ERROR;
+}
+
+
+int init_transformer_dirty_octave(em_transformer *trans)
+{
+	if (!trans)
+		return ERR_NULL_PTR;
+
+	trans->type = TRANSFORMER_DIRTY_OCTAVE;
+
+	em_parameter *param;
+
+	param = transformer_add_parameter_rp(trans);
+	param->id.parameter_id = 0;
+	init_parameter(param, "Fuzz", 5, 0, 10);
+
+	return NO_ERROR;
+}
+
+
 int init_transformer_of_type(em_transformer *trans, uint16_t type)
 {
 	if (!trans)
@@ -167,13 +239,17 @@ int init_transformer_of_type(em_transformer *trans, uint16_t type)
 	em_parameter *param;
 	switch (type)
 	{
-		case TRANSFORMER_BUFFER:     return init_transformer_buffer(trans);
-		case TRANSFORMER_AMPLIFIER:  return init_transformer_amplifier(trans);
-		case TRANSFORMER_MIXER:      return init_transformer_mixer(trans);
-		case TRANSFORMER_BIQUAD:     return init_transformer_biquad(trans);
-		case TRANSFORMER_DISTORTION: return init_transformer_distortion(trans);
-		case TRANSFORMER_COMPRESSOR: return init_transformer_compressor(trans);
-		case TRANSFORMER_WAVESHAPER: return init_transformer_waveshaper(trans);
+		case TRANSFORMER_BUFFER:           return init_transformer_buffer(trans);
+		case TRANSFORMER_AMPLIFIER:        return init_transformer_amplifier(trans);
+		case TRANSFORMER_MIXER:            return init_transformer_mixer(trans);
+		case TRANSFORMER_BIQUAD:           return init_transformer_biquad(trans);
+		case TRANSFORMER_DISTORTION:       return init_transformer_distortion(trans);
+		case TRANSFORMER_COMPRESSOR:       return init_transformer_compressor(trans);
+		case TRANSFORMER_WAVESHAPER:       return init_transformer_waveshaper(trans);
+		case TRANSFORMER_LOW_PASS_FILTER:  return init_transformer_low_pass_filter(trans);
+		case TRANSFORMER_HIGH_PASS_FILTER: return init_transformer_high_pass_filter(trans);
+		case TRANSFORMER_BAND_PASS_FILTER: return init_transformer_band_pass_filter(trans);
+		case TRANSFORMER_DIRTY_OCTAVE:     return init_transformer_dirty_octave(trans);
 	}
 
 	return NO_ERROR;

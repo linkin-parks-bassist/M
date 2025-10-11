@@ -43,13 +43,12 @@ int init_parameter_simple(tm_parameter *param, float initial)
 	
 	param->min = -10000000;
 	param->max =  10000000;
-	param->update_policy = PARAMETER_UPDATE_MONOBLOCK_LINEAR;
-	param->update_progress = 0;
+	param->max_jump = DEFAULT_MAX_JUMP;
 	
 	return NO_ERROR;
 }
 
-int init_parameter(tm_parameter *param, float initial, float min, float max, int update_policy)
+int init_parameter(tm_parameter *param, float initial, float min, float max, float max_jump)
 {
 	if (!param)
 		return ERR_NULL_PTR;
@@ -61,20 +60,15 @@ int init_parameter(tm_parameter *param, float initial, float min, float max, int
 	
 	param->min = min;
 	param->max = max;
-	param->update_policy = update_policy;
-	
-	param->update_progress = 0;
+	param->max_jump = max_jump;
 	
 	return NO_ERROR;
 }
 
 int update_parameter(tm_parameter *param, float new_value)
 {
-	tm_printf("Updating parameter...\n");
 	if (!param)
 		return ERR_NULL_PTR;
-	
-	tm_printf("It exists...\n");
 	
 	if (fabsf(new_value - param->value) < 0.0001)
 		return NO_ERROR;
@@ -84,7 +78,6 @@ int update_parameter(tm_parameter *param, float new_value)
 	
 	if (new_value < true_min || new_value > true_max)
 	{
-		tm_printf("Out of bounds !!!\n");
 		return ERR_VALUE_OUT_OF_BOUNDS;
 	}
 	
@@ -98,21 +91,18 @@ int update_parameter(tm_parameter *param, float new_value)
 
 int update_parameter_update(tm_parameter *param, float new_value)
 {
-	tm_printf("Updating parameter...\n");
 	if (!param)
 		return ERR_NULL_PTR;
 		
 	if (fabsf(new_value - param->value) < 0.0001)
 		return NO_ERROR;
 	
-	tm_printf("It exists...\n");
 	
 	float true_min = (param->min > param->max) ? param->max : param->min; 
 	float true_max = (param->min > param->max) ? param->min : param->max;
 	
 	if (new_value < true_min || new_value > true_max)
 	{
-		tm_printf("Out of bounds !!!\n");
 		return ERR_VALUE_OUT_OF_BOUNDS;
 	}
 	
@@ -194,27 +184,20 @@ int parameter_update_tick(tm_parameter *param)
 
 int parameter_update_finish(tm_parameter *param)
 {
-	tm_printf("parameter_update_finish\n");
 	if (!param)
 	{
-		tm_printf("problem: NULL\n");
 		return ERR_NULL_PTR;
 	}
 	
 	if (!param->updated)
 	{
-		tm_printf("problem: not updated\n");
 		return NO_ERROR;
 	}
-	
-	tm_printf("param->value = %f\n", param->value);
 	
 	param->old_value 		= param->value;
 	param->value 			= param->new_value;
 	param->updated 			= 0;
 	param->update_progress  = 0;
-	
-	tm_printf("param->value = %f\n", param->value);
 	
 	return NO_ERROR;
 }

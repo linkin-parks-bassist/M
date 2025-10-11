@@ -35,6 +35,8 @@ int init_distortion(tm_transformer *trans, vec2i input, vec2i output, int type, 
 
 int init_distortion_struct_default(tm_distortion_str *str);
 
-int calc_distortion(float **dest, float **src, void *data_struct);
+int reconfigure_distortion(void *data_struct);
+
+int calc_distortion(void *data_struct, float **dest, float **src, int n_samples);
 
 #endif

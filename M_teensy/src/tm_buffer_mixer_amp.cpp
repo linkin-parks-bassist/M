@@ -1,40 +1,39 @@
 #include "tm.h"
 
-int calc_buffer(float **dest, float **src, void *data_struct)
+int calc_buffer(void *data_struct, float **dest, float **src, int n_samples)
 {
 	if (!dest || !src)
 		return ERR_NULL_PTR;
 	
-	if (!dest[0] || !src[0])
-		return ERR_NULL_PTR;
+	float *in_buffer  =  src[0] ?  src[0] : zero_buffer;
+	float *out_buffer = dest[0] ? dest[0] : sink_buffer;
 	
-	memcpy(dest[0], src[0], AUDIO_BLOCK_SAMPLES * sizeof(float));
+	memcpy(out_buffer, in_buffer, n_samples * sizeof(float));
 	
 	return NO_ERROR;
 }
 
-int calc_amplifier(float **dest, float **src, void *data_struct)
+int calc_amplifier(void *data_struct, float **dest, float **src, int n_samples)
 {
 	if (!data_struct || !dest || !src)
 		return ERR_NULL_PTR;
 	
-	if (!dest[0] || !src[0])
-		return ERR_NULL_PTR;
-	
-	//tm_printf("Computing amp transformer...\n");
-	
 	tm_amplifier_str *amp = (tm_amplifier_str*)data_struct;
 	
+	float *in_buffer  =  src[0] ?  src[0] : zero_buffer;
+	float *out_buffer = dest[0] ? dest[0] : sink_buffer;
+	
+	#ifdef NO_CMSIS
 	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
-	{
-		parameter_update_tick(&amp->gain);
 		dest[0][i] = amp->gain.value * src[0][i];
-	}
+	#else
+	arm_scale_f32(in_buffer, amp->gain.value, out_buffer, n_samples);
+	#endif
 	
 	return NO_ERROR;
 }
 
-int calc_mixer(float **dest, float **src, void *data_struct)
+int calc_mixer(void *data_struct, float **dest, float **src, int n_samples)
 {
 	if (!data_struct || !dest || !src)
 		return ERR_NULL_PTR;

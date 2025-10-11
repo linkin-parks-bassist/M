@@ -1,6 +1,11 @@
 #ifndef control_sgtl5000_h_
 #define control_sgtl5000_h_
 
+int sgtl5000_start();
+int sgtl5000_soft_reboot();
+
+int sgtl5000_healthy();
+
 int sgtl5000_enable();
 
 void sgtl5000_set_address(uint8_t level);

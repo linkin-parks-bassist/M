@@ -25,10 +25,10 @@ int et_message_data_length(et_msg msg)
 		case ET_MESSAGE_APPEND_TRANSFORMER:
 			return 2 * sizeof(uint16_t);
 		
-		case ET_MESSAGE_INSERT_TRANSFORMER:
-			return 3 * sizeof(uint16_t);
+		case ET_MESSAGE_MOVE_TRANSFORMER:
+			return 2 * sizeof(uint16_t);
 		
-		case ET_MESSAGE_PREPEND_TRANSFORMER:
+		case ET_MESSAGE_REMOVE_TRANSFORMER:
 			return 2 * sizeof(uint16_t);
 
 		case ET_MESSAGE_GET_N_PROFILES:
@@ -184,6 +184,59 @@ et_msg create_et_msg_new_profile()
 int valid_et_msg_type(uint8_t type)
 {
 	return (ET_MESSAGE_HI <= type && type <= ET_MESSAGE_SWITCH_PROFILE);
+}
+
+const char *et_msg_code_to_string(uint16_t code)
+{
+	switch (code)
+	{
+		case ET_MESSAGE_NO_MESSAGE:
+			return "ET_MESSAGE_NO_MESSAGE";
+		case ET_MESSAGE_INVALID:
+			return "ET_MESSAGE_INVALID";
+		case ET_MESSAGE_HI:
+			return "ET_MESSAGE_HI";
+		case ET_MESSAGE_RESET:
+			return "ET_MESSAGE_RESET";
+		case ET_MESSAGE_REBOOT:
+			return "ET_MESSAGE_REBOOT";
+		case ET_MESSAGE_CREATE_PROFILE:
+			return "ET_MESSAGE_CREATE_PROFILE";
+		case ET_MESSAGE_APPEND_TRANSFORMER:
+			return "ET_MESSAGE_APPEND_TRANSFORMER";
+		case ET_MESSAGE_MOVE_TRANSFORMER:
+			return "ET_MESSAGE_MOVE_TRANSFORMER";
+		case ET_MESSAGE_REMOVE_TRANSFORMER:
+			return "ET_MESSAGE_REMOVE_TRANSFORMER";
+		case ET_MESSAGE_GET_N_PROFILES:
+			return "ET_MESSAGE_GET_N_PROFILES";
+		case ET_MESSAGE_GET_N_TRANSFORMERS:
+			return "ET_MESSAGE_GET_N_TRANSFORMERS";
+		case ET_MESSAGE_GET_TRANSFORMER_ID:
+			return "ET_MESSAGE_GET_TRANSFORMER_ID";
+		case ET_MESSAGE_GET_TRANSFORMER_TYPE:
+			return "ET_MESSAGE_GET_TRANSFORMER_TYPE";
+		case ET_MESSAGE_GET_N_PARAMETERS:
+			return "ET_MESSAGE_GET_N_PARAMETERS";
+		case ET_MESSAGE_GET_PARAM_VALUE:
+			return "ET_MESSAGE_GET_PARAM_VALUE";
+		case ET_MESSAGE_SET_PARAM_VALUE:
+			return "ET_MESSAGE_SET_PARAM_VALUE";
+		case ET_MESSAGE_GET_N_OPTIONS:
+			return "ET_MESSAGE_GET_N_OPTIONS";
+		case ET_MESSAGE_GET_OPTION_VALUE:
+			return "ET_MESSAGE_GET_OPTION_VALUE";
+		case ET_MESSAGE_SET_OPTION_VALUE:
+			return "ET_MESSAGE_SET_OPTION_VALUE";
+		case ET_MESSAGE_STRING_CONTINUE:
+			return "ET_MESSAGE_STRING_CONTINUE";
+		case ET_MESSAGE_STRING_CONTINUING:
+			return "ET_MESSAGE_STRING_CONTINUING";
+		case ET_MESSAGE_SWITCH_PROFILE:
+			return "ET_MESSAGE_SWITCH_PROFILE";
+		default:
+			return "UNKNOWN MESSAGE CODE";
+	}
 }
 
 et_msg decode_et_msg(uint8_t *bytes)
@@ -348,7 +401,7 @@ te_msg create_te_msg_ok()
 	return create_te_msg(TE_MESSAGE_OK, "");
 }
 
-te_msg create_te_msg_param_value(uint16_t pid, uint16_t tid, uint16_t ppid, float val)
+te_msg create_te_msg_parameter_value(uint16_t pid, uint16_t tid, uint16_t ppid, float val)
 {
 	te_msg msg;
 	
@@ -409,4 +462,54 @@ te_msg decode_te_msg(uint8_t *bytes)
 		msg.data[i] = bytes[i + 1];
 	
 	return msg;
+}
+
+const char *te_msg_code_to_string(uint16_t code)
+{
+	switch (code)
+	{
+		case TE_MESSAGE_NO_MESSAGE:
+			return "TE_MESSAGE_NO_MESSAGE";
+		case TE_MESSAGE_INVALID:
+			return "TE_MESSAGE_INVALID";
+		case TE_MESSAGE_WAIT:
+			return "TE_MESSAGE_WAIT";
+		case TE_MESSAGE_HI:
+			return "TE_MESSAGE_HI";
+		case TE_MESSAGE_BAD_TRANSFER:
+			return "TE_MESSAGE_BAD_TRANSFER";
+		case TE_MESSAGE_BAD_REQUEST:
+			return "TE_MESSAGE_BAD_REQUEST";
+		case TE_MESSAGE_TRY_AGAIN:
+			return "TE_MESSAGE_TRY_AGAIN";
+		case TE_MESSAGE_OK:
+			return "TE_MESSAGE_OK";
+		case TE_MESSAGE_ERROR:
+			return "TE_MESSAGE_ERROR";
+		case TE_MESSAGE_PROFILE_ID:
+			return "TE_MESSAGE_PROFILE_ID";
+		case TE_MESSAGE_TRANSFORMER_ID:
+			return "TE_MESSAGE_TRANSFORMER_ID";
+		case TE_MESSAGE_N_PROFILES:
+			return "TE_MESSAGE_N_PROFILES";
+		case TE_MESSAGE_N_TRANSFORMERS:
+			return "TE_MESSAGE_N_TRANSFORMERS";
+		case TE_MESSAGE_TRANSFORMER_TYPE:
+			return "TE_MESSAGE_TRANSFORMER_TYPE";
+		case TE_MESSAGE_N_PARAMETERS:
+			return "TE_MESSAGE_N_PARAMETERS";
+		case TE_MESSAGE_PARAM_VALUE:
+			return "TE_MESSAGE_PARAM_VALUE";
+		case TE_MESSAGE_N_OPTIONS:
+			return "TE_MESSAGE_N_OPTIONS";
+		case TE_MESSAGE_OPTION_VALUE:
+			return "TE_MESSAGE_OPTION_VALUE";
+		case TE_MESSAGE_STRING_CONTINUING:
+			return "TE_MESSAGE_STRING_CONTINUING";
+		case TE_MESSAGE_START_OVER:
+			return "TE_MESSAGE_START_OVER";
+#define TE_MESSAGE_SWITCHING_PROFILE	20
+		default:
+			return "UNKNOWN MESSAGE CODE";
+	}
 }

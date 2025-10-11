@@ -22,6 +22,7 @@ tm_transformer *alloc_compressor(vec2i input, vec2i output, float ratio, float t
 
 int init_compressor_default(tm_transformer *trans);
 
-int calc_compressor(float **dest, float **src, void *data_struct);
+int reconfigure_compressor(void *data_struct);
+int calc_compressor(void *data_struct, float **dest, float **src, int n_samples);
 
 #endif

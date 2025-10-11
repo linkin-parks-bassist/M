@@ -5,7 +5,7 @@ int init_transformer(tm_transformer *trans, int type,
 					 vec2i 		   *inputs,  vec2i 		  *outputs,
 					 int n_options, int n_parameters,
 					 void *data_struct,
-					 int (*compute_transformer)(float **dest, float **src, void *data_struct))
+					 int (*compute_transformer)(void *data_struct, float **dest, float **src, int n_samples))
 {
 	if (!trans)
 		return ERR_NULL_PTR;
@@ -45,8 +45,6 @@ int init_transformer(tm_transformer *trans, int type,
 	
 	for (int i = 0; i < n_options; i++)
 		trans->options[i] = NULL;
-	
-	
 	
 	return NO_ERROR;
 }
@@ -108,6 +106,171 @@ void run_bypass(float **dest, float **src, int n_inputs, int n_valid_inputs, int
 		for (int j = 0; j < n_outputs; j++)
 			if (dest[j]) dest[j][i] = tmp;
 	}
+}
+
+#define MAX_BLOCK_DIVIDER 8
+
+static int rectify_block_divider(int divider)
+{
+	int i = 1;
+	
+	do {
+		if (divider < i)
+			return i;
+		
+		i = 2 * i;
+	} while (i <= MAX_BLOCK_DIVIDER);
+	
+	return MAX_BLOCK_DIVIDER;
+}
+
+
+int run_transformer(tm_transformer *trans, float **dest, float **src)
+{
+	if (!trans)
+		return ERR_NULL_PTR;
+	
+	int divider = 1;
+	int local_divider;
+	int any_updates = 0;
+	int n_samples;
+	
+	int long_update[trans->n_parameters];
+	float deltas[trans->n_parameters];
+	
+	float *inputs[TRANSFORMER_MAX_INPUTS];
+	float *outputs[TRANSFORMER_MAX_OUTPUTS];
+	
+	for (int i = 0; i < TRANSFORMER_MAX_INPUTS; i++)
+		inputs [i] = src  ? src [i] : NULL;
+	
+	for (int i = 0; i < TRANSFORMER_MAX_OUTPUTS; i++)
+		outputs[i] = dest ? dest[i] : NULL;
+	
+	for (int i = 0; i < trans->n_parameters; i++)
+		long_update[i] = 0;
+	
+	// Calculate delts for all updated parameters
+	// and determine how much to divide the block
+	for (int i = 0; i < trans->n_parameters && i < trans->parameter_array_size; i++)
+	{
+		deltas[i] = 0.0;
+		if (!trans->parameters[i])
+		{
+			tm_printf("Transformer %p has NULL parameter at index %d\n", trans, i);
+			continue;
+		}
+		
+		if (!trans->parameters[i]->updated)
+			continue;
+		
+		any_updates = 1;
+		
+		// If a negative max_jump has snuck in, rectify this
+		if (trans->parameters[i]->max_jump < 0)
+			trans->parameters[i]->max_jump = -trans->parameters[i]->max_jump;
+		
+		// I'll be dividing by max_jump. It cannot be too small.
+		// I'll use max_jump = 0.0 as "just update instantaneously"
+		if (trans->parameters[i]->max_jump < 1e-12)
+		{
+			trans->parameters[i]->value = trans->parameters[i]->new_value;
+			trans->parameters[i]->updated = 0;
+			continue;
+		}
+		
+		// Take the difference
+		deltas[i] = trans->parameters[i]->new_value - trans->parameters[i]->value;
+		
+		// If it's smaller than the max jump, just go ahead and change
+		// the value. If max_jump is set well, there will be no artifact
+		if (fabsf(deltas[i]) < trans->parameters[i]->max_jump)
+		{
+			trans->parameters[i]->value = trans->parameters[i]->new_value;
+			trans->parameters[i]->updated = 0;
+			deltas[i] = 0.0;
+			continue;
+		}
+		
+		// Otherwise, calculate the min steps needed to move to the
+		// new value in jumps of at most max_jump
+		local_divider = (int)(fabsf(deltas[i] / trans->parameters[i]->max_jump));
+		
+		// If it's too big, we won't carry out the full update this block
+		long_update[i] = (local_divider > MAX_BLOCK_DIVIDER);
+		
+		// replace local_divider by the smallest power of 2 greater than it
+		// which is also no larger than MAX_BLOCK_DIVIDER, and
+		// accumulate the max over all parameters into the global divider
+		divider = binary_max(divider, rectify_block_divider(local_divider));
+	}
+	
+	
+	// If no parameters have been updated, just run the transformer like normal
+	if (!any_updates)
+	{
+		trans->compute_transformer(trans->data_struct, outputs, inputs, AUDIO_BLOCK_SAMPLES);
+		return NO_ERROR;
+	}
+	
+	// Otherwise, divide the block into [divider] many sub-blocks
+	n_samples = AUDIO_BLOCK_SAMPLES / divider;
+	
+	// Divide the deltas by the divider; if any have too-big updates,
+	// set their deltas as their max instantenous jump (in the right direction)
+	if (divider > 1)
+	{
+		for (int i = 0; i < trans->n_parameters; i++)
+		{
+			if (long_update[i])
+				deltas[i] = trans->parameters[i]->max_jump * ((deltas[i] < 0) ? -1.0 : 1.0);
+			else
+				deltas[i] /= divider;
+		}
+	}
+	
+	// The actual computation!
+	for (int i = 0; i < divider; i++)
+	{
+		// Apply deltas...
+		for (int j = 0; j < trans->n_parameters; j++)
+		{
+			if (trans->parameters[j] && trans->parameters[j]->updated)
+				trans->parameters[j]->value += deltas[j];
+		}
+		
+		if (trans->reconfigure)
+			trans->reconfigure((void*)trans->data_struct);
+		
+		// Hand the partial block over to the transformer for computation
+		trans->compute_transformer(trans->data_struct, outputs, inputs, n_samples);
+		
+		
+		for (int j = 0; j < TRANSFORMER_MAX_INPUTS; j++)
+			inputs [j] = inputs [j] ? &inputs [j][n_samples] : NULL;
+		
+		for (int j = 0; j < TRANSFORMER_MAX_OUTPUTS; j++)
+			outputs[j] = outputs[j] ? &outputs[j][n_samples] : NULL;
+	}
+	
+	// After having applied the transformer, if any parameters
+	// had a full update this block, their value will be near .new_value
+	// but not necessarily exactly equal to it, due to floating point
+	// imprecision. So, set it equal, and 0 out the parameter's updated flag
+	for (int i = 0; i < trans->n_parameters; i++)
+	{
+		if (trans->parameters[i] && trans->parameters[i]->updated && !long_update[i])
+		{
+			trans->parameters[i]->value = trans->parameters[i]->new_value;
+			trans->parameters[i]->updated = 0;
+		}
+	}
+	
+	// One last reconfigure, for the road
+	if (trans->reconfigure)
+		trans->reconfigure((void*)trans->data_struct);
+	
+	return NO_ERROR;
 }
 
 int propagate_transformer(tm_pipeline *pipeline, tm_transformer *trans)
@@ -184,8 +347,9 @@ int propagate_transformer(tm_pipeline *pipeline, tm_transformer *trans)
 	if (trans->bypass)
 		calc = 0;
 	
+	// run_transformer
 	if (calc)
-		ret_val = trans->compute_transformer(dest, src, trans->data_struct);
+		ret_val = trans->compute_transformer(trans->data_struct, dest, src, AUDIO_BLOCK_SAMPLES);
 	
 	if (!calc || ret_val != NO_ERROR)
 		run_bypass(dest, src, trans->n_inputs, n_valid_inputs, trans->n_outputs);
@@ -256,3 +420,60 @@ int transformer_add_parameter(tm_transformer *trans, tm_parameter *param)
 	
 	return NO_ERROR;
 }
+
+
+tm_parameter *transformer_get_parameter(tm_transformer *trans, uint16_t ppid)
+{
+	if (!trans)
+		return NULL;
+	
+	if (!trans->parameters)
+		return NULL;
+	
+	if (ppid >= trans->n_parameters)
+		return NULL;
+	
+	if (ppid >= trans->parameter_array_size)
+		return NULL;
+	
+	return trans->parameters[ppid];
+}
+
+tm_option *transformer_get_option(tm_transformer *trans, uint16_t oid)
+{
+	if (!trans)
+		return NULL;
+	
+	if (!trans->options)
+		return NULL;
+	
+	if (oid >= trans->n_options)
+		return NULL;
+	
+	if (oid >= trans->option_array_size)
+		return NULL;
+	
+	return trans->options[oid];
+}
+
+void free_transformer(tm_transformer *trans)
+{
+	if (!trans)
+		return;
+	
+	if (trans->parameters)
+		free(trans->parameters);
+	if (trans->options)
+		free(trans->options);
+	
+	if (trans->data_struct)
+	{
+		if (trans->free_struct)
+			trans->free_struct(trans->data_struct);
+		else
+			free(trans->data_struct);
+	}
+	
+	free(trans);
+}
+

@@ -7,6 +7,16 @@
 #define PROFILES_MALLOC_CHUNK_SIZE 	16
 #define PROFILE_ARRAY_INITIAL_SIZE	64
 
+#define SILENCE_ENERGY_THRESHOLD 	2000
+#define SILENCE_BLOCKS_THRESHOLD 	64
+
+#define NOISE_DELTA 				0.999
+
+#define DECLICK_BUFSIZE 6
+
+#define CLICK_SLOPE_THRESHOLD 0.5
+
+//#define PRINT_TIMES
 //#define PRINT_BLOCKS
 //#define PRETTY_PRINT_BLOCKS
 //#define PRINT_PROFILE
@@ -29,6 +39,10 @@ typedef struct
 	
 	int profiles_switching;
 	int profile_switch_progress;
+	int profile_switch_samples;
+	int profile_switch_type;
+	
+	float declick_buffer[DECLICK_BUFSIZE];
 } tm_context;
 
 int init_tm_context(tm_context *cxt);
@@ -51,6 +65,7 @@ tm_option *cxt_get_option_by_id(tm_context *cxt, uint16_t pid, uint16_t tid, uin
 int        cxt_update_option_value_by_id(tm_context *cxt, uint16_t pid, uint16_t tid, uint16_t oid, uint16_t new_value);
 
 int cxt_append_transformer_to_profile (tm_context *cxt, uint16_t pid, uint16_t type);
+int cxt_remove_transformer_from_profile(tm_context *cxt, uint16_t pid, uint16_t tid);
 int cxt_insert_transformer_to_profile (tm_context *cxt, uint16_t pid, uint16_t type, uint16_t pos);
 int cxt_prepend_transformer_to_profile(tm_context *cxt, uint16_t pid, uint16_t type);
 
@@ -61,6 +76,8 @@ int cxt_get_transformer_type	  (tm_context *cxt, uint16_t pid, uint16_t tid);
 int cxt_get_tid_by_pos 			  (tm_context *cxt, uint16_t pid, uint16_t pos);
 
 tm_transformer *cxt_get_transformer_by_id(tm_context *cxt, uint16_t pid, uint16_t tid);
+
+int cxt_move_transformer(tm_context *cxt, uint16_t tid, uint16_t new_pos);
 
 int cxt_process(tm_context *cxt);
 

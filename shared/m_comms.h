@@ -16,8 +16,8 @@
 #define ET_MESSAGE_REBOOT					3
 #define ET_MESSAGE_CREATE_PROFILE 			4
 #define ET_MESSAGE_APPEND_TRANSFORMER		5
-#define ET_MESSAGE_INSERT_TRANSFORMER		6
-#define ET_MESSAGE_PREPEND_TRANSFORMER		7
+#define ET_MESSAGE_MOVE_TRANSFORMER			6
+#define ET_MESSAGE_REMOVE_TRANSFORMER		7
 #define ET_MESSAGE_GET_N_PROFILES			8
 #define ET_MESSAGE_GET_N_TRANSFORMERS		9
 #define ET_MESSAGE_GET_TRANSFORMER_ID		10
@@ -64,6 +64,8 @@ et_msg create_et_msg_set_param(uint16_t pid, uint16_t tid, uint16_t ppid, float 
 et_msg create_et_msg_new_profile();
 et_msg create_et_msg_new_transformer(uint16_t pid, uint16_t type);
 
+const char *et_msg_code_to_string(uint16_t code);
+
 /* Messages from Teensy to ESP32 */
 
 #define TE_MESSAGE_NO_MESSAGE			255
@@ -107,5 +109,7 @@ int encode_te_msg(uint8_t *buf, te_msg msg);
 
 int valid_te_msg_type(uint8_t type);
 te_msg decode_te_msg(uint8_t *bytes);
+
+const char *te_msg_code_to_string(uint16_t code);
 
 #endif

@@ -21,7 +21,7 @@ def trans_null_ptr_guard():
 	return ["	if (!trans)", "		return ERR_NULL_PTR;", ""]
 
 def init_function_name(name):
-	return f"init_transformer_{normal_sanitize(name)}"
+	return f"init_transformer_{name}"
 
 def em_big_switch(data):
 	output = ["int init_transformer_of_type(em_transformer *trans, uint16_t type)", "{"]
@@ -39,8 +39,9 @@ def em_big_switch(data):
 
 	for transformer in data['transformers']:
 		name = transformer['name']
-		transformer_type = transformer_enum_name(name)
-		fn_name = init_function_name(name)
+		internal_name = normal_sanitize(transformer.get('code_name', name))
+		transformer_type = transformer_enum_name(internal_name)
+		fn_name = init_function_name(internal_name)
 		case_str = f"		case {transformer_type}:"
 		cases.append((case_str, fn_name))
 		if len(case_str) > max_len:
@@ -58,8 +59,9 @@ def em_big_switch(data):
 def em_init_function(transformer):
 	output = []
 	name = transformer['name']
-	transformer_type = transformer_enum_name(name)
-	fn_name = init_function_name(name)
+	internal_name = normal_sanitize(transformer.get('code_name', name))
+	transformer_type = transformer_enum_name(internal_name)
+	fn_name = init_function_name(internal_name)
 
 	output.append(f"int {fn_name}(em_transformer *trans)")
 	output.append("{")
@@ -117,7 +119,8 @@ def generate_transformer_table(data):
 		hidden = transformer.get('hidden', False)
 		if hidden == False:
 			name = transformer['name']
-			transformer_type = transformer_enum_name(name)
+			internal_name = normal_sanitize(transformer.get('code_name', name))
+			transformer_type = transformer_enum_name(internal_name)
 			instring = f"	(em_trans_desc){{\"{name}\", "
 			if len(instring) > max_len:
 				max_len = len(instring)

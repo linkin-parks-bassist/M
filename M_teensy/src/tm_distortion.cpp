@@ -140,75 +140,107 @@ int init_distortion_struct(tm_distortion_str *data_struct, int type,
 	return NO_ERROR;
 }
 
-int calc_distortion(float **dest, float **src, void *data_struct)
+int reconfigure_distortion(void *data_struct)
 {
-	if (!dest || !src || !data_struct)
-		return ERR_NULL_PTR;
-	
+	tm_printf("reconfigure_distortion\n");
 	tm_distortion_str *str = (tm_distortion_str*)data_struct;
 	
-	#ifdef USE_GLOBAL_TEMP_BUFFERS
-	if (!distortion_temp_buffers_allocated)
-	{
-		if (alloc_distortion_temp_buffers() != NO_ERROR)
-		{
-			for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
-				dest[0][i] = src[0][i];
-		}
-	}
-	#else
-	float *tmp = allocate_buffer();
-	float *low = allocate_buffer();
-	float *mid = allocate_buffer();
-	float *high = allocate_buffer();
-	float *mid_distorted = allocate_buffer();
-	float *high_distorted = allocate_buffer();
-	#endif
-	
-	if (!tmp || !low || !mid || !high || !mid_distorted || !high_distorted)
-	{
-		tm_printf("ALLOC FAIL\n");
-		return ERR_ALLOC_FAIL;
-	}
+	if (!str)
+		return ERR_NULL_PTR;
 	
 	if (str->gain.updated || str->ratio.updated)
-	{
-		parameter_update_finish(&str->gain);
-		update_parameter_update(&str->mid_distortion.coefficient, str->gain.new_value);
-	}
+		str->mid_distortion.coefficient.value = str->gain.value;
 	
 	if (str->gain.updated || str->ratio.updated)
-	{
-		parameter_update_finish(&str->ratio);
-		update_parameter_update(&str->high_distortion.coefficient, str->gain.value * str->ratio.value);
-	}
+		str->high_distortion.coefficient.value = str->gain.value * str->ratio.value;
 	
 	int update_cutoffs = 0;
 	
 	if (str->mid_cutoff.updated)
 	{
 		update_cutoffs = 1;
-		parameter_update_finish(&str->mid_cutoff);
-		update_parameter_update(&str->high_pass_1.cutoff, str->mid_cutoff.value);
-		update_parameter_update(&str->high_pass_2.cutoff, str->mid_cutoff.value);
+		str->high_pass_1.cutoff.value = str->mid_cutoff.value;
+		str->high_pass_2.cutoff.value = str->mid_cutoff.value;
+		
+		reconfigure_biquad((void*)&str->high_pass_1);
+		reconfigure_biquad((void*)&str->high_pass_2);
 	}
 	
 	if (str->bass_cutoff.updated)
 	{
 		update_cutoffs = 1;
-		parameter_update_finish(&str->bass_cutoff);
-		update_parameter_update(&str->low_pass_1.cutoff, str->bass_cutoff.value);
-		update_parameter_update(&str->low_pass_2.cutoff, str->bass_cutoff.value);
+		str->low_pass_1.cutoff.value = str->bass_cutoff.value;
+		str->low_pass_2.cutoff.value = str->bass_cutoff.value;
+		
+		reconfigure_biquad((void*)&str->low_pass_1);
+		reconfigure_biquad((void*)&str->low_pass_2);
 	}
 	
 	if (update_cutoffs)
 	{
-		update_parameter_update(&str->mid_pass_1.cutoff, sqrt(str->bass_cutoff.value * str->mid_cutoff.value));
-		update_parameter_update(&str->mid_pass_2.cutoff, sqrt(str->bass_cutoff.value * str->mid_cutoff.value));
+		str->mid_pass_1.cutoff.value = sqrt(str->bass_cutoff.value * str->mid_cutoff.value);
+		str->mid_pass_2.cutoff.value = str->mid_pass_1.cutoff.value;
 		
-		update_parameter_update(&str->mid_pass_1.bandwidth, log2f(str->mid_cutoff.value / str->bass_cutoff.value));
-		update_parameter_update(&str->mid_pass_2.bandwidth, log2f(str->mid_cutoff.value / str->bass_cutoff.value));
+		str->mid_pass_1.bandwidth.value = log2f(str->mid_cutoff.value / str->bass_cutoff.value);
+		str->mid_pass_2.bandwidth.value = str->mid_pass_1.bandwidth.value;
+		
+		reconfigure_biquad((void*)&str->mid_pass_1);
+		reconfigure_biquad((void*)&str->mid_pass_2);
 	}
+	
+	tm_printf("reconfigure_distortion done\n");
+	return NO_ERROR;
+}
+
+int calc_distortion(void *data_struct, float **dest, float **src, int n_samples)
+{
+	if (!dest || !src || !data_struct)
+		return ERR_NULL_PTR;
+	
+	tm_distortion_str *str = (tm_distortion_str*)data_struct;
+	
+	int ret_val = NO_ERROR;
+	
+	float *in_buffer  =  src[0] ?  src[0] : zero_buffer;
+	float *out_buffer = dest[0] ? dest[0] : sink_buffer;
+	
+	#ifndef NO_CMSIS
+	float *tmp1 = NULL;
+	float *tmp2 = NULL;
+	float *tmp3 = NULL;
+	#endif
+	
+	#ifndef USE_GLOBAL_TEMP_BUFFERS
+	float *tmp = NULL;
+	float *low = NULL;
+	float *mid = NULL;
+	float *high = NULL;
+	float *mid_distorted = NULL;
+	float *high_distorted = NULL;
+	#endif
+	
+	#ifdef USE_GLOBAL_TEMP_BUFFERS
+	if (!distortion_temp_buffers_allocated)
+	{
+		ret_val = alloc_distortion_temp_buffers();
+		
+		if (ret_val != NO_ERROR)
+			goto distortion_cleanup;
+	}
+	#else
+	tmp = allocate_buffer();
+	low = allocate_buffer();
+	mid = allocate_buffer();
+	high = allocate_buffer();
+	mid_distorted = allocate_buffer();
+	high_distorted = allocate_buffer();
+	
+	if (!tmp || !low || !mid || !high || !mid_distorted || !high_distorted)
+	{
+		ret_val = ERR_ALLOC_FAIL;
+		goto distortion_cleanup;
+	}
+	#endif
 	
 	/*tm_printf("~DISTORTION~\n");
 	tm_printf("Gain:        %6f\n", str->gain.value);
@@ -224,19 +256,48 @@ int calc_distortion(float **dest, float **src, void *data_struct)
 	
 	//pretty_print_block_float(src[0], "Input:");
 	
+	/*reconfigure_biquad((void*)&str->high_pass_1);
+	reconfigure_biquad((void*)&str->high_pass_2);
+	reconfigure_biquad((void*)&str->low_pass_1);
+	reconfigure_biquad((void*)&str->low_pass_2);
+	reconfigure_biquad((void*)&str->mid_pass_1);
+	reconfigure_biquad((void*)&str->mid_pass_2);*/
+	
+	ret_val = calc_biquad((void*)&str->low_pass_1, &tmp,  &in_buffer, n_samples);
+	if (ret_val != NO_ERROR)
+		goto distortion_cleanup;
+	
+	ret_val = calc_biquad((void*)&str->low_pass_2, &low,  &tmp, n_samples);
+	if (ret_val != NO_ERROR)
+		goto distortion_cleanup;
 	
 	
-	calc_biquad(&tmp,  src,  (void*)&str->low_pass_1);
-	calc_biquad(&low,  &tmp, (void*)&str->low_pass_2);
+	ret_val = calc_biquad((void*)&str->mid_pass_1, &tmp,  &in_buffer, n_samples);
+	if (ret_val != NO_ERROR)
+		goto distortion_cleanup;
 	
-	calc_biquad(&tmp,  src,  (void*)&str->mid_pass_1);
-	calc_biquad(&mid,  &tmp, (void*)&str->mid_pass_2);
+	ret_val = calc_biquad((void*)&str->mid_pass_2, &mid,  &tmp, n_samples);
+	if (ret_val != NO_ERROR)
+		goto distortion_cleanup;
 	
-	calc_biquad(&tmp,  src,  (void*)&str->high_pass_1);
-	calc_biquad(&high, &tmp, (void*)&str->high_pass_2);
 	
-	calc_waveshaper(&mid_distorted,  &mid,  (void*)&str->mid_distortion );
-	calc_waveshaper(&high_distorted, &high, (void*)&str->high_distortion);
+	ret_val = calc_biquad((void*)&str->high_pass_1, &tmp,  &in_buffer, n_samples);
+	if (ret_val != NO_ERROR)
+		goto distortion_cleanup;
+	
+	ret_val = calc_biquad((void*)&str->high_pass_2, &high, &tmp, n_samples);
+	if (ret_val != NO_ERROR)
+		goto distortion_cleanup;
+	
+	
+	ret_val = calc_waveshaper((void*)&str->mid_distortion , &mid_distorted,  &mid, n_samples);
+	if (ret_val != NO_ERROR)
+		goto distortion_cleanup;
+	
+	ret_val = calc_waveshaper((void*)&str->high_distortion, &high_distorted, &high, n_samples);
+	if (ret_val != NO_ERROR)
+		goto distortion_cleanup;
+	
 	
 	//pretty_print_block_float(low, "Lows:");
 	//pretty_print_block_float(mid, "Mids:");
@@ -244,25 +305,56 @@ int calc_distortion(float **dest, float **src, void *data_struct)
 	//pretty_print_block_float(high, "Mids (distorted):");
 	//pretty_print_block_float(high, "Highs (distorted):");
 	
-	// 1800
-	
-	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
+	#ifndef NO_CMSIS
+	tmp1 = allocate_buffer();
+	if (!tmp1)
+		goto distortion_manual;
+	tmp2 = allocate_buffer();
+	if (!tmp2)
 	{
-		parameter_update_tick(&str->wet_mix);
-		parameter_update_tick(&str->bass_mix);
-		parameter_update_tick(&str->mid_mix);
-		parameter_update_tick(&str->high_mix);
-		
-		dest[0][i] = str->wet_mix.value * (str->bass_mix.value * low[i]
-													 + str->mid_mix.value   * mid_distorted[i]
-													 + str->high_mix.value  * high_distorted[i])
-				   + (1.0 - str->wet_mix.value) * src[0][i];
+		release_buffer(tmp1);
+		goto distortion_manual;
+	}
+	tmp3 = allocate_buffer();
+	if (!tmp3)
+	{
+		release_buffer(tmp1);
+		release_buffer(tmp2);
+		goto distortion_manual;
 	}
 	
-	// 1850
+	arm_scale_f32(low, 			 str->bass_mix.value, tmp1, n_samples);
+	arm_scale_f32(mid_distorted, str->mid_mix.value,  tmp2, n_samples);
 	
-	//pretty_print_block_float(dest[0], "Output:");
+	arm_add_f32(tmp1, tmp2, tmp3, n_samples);
 	
+	arm_scale_f32(high_distorted, str->high_mix.value, tmp1, n_samples);
+	
+	arm_add_f32(tmp1, tmp3, tmp2, n_samples);
+	
+	arm_scale_f32(tmp2, str->wet_mix.value, tmp1, n_samples);
+	
+	arm_scale_f32(in_buffer, (1.0 - str->wet_mix.value), tmp2, n_samples);
+	
+	arm_add_f32(tmp1, tmp2, out_buffer, n_samples);
+	
+	release_buffer(tmp1);
+	release_buffer(tmp2);
+	release_buffer(tmp3);
+	
+	goto distortion_cleanup;
+distortion_manual:
+	#endif
+	
+	for (int i = 0; i < n_samples; i++)
+	{
+		out_buffer[i] = str->wet_mix.value * (   str->bass_mix.value    * low[i]
+											   + str->mid_mix.value     * mid_distorted[i]
+											   + str->high_mix.value    * high_distorted[i])
+										   + (1.0 - str->wet_mix.value) * in_buffer[i];
+	}
+	
+distortion_cleanup:
 	#ifndef USE_GLOBAL_TEMP_BUFFERS
 	release_buffer(tmp);
 	release_buffer(low);
@@ -272,7 +364,7 @@ int calc_distortion(float **dest, float **src, void *data_struct)
 	release_buffer(high_distorted);
 	#endif
 	
-	return NO_ERROR;
+	return ret_val;
 }
 
 int init_distortion(tm_transformer *trans, vec2i input, vec2i output, int type, float gain, float ratio)

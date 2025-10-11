@@ -26,8 +26,8 @@ int init_buffer_default	(tm_transformer *trans);
 int init_amplifier_default	(tm_transformer *trans);
 int init_mixer_default	(tm_transformer *trans);
 
-int calc_mixer(float **dest, float **src, void *data_struct);
-int calc_buffer(float **dest, float **src, void *data_struct);
-int calc_amplifier(float **dest, float **src, void *data_struct);
+int calc_mixer(void *data_struct, float **dest, float **src, int n_samples);
+int calc_buffer(void *data_struct, float **dest, float **src, int n_samples);
+int calc_amplifier(void *data_struct, float **dest, float **src, int n_samples);
 
 #endif

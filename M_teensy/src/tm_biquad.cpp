@@ -1,96 +1,46 @@
 #include "tm.h"
 
-int calc_biquad(float **dest, float **src, void *data_struct)
+int calc_biquad(void *data_struct, float **dest, float **src, int n_samples)
 {
-	if (!data_struct || !dest || !src)
-		return ERR_NULL_PTR;
-	
-	if (!dest[0] || !src[0])
+	if (!data_struct)
 		return ERR_NULL_PTR;
 	
 	tm_biquad_str *biquad = (tm_biquad_str*)data_struct;
 	
+	float *in_buffer  =  src ? (src[0]  ?  src[0] : zero_buffer) : zero_buffer;
+	float *out_buffer = dest ? (dest[0] ? dest[0] : sink_buffer) : sink_buffer;
 	
-	float a0_delta = 0.0;
-	float a1_delta = 0.0;
-	float a2_delta = 0.0;
-	float a3_delta = 0.0;
-	float a4_delta = 0.0;
+	float in_sample, out_sample;
 	
-	int ret_val;
+	/*tm_printf("Biquad coefficients: [%s%3f, %s%3f, %s%3f, %s%3f, %s%3f], state: [[%s%3f, %s%3f], [%s%3f, %s%3f]]\n",
+		(biquad->a0 < 0) ? "" : " ", biquad->a0,
+		 (biquad->a1 < 0) ? "" : " ", biquad->a1,
+		 (biquad->a2 < 0) ? "" : " ", biquad->a2,
+		 (biquad->a3 < 0) ? "" : " ", biquad->a3,
+		 (biquad->a4 < 0) ? "" : " ", biquad->a4,
+		 (biquad->x1 < 0) ? "" : " ", biquad->x1,
+		 (biquad->x2 < 0) ? "" : " ", biquad->x2,
+		 (biquad->y1 < 0) ? "" : " ", biquad->y1,
+		 (biquad->y2 < 0) ? "" : " ", biquad->y2);*/
 	
-	//tm_printf("Calculating biquad transform... updatedness = (%d, %d, %d, %d)\n",
-	//	biquad->type.updated, biquad->cutoff.updated, biquad->bandwidth.updated, biquad->db_gain.updated);
-	
-	int parameters_updated = 0;
-	
-	parameters_updated |= biquad->type.updated;
-	parameters_updated |= biquad->cutoff.updated;
-	parameters_updated |= biquad->bandwidth.updated;
-	parameters_updated |= biquad->db_gain.updated;
-	
-	if (parameters_updated)
+	for (int i = 0; i < n_samples; i++)
 	{
-		biquad->type.updated = 0;
+		in_sample = in_buffer[i];
 		
-		parameter_update_finish(&biquad->cutoff);
-		parameter_update_finish(&biquad->bandwidth);
-		parameter_update_finish(&biquad->db_gain);
-		
-		float a0_old = biquad->a0;
-		float a1_old = biquad->a1;
-		float a2_old = biquad->a2;
-		float a3_old = biquad->a3;
-		float a4_old = biquad->a4;
-		
-		if ((ret_val = compute_biquad_coefficients(biquad)) != NO_ERROR)
-		{
-			tm_printf("ERROR configuring biquad !\n");
-			return ret_val;
-		}
-		
-		a0_delta = (biquad->a0 - a0_old) / AUDIO_BLOCK_SAMPLES;
-		a1_delta = (biquad->a1 - a1_old) / AUDIO_BLOCK_SAMPLES;
-		a2_delta = (biquad->a2 - a2_old) / AUDIO_BLOCK_SAMPLES;
-		a3_delta = (biquad->a3 - a3_old) / AUDIO_BLOCK_SAMPLES;
-		a4_delta = (biquad->a4 - a4_old) / AUDIO_BLOCK_SAMPLES;
-		
-		tm_printf("Updating biquad exponents; deltas = (%6f, %6f, %6f, %6f, %6f)\n", a0_delta, a1_delta, a2_delta, a3_delta, a4_delta);
-		biquad->a0 = a0_old;
-		biquad->a1 = a1_old;
-		biquad->a2 = a2_old;
-		biquad->a3 = a3_old;
-		biquad->a4 = a4_old;
-	}
-	
-	//tm_printf("Coefficients: a0 = %4f, a1 = %4f,  a2 = %4f,  a3 = %4f, a4 = %4f, x1 = %4f, x2 = %4f, y1 = %4f, y2 = %4f.\n",
-	//	biquad->a0, biquad->a1, biquad->a2, biquad->a3, biquad->a4, biquad->x1, biquad->x2, biquad->y1, biquad->y2);
-	
-	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
-	{	
-		if (parameters_updated)
-		{
-			biquad->a0 += a0_delta;
-			biquad->a1 += a1_delta;
-			biquad->a2 += a2_delta;
-			biquad->a3 += a3_delta;
-			biquad->a4 += a4_delta;
-		}
-		
-		dest[0][i] = biquad->a0 * src[0][i]
+		out_sample = biquad->a0 * in_sample
 				   + biquad->a1 * biquad->x1
 				   + biquad->a2 * biquad->x2
 				   - biquad->a3 * biquad->y1
 				   - biquad->a4 * biquad->y2;
+		
+		out_buffer[i] = out_sample;
 
 		biquad->x2 = biquad->x1;
-		biquad->x1 = src[0][i];
+		biquad->x1 = in_sample;
 
 		biquad->y2 = biquad->y1;
-		biquad->y1 = dest[0][i];
+		biquad->y1 = out_sample;
 	}
-	
-	
 	
 	return NO_ERROR;
 }
@@ -110,8 +60,10 @@ int init_biquad_struct_bandpass(tm_biquad_str *biquad, float center, float bandw
 	return init_biquad_struct(biquad, band_pass, center, bandwidth, 1.0);
 }
 
-int compute_biquad_coefficients(tm_biquad_str *biquad)
+int reconfigure_biquad(void *data_struct)
 {
+	tm_biquad_str *biquad = (tm_biquad_str*)data_struct;
+	
 	if (!biquad)
 		return ERR_NULL_PTR;
 	
@@ -210,7 +162,7 @@ int init_biquad_struct_default(tm_biquad_str *str)
 	
 	str->type.value = band_pass;
 	
-	compute_biquad_coefficients(str);
+	reconfigure_biquad(str);
 	
 	str->x1 = 0.0;
 	str->x2 = 0.0;
@@ -231,7 +183,7 @@ int init_biquad_struct(tm_biquad_str *biquad, biquad_type type, float cutoff, fl
 	init_parameter_simple(&biquad->bandwidth, bandwidth);
 	init_parameter_simple(&biquad->db_gain, db_gain);
 	
-	compute_biquad_coefficients(biquad);
+	reconfigure_biquad(biquad);
 	
 	biquad->x1 = 0.0;
 	biquad->x2 = 0.0;

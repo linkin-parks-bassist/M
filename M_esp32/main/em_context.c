@@ -112,10 +112,14 @@ em_transformer *cxt_get_transformer_by_id(em_context *cxt, uint16_t profile_id, 
 	if (cxt->n_profiles <= profile_id)
 		return NULL;
 	
-	for (int i = 0; i < cxt->profiles[profile_id].pipeline.n_transformers; i++)
+	em_transformer_ptr_linked_list *current = cxt->profiles[profile_id].pipeline.transformers;
+	
+	while (current)
 	{
-		if (cxt->profiles[profile_id].pipeline.transformers[i].transformer_id == transformer_id)
-			return &cxt->profiles[profile_id].pipeline.transformers[i];
+		if (current->data && current->data->transformer_id == transformer_id)
+			return current->data;
+		
+		current = current->next;
 	}
 	
 	return NULL;
@@ -156,35 +160,70 @@ em_option *cxt_get_option_by_id(em_context *cxt, uint16_t profile_id, uint16_t t
 int cxt_transformer_id_to_position(em_context *cxt, uint16_t profile_id, uint16_t transformer_id)
 {
 	if (!cxt)
-		return -1;
+		return -ERR_NULL_PTR;
 	
 	if (profile_id >= cxt->n_profiles)
-		return -1;
+		return -ERR_INVALID_PROFILE_ID;
 	
-	int ret_val = -1;
+	em_transformer_ptr_linked_list *current = cxt->profiles[profile_id].pipeline.transformers;
 	
-	for (int i = 0; i < cxt->profiles[profile_id].pipeline.n_transformers; i++)
+	int i = 0;
+	while (current)
 	{
-		if (cxt->profiles[profile_id].pipeline.transformers[i].transformer_id == transformer_id)
-		{
-			ret_val = i;
-			break;
-		}
+		if (current->data && current->data->transformer_id == transformer_id)
+			return i;
+		
+		current = current->next;
+		i++;
 	}
 	
-	return ret_val;
+	return -ERR_INVALID_TRANSFORMER_ID;
 }
 
 int cxt_transformer_position_to_id(em_context *cxt, uint16_t profile_id, uint16_t transformer_pos)
 {
 	if (!cxt)
-		return -1;
+		return -ERR_NULL_PTR;
 	
 	if (profile_id >= cxt->n_profiles)
-		return -1;
+		return -ERR_INVALID_PROFILE_ID;
 	
-	if (transformer_pos >= cxt->profiles[profile_id].pipeline.n_transformers)
-		return -1;
+	em_transformer_ptr_linked_list *current = cxt->profiles[profile_id].pipeline.transformers;
 	
-	return cxt->profiles[profile_id].pipeline.transformers[transformer_pos].transformer_id;
+	int i = 0;
+	while (current)
+	{
+		if (i == transformer_pos)
+		{
+			if (!current->data)
+				return ERR_NULL_PTR;
+			
+			return current->data->transformer_id;
+		}
+		
+		current = current->next;
+		i++;
+	}
+	
+	return -ERR_INVALID_TRANSFORMER_ID;
+}
+
+int cxt_remove_transformer(em_context *cxt, uint16_t pid, uint16_t tid)
+{
+	printf("cxt_remove_transformer\n");
+	if (!cxt)
+		return ERR_NULL_PTR;
+	
+	if (pid >= cxt->n_profiles)
+		return ERR_INVALID_PROFILE_ID;
+	
+	int ret_val = em_profile_remove_transformer(&cxt->profiles[pid], tid);
+	
+	if (ret_val == NO_ERROR)
+	{
+		queue_msg_to_teensy(create_et_msg(ET_MESSAGE_REMOVE_TRANSFORMER, "ss", pid, tid));
+	}
+	
+	printf("cxt_remove_transformer done\n");
+	return ret_val;
 }

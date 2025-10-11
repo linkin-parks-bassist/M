@@ -30,4 +30,6 @@ em_option *cxt_get_option_by_id(em_context *cxt, uint16_t profile_id, uint16_t t
 int cxt_transformer_id_to_position(em_context *cxt, uint16_t profile_id, uint16_t transformer_id);
 int cxt_transformer_position_to_id(em_context *cxt, uint16_t profile_id, uint16_t transformer_pos);
 
+int cxt_remove_transformer(em_context *cxt, uint16_t pid, uint16_t tid);
+
 #endif

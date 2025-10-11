@@ -22,8 +22,7 @@ int init_ui_context(em_ui_context *cxt)
 	
 	global_cxt.profiles[0].view_page->configure 	= configure_profile_view;
 	global_cxt.profiles[0].view_page->create_ui 	= create_profile_view_ui;
-	global_cxt.profiles[0].view_page->enter_page = enter_profile_view;
-	global_cxt.profiles[0].view_page->refresh 	= refresh_profile_view;
+	global_cxt.profiles[0].view_page->enter_page 	= enter_profile_view;
 	
 	init_profile_view(global_cxt.profiles[0].view_page);
 	configure_profile_view(global_cxt.profiles[0].view_page, &global_cxt.profiles[0]);
@@ -44,21 +43,6 @@ int em_ui_page_set_background_default(em_ui_page *page)
 	lv_obj_set_style_bg_opa(page->screen, LV_OPA_COVER, 0);
 	
 	return NO_ERROR;
-}
-
-void free_test_page_ui(em_ui_page *page)
-{
-	
-}
-
-void enter_test_page(em_ui_page *page)
-{
-	lv_scr_load(page->screen);
-}
-
-void refresh_test_page(em_ui_page *page)
-{
-	
 }
 
 void make_ui(lv_disp_t *disp)
@@ -106,6 +90,7 @@ int init_ui_page(em_ui_page *page)
 	page->configure			= NULL;
 	page->create_ui 		= NULL;
 	page->free_ui 			= NULL;
+	page->free_all 			= NULL;
 	page->enter_page 		= NULL;
 	page->refresh			= NULL;
 	
@@ -140,7 +125,7 @@ int enter_ui_page_forward(em_ui_page *page)
 	if (page->enter_page_forward)
 		page->enter_page_forward(page);
 	else
-		lv_scr_load_anim(page->screen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 300, 0, false);
+		lv_scr_load_anim(page->screen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 100, 0, false);
 	
 	return NO_ERROR;
 }
@@ -155,10 +140,28 @@ int enter_ui_page(em_ui_page *page)
 	if (!page->screen)
 		return ERR_BAD_ARGS;
 	
+	if (page->enter_page)
+		page->enter_page(page);
+	else
+		lv_scr_load(page->screen);
+	
+	return NO_ERROR;
+}
+
+int enter_ui_page_back(em_ui_page *page)
+{
+	printf("enter ui page...\n");
+	
+	if (!page)
+		return ERR_NULL_PTR;
+	
+	if (!page->screen)
+		return ERR_BAD_ARGS;
+	
 	if (page->enter_page_back)
 		page->enter_page_back(page);
 	else
-		lv_scr_load(page->screen);
+		lv_scr_load_anim(page->screen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, UI_PAGE_TRANSITION_ANIM_MS, 0, false);
 	
 	return NO_ERROR;
 }
@@ -204,7 +207,7 @@ int enter_ui_page_indirect_forward(em_ui_page **_page)
 	if (page->enter_page)
 		page->enter_page(page);
 	else
-		lv_scr_load_anim(page->screen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 300, 0, false);
+		lv_scr_load_anim(page->screen, LV_SCR_LOAD_ANIM_MOVE_LEFT, UI_PAGE_TRANSITION_ANIM_MS, 0, false);
 	
 	return NO_ERROR;
 }
@@ -229,7 +232,7 @@ int enter_ui_page_indirect_back(em_ui_page **_page)
 	else if (page->enter_page)
 		page->enter_page(page);
 	else
-		lv_scr_load_anim(page->screen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 30, 0, false);
+		lv_scr_load_anim(page->screen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, UI_PAGE_TRANSITION_ANIM_MS, 0, false);
 	
 	return NO_ERROR;
 }

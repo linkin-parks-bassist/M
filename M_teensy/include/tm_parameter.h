@@ -14,6 +14,8 @@
 #define PARAMETER_UPDATE_BIBLOCK_LINEAR 	2
 #define PARAMETER_UPDATE_QUADBLOCK_LINEAR 	3
 
+#define DEFAULT_MAX_JUMP 0.01
+
 /* At first, I tried doing this with unions and a type enum but...
  * I just didn't like it. So I'm just separating them */
 
@@ -26,6 +28,8 @@ typedef struct
 	int updated;
 	float old_value;
 	float new_value;
+	
+	float max_jump;
 	
 	int update_policy;
 	int update_progress;
@@ -54,7 +58,7 @@ int init_option_simple(tm_option *option, int initial);
 int init_option(tm_option *option, int initial, int update_policy);
 
 int init_parameter_simple(tm_parameter *param, float initial);
-int init_parameter(tm_parameter *param, float initial, float min, float max, int update_policy);
+int init_parameter(tm_parameter *param, float initial, float min, float max, float max_jump);
 
 int update_parameter(tm_parameter *param, float new_value);
 int update_parameter_update(tm_parameter *param, float new_value);

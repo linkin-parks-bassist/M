@@ -12,9 +12,9 @@ typedef struct
 	tm_parameter db_gain;
 } tm_biquad_str;
 
-int calc_biquad(float **dest, float **src, void *data_struct);
+int reconfigure_biquad(void *data_struct);
+int calc_biquad(void *data_struct, float **dest, float **src, int n_samples);
 
-int compute_biquad_coefficients(tm_biquad_str *biquad);
 int init_biquad_struct_default(tm_biquad_str *str);
 int init_biquad_struct(tm_biquad_str *biquad, biquad_type type, float cutoff, float bandwidth, float db_gain);
 

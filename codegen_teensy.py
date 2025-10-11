@@ -54,8 +54,10 @@ def tm_big_switch(data):
 
 	for transformer in data['transformers']:
 		name = transformer['name']
-		transformer_type = transformer_enum_name(name)
-		fn_name = f"init_{normal_sanitize(name)}_default"
+		internal_name = normal_sanitize(transformer.get('code_name', name))
+		
+		transformer_type = transformer_enum_name(internal_name)
+		fn_name = f"init_{internal_name}_default"
 		case_str = f"		case {transformer_type}:"
 		cases.append((case_str, fn_name))
 		if len(case_str) > max_len:
@@ -73,8 +75,10 @@ def tm_big_switch(data):
 def tm_transformer_init_function(transformer):
 	output = []
 	name = transformer['name']
-	transformer_type = transformer_enum_name(name)
-	fn_name = f"init_{normal_sanitize(name)}_default"
+	internal_name = transformer.get('code_name', normal_sanitize(name))
+	
+	transformer_type = transformer_enum_name(internal_name)
+	fn_name = f"init_{internal_name}_default"
 
 	output.append(f"int {fn_name}(tm_transformer *trans)")
 	output.append("{")
@@ -82,7 +86,7 @@ def tm_transformer_init_function(transformer):
 	output = output + trans_null_ptr_guard()
 	
 	output.append(f"	trans->type = {transformer_type};")
-	output.append(f"	trans->compute_transformer = calc_{normal_sanitize(name)};")
+	output.append(f"	trans->compute_transformer = calc_{internal_name};")
 	output.append("")
 	output.append("	trans->bypass = 0;")
 
@@ -97,25 +101,37 @@ def tm_transformer_init_function(transformer):
 	output.append(f"	trans->n_outputs = {n_outputs};")
 	output.append("")
 
-	no_struct = transformer.get('no_struct', 0)
+	no_struct = transformer.get('no_struct', False)
 	
 	n_parameters = len(transformer.get('parameters', []))
 	
 	output.append(f"	transformer_init_parameter_array(trans, {n_parameters});")
 	output.append("")
 
-	if no_struct == 0:
-		str_type = "tm_" + name.lower() + "_str"
-		output.append(f"	{str_type} *str = ({str_type}*)malloc(sizeof({str_type}));")
-		output.append(f"	trans->data_struct = (void*)str;")
-		output.append("")
-		output.append(f"	if (!str)")
-		output.append(f"		return ERR_ALLOC_FAIL;")
-		output.append("")
-	else:
+	if no_struct != False:
 		output.append(f"	trans->data_struct = NULL;")
+		output.append(f"	trans->reconfigure = NULL;")
+		output.append(f"	trans->free_struct = NULL;")
 		return output + ["", "	return NO_ERROR;", "}", ""]
 		
+	str_type = "tm_" + internal_name + "_str"
+	output.append(f"	{str_type} *str = ({str_type}*)malloc(sizeof({str_type}));")
+	output.append(f"	trans->data_struct = (void*)str;")
+	output.append("")
+	output.append(f"	if (!str)")
+	output.append(f"		return ERR_ALLOC_FAIL;")
+	output.append("")
+	
+	no_reconfigure = transformer.get("no_reconfigure", False)
+	
+	if no_reconfigure != False:
+		output.append("	trans->reconfigure = NULL;")
+	else:
+		output.append(f"	trans->reconfigure = {transformer.get("reconfigure", f"reconfigure_{internal_name}")};")
+	
+	free_struct = transformer.get("free_struct", "NULL")
+	output.append(f"	trans->free_struct = {free_struct};")
+	output.append("")
 
 	output.append("	tm_parameter *param;")
 	i = 0
@@ -125,22 +141,24 @@ def tm_transformer_init_function(transformer):
 		maxval = param.get('max',  10000000)
 		default = param.get('default', 1.0)
 		location = param.get('location', normal_sanitize(pname))
-		update_policy = "PARAMETER_UPDATE_" + enum_sanitize(param.get('smoothing', 'monoblock linear'))
+		max_jump = param.get('max_jump', 0.01)
 		
 		output.append(f"	param = &str->{location};")
 
 		ptype = param.get('type', "")
 		
 		if ptype == "mix":
-			output.append(f"	init_parameter(param, {default}, 0.0, 1.0, {update_policy});")
+			output.append(f"	init_parameter(param, {default}, 0.0, 1.0, {max_jump});")
+		elif ptype == "cutoff":
+			output.append(f"	init_parameter(param, {default}, 1.0, 5000.0, 1.0);")
 		else:
-			output.append(f"	init_parameter(param, {default}, {minval}, {maxval}, {update_policy});")
+			output.append(f"	init_parameter(param, {default}, {minval}, {maxval}, {max_jump});")
 		
 		output.append(f"	transformer_add_parameter(trans, param);")
 		output.append("")
 		i = i + 1
 
-	output.append(f"	init_{normal_sanitize(name)}_struct_default(str);")
+	output.append(f"	init_{internal_name}_struct_default(str);")
 
 	return output + ["	return NO_ERROR;", "}", ""]
 

@@ -50,6 +50,12 @@ void sgtl5000_set_address(uint8_t level)
 		i2c_addr = SGTL5000_I2C_ADDR_CS_HIGH;
 }
 
+
+int sgtl5000_start()
+{
+	sgtl5000_enable();
+}
+
 int sgtl5000_enable()
 {
 	Wire.begin();

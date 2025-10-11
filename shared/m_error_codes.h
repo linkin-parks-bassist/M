@@ -37,7 +37,16 @@
 
 #define ERR_VALUE_OUT_OF_BOUNDS			23
 
+#define ERR_INVALID_PARAMETER_ID		24
+#define ERR_INVALID_OPTION_ID			25
+#define ERR_INVALID_TRANSFORMER_ID		26
+#define ERR_INVALID_PROFILE_ID			27
+
+#define ERR_INCONSISTENT_BACK_PIPELINE	28
+
 #define ERR_UNKNOWN_ERR					4999
 #define ERR_UNIMPLEMENTED				5000
+
+const char *m_error_code_to_string(int error_code);
 
 #endif

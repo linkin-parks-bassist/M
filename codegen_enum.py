@@ -49,7 +49,7 @@ def main():
 	max_len = 0
 	
 	for transformer in data['transformers']:
-		def_string = f"#define {transformer_enum_name(transformer['name'])} "
+		def_string = f"#define {transformer_enum_name(transformer.get('code_name', transformer['name']))} "
 		if len(def_string) > max_len:
 			max_len = len(def_string)
 		def_strings.append(def_string)

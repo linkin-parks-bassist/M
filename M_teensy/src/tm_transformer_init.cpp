@@ -18,6 +18,8 @@ int init_buffer_default(tm_transformer *trans)
 	transformer_init_parameter_array(trans, 0);
 
 	trans->data_struct = NULL;
+	trans->reconfigure = NULL;
+	trans->free_struct = NULL;
 
 	return NO_ERROR;
 }
@@ -44,9 +46,12 @@ int init_amplifier_default(tm_transformer *trans)
 	if (!str)
 		return ERR_ALLOC_FAIL;
 
+	trans->reconfigure = NULL;
+	trans->free_struct = NULL;
+
 	tm_parameter *param;
 	param = &str->gain;
-	init_parameter(param, 1.0, 0.0, 2.0, PARAMETER_UPDATE_MONOBLOCK_LINEAR);
+	init_parameter(param, 1.0, 0.0, 2.0, 0.01);
 	transformer_add_parameter(trans, param);
 
 	init_amplifier_struct_default(str);
@@ -75,9 +80,12 @@ int init_mixer_default(tm_transformer *trans)
 	if (!str)
 		return ERR_ALLOC_FAIL;
 
+	trans->reconfigure = NULL;
+	trans->free_struct = NULL;
+
 	tm_parameter *param;
 	param = &str->ratio;
-	init_parameter(param, 0.5, 0.0, 1.0, PARAMETER_UPDATE_MONOBLOCK_LINEAR);
+	init_parameter(param, 0.5, 0.0, 1.0, 0.01);
 	transformer_add_parameter(trans, param);
 
 	init_mixer_struct_default(str);
@@ -106,17 +114,20 @@ int init_biquad_default(tm_transformer *trans)
 	if (!str)
 		return ERR_ALLOC_FAIL;
 
+	trans->reconfigure = reconfigure_biquad;
+	trans->free_struct = NULL;
+
 	tm_parameter *param;
 	param = &str->cutoff;
-	init_parameter(param, 440.0, 0.0, 5000.0, PARAMETER_UPDATE_MONOBLOCK_LINEAR);
+	init_parameter(param, 440.0, 0.0, 5000.0, 0.01);
 	transformer_add_parameter(trans, param);
 
 	param = &str->bandwidth;
-	init_parameter(param, 200.0, 0.0, 1000.0, PARAMETER_UPDATE_MONOBLOCK_LINEAR);
+	init_parameter(param, 200.0, 0.0, 1000.0, 0.01);
 	transformer_add_parameter(trans, param);
 
 	param = &str->db_gain;
-	init_parameter(param, 0.0, -3.0, 3.0, PARAMETER_UPDATE_MONOBLOCK_LINEAR);
+	init_parameter(param, 0.0, -3.0, 3.0, 0.01);
 	transformer_add_parameter(trans, param);
 
 	init_biquad_struct_default(str);
@@ -145,37 +156,40 @@ int init_distortion_default(tm_transformer *trans)
 	if (!str)
 		return ERR_ALLOC_FAIL;
 
+	trans->reconfigure = reconfigure_distortion;
+	trans->free_struct = NULL;
+
 	tm_parameter *param;
 	param = &str->gain;
-	init_parameter(param, 2.5, 0.0, 5.0, PARAMETER_UPDATE_INSTANT);
+	init_parameter(param, 2.5, 0.0, 5.0, 0.01);
 	transformer_add_parameter(trans, param);
 
 	param = &str->wet_mix;
-	init_parameter(param, 0.7, 0.0, 1.0, PARAMETER_UPDATE_MONOBLOCK_LINEAR);
+	init_parameter(param, 0.7, 0.0, 1.0, 0.01);
 	transformer_add_parameter(trans, param);
 
 	param = &str->high_mix;
-	init_parameter(param, 0.333, 0.0, 1.0, PARAMETER_UPDATE_MONOBLOCK_LINEAR);
+	init_parameter(param, 0.333, 0.0, 1.0, 0.01);
 	transformer_add_parameter(trans, param);
 
 	param = &str->mid_mix;
-	init_parameter(param, 0.333, 0.0, 1.0, PARAMETER_UPDATE_MONOBLOCK_LINEAR);
+	init_parameter(param, 0.333, 0.0, 1.0, 0.01);
 	transformer_add_parameter(trans, param);
 
 	param = &str->bass_mix;
-	init_parameter(param, 0.333, 0.0, 1.0, PARAMETER_UPDATE_MONOBLOCK_LINEAR);
+	init_parameter(param, 0.333, 0.0, 1.0, 0.01);
 	transformer_add_parameter(trans, param);
 
 	param = &str->mid_cutoff;
-	init_parameter(param, 1000.0, 1000.0, 5000.0, PARAMETER_UPDATE_MONOBLOCK_LINEAR);
+	init_parameter(param, 1000.0, 1000.0, 5000.0, 5.0);
 	transformer_add_parameter(trans, param);
 
 	param = &str->bass_cutoff;
-	init_parameter(param, 100.0, 60.0, 1000.0, PARAMETER_UPDATE_MONOBLOCK_LINEAR);
+	init_parameter(param, 100.0, 60.0, 1000.0, 5.0);
 	transformer_add_parameter(trans, param);
 
 	param = &str->ratio;
-	init_parameter(param, 0.1, 0.0, 0.5, PARAMETER_UPDATE_INSTANT);
+	init_parameter(param, 0.1, 0.0, 0.5, 0.01);
 	transformer_add_parameter(trans, param);
 
 	init_distortion_struct_default(str);
@@ -204,21 +218,24 @@ int init_compressor_default(tm_transformer *trans)
 	if (!str)
 		return ERR_ALLOC_FAIL;
 
+	trans->reconfigure = reconfigure_compressor;
+	trans->free_struct = NULL;
+
 	tm_parameter *param;
 	param = &str->ratio;
-	init_parameter(param, 2.0, 1.0, 10.0, PARAMETER_UPDATE_MONOBLOCK_LINEAR);
+	init_parameter(param, 2.0, 1.0, 10.0, 0.01);
 	transformer_add_parameter(trans, param);
 
 	param = &str->threshold;
-	init_parameter(param, -5.0, -30.0, 0.0, PARAMETER_UPDATE_MONOBLOCK_LINEAR);
+	init_parameter(param, -5.0, -30.0, 0.0, 0.01);
 	transformer_add_parameter(trans, param);
 
 	param = &str->attack;
-	init_parameter(param, 30.0, 0.01, 250.0, PARAMETER_UPDATE_MONOBLOCK_LINEAR);
+	init_parameter(param, 30.0, 0.01, 250.0, 0.01);
 	transformer_add_parameter(trans, param);
 
 	param = &str->release;
-	init_parameter(param, 30.0, 0.01, 250.0, PARAMETER_UPDATE_MONOBLOCK_LINEAR);
+	init_parameter(param, 30.0, 0.01, 250.0, 0.01);
 	transformer_add_parameter(trans, param);
 
 	init_compressor_struct_default(str);
@@ -247,8 +264,151 @@ int init_waveshaper_default(tm_transformer *trans)
 	if (!str)
 		return ERR_ALLOC_FAIL;
 
+	trans->reconfigure = NULL;
+	trans->free_struct = NULL;
+
 	tm_parameter *param;
 	init_waveshaper_struct_default(str);
+	return NO_ERROR;
+}
+
+int init_low_pass_filter_default(tm_transformer *trans)
+{
+	if (!trans)
+		return ERR_NULL_PTR;
+
+	trans->type = TRANSFORMER_LOW_PASS_FILTER;
+	trans->compute_transformer = calc_low_pass_filter;
+
+	trans->bypass = 0;
+	trans->transition_policy = TRANSFORMER_TRANSITION_MONOBLOCK_LINEAR;
+
+	trans->n_inputs  = 1;
+	trans->n_outputs = 1;
+
+	transformer_init_parameter_array(trans, 1);
+
+	tm_low_pass_filter_str *str = (tm_low_pass_filter_str*)malloc(sizeof(tm_low_pass_filter_str));
+	trans->data_struct = (void*)str;
+
+	if (!str)
+		return ERR_ALLOC_FAIL;
+
+	trans->reconfigure = reconfigure_low_pass_filter;
+	trans->free_struct = NULL;
+
+	tm_parameter *param;
+	param = &str->cutoff_frequency;
+	init_parameter(param, 100, 1.0, 5000.0, 1.0);
+	transformer_add_parameter(trans, param);
+
+	init_low_pass_filter_struct_default(str);
+	return NO_ERROR;
+}
+
+int init_high_pass_filter_default(tm_transformer *trans)
+{
+	if (!trans)
+		return ERR_NULL_PTR;
+
+	trans->type = TRANSFORMER_HIGH_PASS_FILTER;
+	trans->compute_transformer = calc_high_pass_filter;
+
+	trans->bypass = 0;
+	trans->transition_policy = TRANSFORMER_TRANSITION_MONOBLOCK_LINEAR;
+
+	trans->n_inputs  = 1;
+	trans->n_outputs = 1;
+
+	transformer_init_parameter_array(trans, 1);
+
+	tm_high_pass_filter_str *str = (tm_high_pass_filter_str*)malloc(sizeof(tm_high_pass_filter_str));
+	trans->data_struct = (void*)str;
+
+	if (!str)
+		return ERR_ALLOC_FAIL;
+
+	trans->reconfigure = reconfigure_high_pass_filter;
+	trans->free_struct = NULL;
+
+	tm_parameter *param;
+	param = &str->cutoff_frequency;
+	init_parameter(param, 1000, 1.0, 5000.0, 1.0);
+	transformer_add_parameter(trans, param);
+
+	init_high_pass_filter_struct_default(str);
+	return NO_ERROR;
+}
+
+int init_band_pass_filter_default(tm_transformer *trans)
+{
+	if (!trans)
+		return ERR_NULL_PTR;
+
+	trans->type = TRANSFORMER_BAND_PASS_FILTER;
+	trans->compute_transformer = calc_band_pass_filter;
+
+	trans->bypass = 0;
+	trans->transition_policy = TRANSFORMER_TRANSITION_MONOBLOCK_LINEAR;
+
+	trans->n_inputs  = 1;
+	trans->n_outputs = 1;
+
+	transformer_init_parameter_array(trans, 2);
+
+	tm_band_pass_filter_str *str = (tm_band_pass_filter_str*)malloc(sizeof(tm_band_pass_filter_str));
+	trans->data_struct = (void*)str;
+
+	if (!str)
+		return ERR_ALLOC_FAIL;
+
+	trans->reconfigure = reconfigure_band_pass_filter;
+	trans->free_struct = NULL;
+
+	tm_parameter *param;
+	param = &str->center_frequency;
+	init_parameter(param, 1000, 1.0, 5000.0, 1.0);
+	transformer_add_parameter(trans, param);
+
+	param = &str->band_width;
+	init_parameter(param, 100, 1.0, 5000.0, 1.0);
+	transformer_add_parameter(trans, param);
+
+	init_band_pass_filter_struct_default(str);
+	return NO_ERROR;
+}
+
+int init_dirty_octave_default(tm_transformer *trans)
+{
+	if (!trans)
+		return ERR_NULL_PTR;
+
+	trans->type = TRANSFORMER_DIRTY_OCTAVE;
+	trans->compute_transformer = calc_dirty_octave;
+
+	trans->bypass = 0;
+	trans->transition_policy = TRANSFORMER_TRANSITION_MONOBLOCK_LINEAR;
+
+	trans->n_inputs  = 1;
+	trans->n_outputs = 1;
+
+	transformer_init_parameter_array(trans, 1);
+
+	tm_dirty_octave_str *str = (tm_dirty_octave_str*)malloc(sizeof(tm_dirty_octave_str));
+	trans->data_struct = (void*)str;
+
+	if (!str)
+		return ERR_ALLOC_FAIL;
+
+	trans->reconfigure = NULL;
+	trans->free_struct = NULL;
+
+	tm_parameter *param;
+	param = &str->fuzz;
+	init_parameter(param, 5, 0, 10, 0.01);
+	transformer_add_parameter(trans, param);
+
+	init_dirty_octave_struct_default(str);
 	return NO_ERROR;
 }
 
@@ -259,13 +419,17 @@ int init_transformer_of_type(tm_transformer *trans, uint16_t type)
 
 	switch (type)
 	{
-		case TRANSFORMER_BUFFER:     return init_buffer_default(trans);
-		case TRANSFORMER_AMPLIFIER:  return init_amplifier_default(trans);
-		case TRANSFORMER_MIXER:      return init_mixer_default(trans);
-		case TRANSFORMER_BIQUAD:     return init_biquad_default(trans);
-		case TRANSFORMER_DISTORTION: return init_distortion_default(trans);
-		case TRANSFORMER_COMPRESSOR: return init_compressor_default(trans);
-		case TRANSFORMER_WAVESHAPER: return init_waveshaper_default(trans);
+		case TRANSFORMER_BUFFER:           return init_buffer_default(trans);
+		case TRANSFORMER_AMPLIFIER:        return init_amplifier_default(trans);
+		case TRANSFORMER_MIXER:            return init_mixer_default(trans);
+		case TRANSFORMER_BIQUAD:           return init_biquad_default(trans);
+		case TRANSFORMER_DISTORTION:       return init_distortion_default(trans);
+		case TRANSFORMER_COMPRESSOR:       return init_compressor_default(trans);
+		case TRANSFORMER_WAVESHAPER:       return init_waveshaper_default(trans);
+		case TRANSFORMER_LOW_PASS_FILTER:  return init_low_pass_filter_default(trans);
+		case TRANSFORMER_HIGH_PASS_FILTER: return init_high_pass_filter_default(trans);
+		case TRANSFORMER_BAND_PASS_FILTER: return init_band_pass_filter_default(trans);
+		case TRANSFORMER_DIRTY_OCTAVE:     return init_dirty_octave_default(trans);
 	}
 
 	return NO_ERROR;

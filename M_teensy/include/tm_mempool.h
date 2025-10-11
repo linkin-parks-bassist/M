@@ -22,6 +22,9 @@ void release_block(tm_audio_block_float *block);
 float *allocate_buffer();
 void release_buffer(float *buffer);
 
-void init_metm_pools();
+void init_mem_pools();
+
+extern float zero_buffer[AUDIO_BLOCK_SAMPLES];
+extern float sink_buffer[AUDIO_BLOCK_SAMPLES];
 
 #endif

@@ -5,7 +5,7 @@ DMAMEM tm_audio_block_int int_block_pool[MEM_SIZE];
 uint16_t		 		int_block_pool_first_mask;
 uint32_t 				int_block_pool_available_mask[NUM_MASKS];
 
-tm_audio_block_float	 float_block_pool[MEM_SIZE];
+tm_audio_block_float	 float_block_pool[MEM_SIZE] __attribute__((aligned(16)));
 tm_audio_block_float	*float_block_queue[MEM_SIZE];
 
 int head = 0;
@@ -14,22 +14,44 @@ int tail = MEM_SIZE - 1;
 uint16_t		 	float_block_pool_first_mask;
 uint32_t 			float_block_pool_available_mask[NUM_MASKS];
 
-int metm_pools_initialised = 0;
+int mem_pools_initialised = 0;
 
+#define BUFFER_QUEUE_STATIC
+
+#ifdef BUFFER_QUEUE_STATIC
+float   buffer_pool[MEM_SIZE][AUDIO_BLOCK_SAMPLES];
+#endif
 float  *buffer_buffer[MEM_SIZE];
 
 int buffer_head = 0;
 int buffer_tail = MEM_SIZE - 1;
 
+float zero_buffer[AUDIO_BLOCK_SAMPLES];
+float sink_buffer[AUDIO_BLOCK_SAMPLES];
+
 #define MEMPOOL_MALLOC_TRIES 6
 
 // Set up the pool of audio data blocks
 // placing them all onto the free list
-FLASHMEM void init_metm_pools()
+FLASHMEM void init_mem_pools()
 {
 	unsigned int i;
 	
 	__disable_irq();
+	
+	for (int i = 0; i < MEM_SIZE; i++)
+	{
+		#ifdef BUFFER_QUEUE_STATIC
+		buffer_buffer[i] = buffer_pool[i];
+		#else
+		buffer_buffer[i] = NULL;
+		for (int j = 0; j < MEMPOOL_MALLOC_TRIES && !buffer_buffer[i]; j++)
+			buffer_buffer[i] = (float*)malloc(sizeof(float) * AUDIO_BLOCK_SAMPLES);
+		#endif
+	}
+	
+	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
+		zero_buffer[i] = 0.0;
 	
 	int_block_pool_first_mask = 0;
 	
@@ -44,13 +66,6 @@ FLASHMEM void init_metm_pools()
 	
 	for (int i = 0; i < MEM_SIZE; i++)
 		float_block_queue[i] = &float_block_pool[i];
-	
-	for (int i = 0; i < MEM_SIZE; i++)
-	{
-		buffer_buffer[i] = NULL;
-		for (int j = 0; j < MEMPOOL_MALLOC_TRIES && !buffer_buffer[i]; j++)
-			buffer_buffer[i] = (float*)malloc(sizeof(float) * AUDIO_BLOCK_SAMPLES);
-	}
 	
 	/*
 	float_block_pool_first_mask = 0;
@@ -77,7 +92,7 @@ FLASHMEM void init_metm_pools()
 		}
 	}*/
 	
-	metm_pools_initialised = 1;
+	mem_pools_initialised = 1;
 	
 	__enable_irq();
 }
@@ -86,7 +101,7 @@ FLASHMEM void init_metm_pools()
 // the caller is the only owner of this new block
 tm_audio_block_int *allocate_block_int()
 {
-	if (!metm_pools_initialised)
+	if (!mem_pools_initialised)
 		return NULL;
 	
 	uint32_t n, index, avail;
@@ -143,7 +158,7 @@ tm_audio_block_int *allocate_block_int()
 // returned to the free pool
 void release_block_int(tm_audio_block_int *block)
 {
-	if (!block || !metm_pools_initialised)
+	if (!block || !mem_pools_initialised)
 		return;
 	
 	uint32_t mask = (0x80000000 >> (31 - (block->block_pool_index & 0x1F)));
@@ -166,7 +181,7 @@ void release_block_int(tm_audio_block_int *block)
 
 tm_audio_block_float *allocate_block()
 {
-	if (!metm_pools_initialised)
+	if (!mem_pools_initialised)
 		return NULL;
 	
 	tm_audio_block_float *ret_block = NULL;
@@ -182,7 +197,7 @@ tm_audio_block_float *allocate_block()
 
 void release_block(tm_audio_block_float *block)
 {
-	if (!block || !metm_pools_initialised)
+	if (!block || !mem_pools_initialised)
 		return;
 	
 	tail = (tail + 1) % MEM_SIZE;
@@ -191,8 +206,8 @@ void release_block(tm_audio_block_float *block)
 
 float *allocate_buffer()
 {
-	//tm_printf("allocate_buffer. MPI: %d. buffer_head: %d. buffer_tail: %d\n", metm_pools_initialised, buffer_head, buffer_tail);
-	if (!metm_pools_initialised)
+	//tm_printf("allocate_buffer. MPI: %d. buffer_head: %d. buffer_tail: %d\n", mem_pools_initialised, buffer_head, buffer_tail);
+	if (!mem_pools_initialised)
 		return NULL;
 	
 	float *ret_buffer = NULL;
@@ -202,13 +217,17 @@ float *allocate_buffer()
 		ret_buffer = buffer_buffer[buffer_head];
 		buffer_head = (buffer_head + 1) % MEM_SIZE;
 	}
+	else
+	{
+		tm_printf("BUFFER ALLOCATION FAIL\n");
+	}
 	
 	return ret_buffer;
 }
 
 void release_buffer(float *buffer)
 {
-	if (!buffer || !metm_pools_initialised)
+	if (!buffer || !mem_pools_initialised)
 		return;
 	
 	buffer_tail = (buffer_tail + 1) % MEM_SIZE;

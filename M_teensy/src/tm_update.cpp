@@ -1,5 +1,7 @@
 #include "tm.h"
 
+#define WAVESHAPER_ENVELOPE_RATE (1.0/(64 * 128))
+
 void update_all()
 {
 	NVIC_SET_PENDING(IRQ_SOFTWARE);

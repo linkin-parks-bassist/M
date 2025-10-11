@@ -748,6 +748,7 @@ int init_pipe_line(tm_pipe_line *pipeline)
 		pipeline->transformers[i] = NULL;
 	
 	pipeline->next_id = 0;
+	pipeline->transition_policy = TRANSITION_MONOBLOCK_COS2;
 	
 	return NO_ERROR;
 }
@@ -755,8 +756,11 @@ int init_pipe_line(tm_pipe_line *pipeline)
 int compute_pipe_line(tm_pipe_line *pipeline, float *dest, float *src)
 {
 	//tm_printf("compute pipe_line (%p, %p, %p)\n", pipeline, dest, src);
-	if (!pipeline || !dest || !src)
+	if (!pipeline)
 		return ERR_NULL_PTR;
+	
+	src  = src  ? src  : zero_buffer;
+	dest = dest ? dest : sink_buffer;
 	
 	float *in_buffer = src;
 	float *out_buffer;
@@ -764,13 +768,17 @@ int compute_pipe_line(tm_pipe_line *pipeline, float *dest, float *src)
 	float *buffer_2 = NULL;
 	float *tmp;
 	
+	float *inputs [TRANSFORMER_MAX_INPUTS];
+	float *outputs[TRANSFORMER_MAX_OUTPUTS];
+	
 	int ret_val = NO_ERROR;
 	int busted_pipeline = 0;
 	int n = pipeline->n_transformers;
 	
 	if (n <= 0)
 	{
-		memcpy(dest, src, sizeof(float) * AUDIO_BLOCK_SAMPLES);
+		if (dest)
+			memcpy(dest, src, sizeof(float) * AUDIO_BLOCK_SAMPLES);
 		return NO_ERROR;
 	}
 	
@@ -801,6 +809,12 @@ int compute_pipe_line(tm_pipe_line *pipeline, float *dest, float *src)
 		}
 	}
 	
+	for (int i = 1; i < TRANSFORMER_MAX_INPUTS; i++)
+		inputs[i] = NULL;
+	
+	for (int i = 1; i < TRANSFORMER_MAX_OUTPUTS; i++)
+		outputs[i] = NULL;
+	
 	out_buffer = (n == 1) ? dest : buffer_1;
 	
 	for (int i = 0; i < pipeline->n_transformers; i++)
@@ -810,8 +824,11 @@ int compute_pipe_line(tm_pipe_line *pipeline, float *dest, float *src)
 		
 		ret_val = ERR_NULL_PTR;
 		
-		if (pipeline->transformers[i] && pipeline->transformers[i]->compute_transformer)
-			ret_val = pipeline->transformers[i]->compute_transformer(&out_buffer, &in_buffer, pipeline->transformers[i]->data_struct);
+		inputs [0] = in_buffer;
+		outputs[0] = out_buffer;
+		
+		if (pipeline->transformers[i])
+			ret_val = run_transformer(pipeline->transformers[i], outputs, inputs);
 		
 		// If there is a succesful computation, swap the buffers.
 		// If not, keep everything as is; the same buffer will be 
@@ -844,6 +861,7 @@ int compute_pipe_line(tm_pipe_line *pipeline, float *dest, float *src)
 panic_bypass:
 	
 	memcpy(dest, src, sizeof(float) * AUDIO_BLOCK_SAMPLES);
+	
 	return ret_val;
 }
 
@@ -882,6 +900,40 @@ int pipe_line_expand_transformer_array(tm_pipe_line *pipeline)
 	return NO_ERROR;
 }
 
+int pipeline_update_transition_policy(tm_pipe_line *pipeline)
+{
+	if (!pipeline)
+		return ERR_NULL_PTR;
+	
+	int tp = 0;
+	
+	for (int i = 0; i < pipeline->n_transformers; i++)
+	{
+		if (!pipeline->transformers[i])
+			continue;
+		
+		if (pipeline->transformers[i]->transition_policy > tp)
+			tp = pipeline->transformers[i]->transition_policy;
+	}
+	
+	return NO_ERROR;
+}
+
+int pipe_line_print_transformer_array(tm_pipe_line *pipeline)
+{
+	if (!pipeline)
+		return ERR_NULL_PTR;
+	
+	tm_printf("Printing transformer array. n_transformers = %d\n", pipeline->n_transformers);
+	
+	for (int i = 0; i < pipeline->n_transformers; i++)
+		tm_printf("transformer %d: type %d, id %d\n", i, pipeline->transformers[i]->type, pipeline->transformers[i]->id);
+	
+	tm_printf("Done.\n");
+	
+	return NO_ERROR;
+}
+
 int pipe_line_append_transformer(tm_pipe_line *pipeline, tm_transformer *trans)
 {
 	if (!pipeline || !trans)
@@ -903,7 +955,31 @@ int pipe_line_append_transformer(tm_pipe_line *pipeline, tm_transformer *trans)
 	pipeline->transformers[pipeline->n_transformers++] = trans;
 	tm_AudioInterrupts();
 	
+	pipeline_update_transition_policy(pipeline);
 	return trans->id;
+}
+
+
+int pipe_line_remove_transformer(tm_pipe_line *pipeline, uint16_t tid)
+{
+	if (!pipeline)
+		return ERR_NULL_PTR;
+	
+	for (int i = 0; i < pipeline->n_transformers; i++)
+	{
+		if (pipeline->transformers[i] && pipeline->transformers[i]->id == tid)
+		{
+			free_transformer(pipeline->transformers[i]);
+			pipeline->n_transformers--;
+			
+			for (int j = i; j < pipeline->n_transformers; j++)
+				pipeline->transformers[j] = pipeline->transformers[j + 1];
+			
+			return NO_ERROR;
+		}
+	}
+	
+	return ERR_INVALID_TRANSFORMER_ID;
 }
 
 int pipe_line_insert_transformer(tm_pipe_line *pipeline, tm_transformer *trans, int pos)
@@ -983,6 +1059,59 @@ int pipe_line_insert_transformer_type(tm_pipe_line *pipeline, uint16_t type, uin
 int pipe_line_prepend_transformer_type(tm_pipe_line *pipeline, uint16_t type)
 {
 	return pipe_line_insert_transformer_type(pipeline, type, 0);
+}
+
+int pipe_line_get_transformer_position(tm_pipe_line *pipeline, uint16_t id)
+{
+	if (!pipeline)
+		return -1;
+	
+	for (int i = 0; i < pipeline->n_transformers; i++)
+	{
+		if (pipeline->transformers[i]->id == id)
+			return i;
+	}
+	
+	return -1;
+}
+
+int pipe_line_move_transformer(tm_pipe_line *pipeline, uint16_t id, int new_pos)
+{
+	if (!pipeline)
+		return ERR_NULL_PTR;
+		
+	int old_pos = pipe_line_get_transformer_position(pipeline, id);
+	
+	tm_printf("Moving transformer %d from position %d to position %d. The array currently:\n", id, old_pos, new_pos);
+	
+	pipe_line_print_transformer_array(pipeline);
+	
+	if (old_pos == new_pos)
+		return NO_ERROR;
+	
+	if (new_pos < 0 || new_pos >= pipeline->n_transformers)
+		return ERR_BAD_ARGS;
+	
+	tm_transformer *trans = pipeline->transformers[old_pos];
+	
+	// Moving forward
+	if (new_pos < old_pos)
+	{	
+		for (int i = old_pos; i > new_pos; i--)
+			pipeline->transformers[i] = pipeline->transformers[i - 1];
+	}
+	else // Moving backwards
+	{
+		for (int i = old_pos; i < new_pos; i++)
+			pipeline->transformers[i] = pipeline->transformers[i + 1];
+	}
+	
+	pipeline->transformers[new_pos] = trans;
+	
+	tm_printf("And after the move:\n");
+	pipe_line_print_transformer_array(pipeline);
+	
+	return NO_ERROR;
 }
 
 tm_transformer *pipe_line_get_transformer_by_id(tm_pipe_line *pipeline, uint16_t id)
