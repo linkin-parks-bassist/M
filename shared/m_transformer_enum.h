@@ -1,18 +1,16 @@
-// Code generated from transformer_config.yaml by codegen_enum.py
+// Code generated from config/transformer/*.yaml by codegen.py
 #ifndef M_TRANSFORMER_ENUM_H_
 #define M_TRANSFORMER_ENUM_H_
 
-#define TRANSFORMER_BUFFER           0
-#define TRANSFORMER_AMPLIFIER        1
-#define TRANSFORMER_MIXER            2
-#define TRANSFORMER_BIQUAD           3
-#define TRANSFORMER_DISTORTION       4
-#define TRANSFORMER_COMPRESSOR       5
-#define TRANSFORMER_WAVESHAPER       6
-#define TRANSFORMER_LOW_PASS_FILTER  7
-#define TRANSFORMER_HIGH_PASS_FILTER 8
-#define TRANSFORMER_BAND_PASS_FILTER 9
-#define TRANSFORMER_DIRTY_OCTAVE     10
+#define TRANSFORMER_AMPLIFIER        0
+#define TRANSFORMER_COMPRESSOR       1
+#define TRANSFORMER_LOW_PASS_FILTER  2
+#define TRANSFORMER_HIGH_PASS_FILTER 3
+#define TRANSFORMER_BAND_PASS_FILTER 4
+#define TRANSFORMER_DIRTY_OCTAVE     5
+#define TRANSFORMER_NOISE_SUPPRESSOR 6
+#define TRANSFORMER_PERCUSSIFIER     7
+#define TRANSFORMER_DISTORTION       8
 
 typedef enum
 {
@@ -31,5 +29,6 @@ typedef enum
 #define DISTORTION_CLIP			3
 
 const char *transformer_type_to_string(uint16_t type);
+int transformer_type_valid(uint16_t type);
 
 #endif

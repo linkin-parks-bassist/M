@@ -1,4 +1,3 @@
-#include <arm_math.h>
 #include "tm.h"
 
 int zero_out_block_float(tm_audio_block_float *block)
@@ -26,7 +25,12 @@ int convert_block_int_to_float(float *dest, int16_t *src)
 	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
 		dest[i] = (float)src[i];
 	
+	#ifndef NO_CMSIS
 	arm_scale_f32(dest, 1.0 / MAX_INT, dest, AUDIO_BLOCK_SAMPLES);
+	#else
+	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
+		dest[i] *= 1.0 / MAX_INT;
+	#endif
 	
 	return NO_ERROR;
 }
@@ -38,7 +42,7 @@ int convert_block_float_to_int(int16_t *dest, float *src)
 
 	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
 	{
-		dest[i] = (int16_t)(max(min((src[i] * MAX_INT), MAX_INT), -MAX_INT));
+		dest[i] = (int16_t)(binary_max(binary_min((src[i] * MAX_INT), MAX_INT), -MAX_INT));
 	}
 
 	return NO_ERROR;

@@ -1,0 +1,23 @@
+name: "Percussifier"
+parameters:
+- name: "Tempo"
+  default: 120.0
+  min: 20
+  max: 300
+  group: 0
+
+- name: "Note"
+  default: 16.0
+  min: 4.0
+  max: 32.0
+  group: 0
+ 
+- name: "Trigger Threshold"
+  default: 3.0
+  min: 2.0
+  max: 4.0
+ 
+- name: "Arm Threshold"
+  default: 1.5
+  min: 1.0
+  max: 2.0

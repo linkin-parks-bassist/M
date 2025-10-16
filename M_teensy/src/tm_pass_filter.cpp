@@ -36,7 +36,7 @@ int reconfigure_low_pass_filter(void *data_struct)
 	return NO_ERROR;
 }
 
-int calc_low_pass_filter(void *data_struct, float **dest, float **src, int n_samples)
+int calc_low_pass_filter(void *data_struct, float *dest, float *src, int n_samples)
 {
 	if (!data_struct)
 		return ERR_NULL_PTR;
@@ -46,8 +46,8 @@ int calc_low_pass_filter(void *data_struct, float **dest, float **src, int n_sam
 	float in_sample;
 	float out_sample;
 	
-	float *in_buffer  =  src ? ( src[0] ?  src[0] : zero_buffer) : zero_buffer;
-	float *out_buffer = dest ? (dest[0] ? dest[0] : sink_buffer) : sink_buffer;
+	float *in_buffer  =  src ? src  : zero_buffer;
+	float *out_buffer = dest ? dest : sink_buffer;
 	
 	for (int i = 0; i < n_samples; i++)
 	{
@@ -71,7 +71,7 @@ int calc_low_pass_filter(void *data_struct, float **dest, float **src, int n_sam
 	return NO_ERROR;
 }
 
-int init_low_pass_filter_struct_default(tm_low_pass_filter_str *str)
+int init_low_pass_filter_str(tm_low_pass_filter_str *str)
 {
 	if (!str)
 		return ERR_NULL_PTR;
@@ -121,7 +121,7 @@ int reconfigure_high_pass_filter(void *data_struct)
 	return NO_ERROR;
 }
 
-int calc_high_pass_filter(void *data_struct, float **dest, float **src, int n_samples)
+int calc_high_pass_filter(void *data_struct, float *dest, float *src, int n_samples)
 {
 	if (!data_struct)
 		return ERR_NULL_PTR;
@@ -131,8 +131,8 @@ int calc_high_pass_filter(void *data_struct, float **dest, float **src, int n_sa
 	float in_sample;
 	float out_sample;
 	
-	float *in_buffer  =  src ? ( src[0] ?  src[0] : zero_buffer) : zero_buffer;
-	float *out_buffer = dest ? (dest[0] ? dest[0] : sink_buffer) : sink_buffer;
+	float *in_buffer  =  src ? src  : zero_buffer;
+	float *out_buffer = dest ? dest : sink_buffer;
 	
 	for (int i = 0; i < n_samples; i++)
 	{
@@ -156,7 +156,7 @@ int calc_high_pass_filter(void *data_struct, float **dest, float **src, int n_sa
 	return NO_ERROR;
 }
 
-int init_high_pass_filter_struct_default(tm_high_pass_filter_str *str)
+int init_high_pass_filter_str(tm_high_pass_filter_str *str)
 {
 	if (!str)
 		return ERR_NULL_PTR;
@@ -176,16 +176,16 @@ int reconfigure_band_pass_filter(void *data_struct)
 	
 	tm_band_pass_filter_str *str = (tm_band_pass_filter_str*)data_struct;
 	
-	float omega0 = 2.0f * PI * str->center_frequency.value / AUDIO_SAMPLE_RATE_EXACT;
+	float omega0 = 2.0f * PI * str->center.value / AUDIO_SAMPLE_RATE_EXACT;
 	float sin_omega = sinf(omega0);
 	float cos_omega = cosf(omega0);
 
-	float Q = str->center_frequency.value / str->band_width.value;
+	float Q = str->center.value / str->bandwidth.value;
 	float alpha = sin_omega / (2.0f * Q);
 
-	float b0 =   Q * alpha;
+	float b0 =   alpha;
 	float b1 =   0.0f;
-	float b2 =  -Q * alpha;
+	float b2 =  -alpha;
 	float a0 =   1.0f + alpha;
 	float a1 =  -2.0f * cos_omega;
 	float a2 =   1.0f - alpha;
@@ -200,7 +200,7 @@ int reconfigure_band_pass_filter(void *data_struct)
 	return NO_ERROR;
 }
 
-int calc_band_pass_filter(void *data_struct, float **dest, float **src, int n_samples)
+int calc_band_pass_filter(void *data_struct, float *dest, float *src, int n_samples)
 {
 	if (!data_struct)
 		return ERR_NULL_PTR;
@@ -210,8 +210,8 @@ int calc_band_pass_filter(void *data_struct, float **dest, float **src, int n_sa
 	float in_sample;
 	float out_sample;
 	
-	float *in_buffer  =  src ? ( src[0] ?  src[0] : zero_buffer) : zero_buffer;
-	float *out_buffer = dest ? (dest[0] ? dest[0] : sink_buffer) : sink_buffer;
+	float *in_buffer  =  src ? src  : zero_buffer;
+	float *out_buffer = dest ? dest : sink_buffer;
 	
 	for (int i = 0; i < n_samples; i++)
 	{
@@ -235,7 +235,7 @@ int calc_band_pass_filter(void *data_struct, float **dest, float **src, int n_sa
 	return NO_ERROR;
 }
 
-int init_band_pass_filter_struct_default(tm_band_pass_filter_str *str)
+int init_band_pass_filter_str(tm_band_pass_filter_str *str)
 {
 	if (!str)
 		return ERR_NULL_PTR;

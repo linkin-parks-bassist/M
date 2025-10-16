@@ -1,6 +1,3 @@
-#include <Arduino.h>
-#include <cstdarg>  // or <stdarg.h> in C
-#include <cstdio>   // for vsnprintf()
 #include "tm.h"
 
 #define ALLOW_PRINTLINES

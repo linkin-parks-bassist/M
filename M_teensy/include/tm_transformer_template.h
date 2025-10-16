@@ -7,8 +7,8 @@ typedef struct
 	
 } tm_transformer_str;
 
+int init_transformer_str(tm_transformer_str *str);
 int reconfigure_transformer(void *data_struct);
-int calc_transformer(void *data_struct, float **dest, float **src, int n_samples);
-int init_transformer_struct_default(tm_transformer_str *str);
+int calc_transformer(void *data_struct, float *dest, float *src, int n_samples);
 
 #endif

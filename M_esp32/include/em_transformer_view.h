@@ -4,17 +4,27 @@
 #define TRANSFORMER_VIEW_GRID_CELL_HSIZE 250
 #define TRANSFORMER_VIEW_GRID_CELL_VSIZE 200
 
+#define TRANSFORMER_VIEW_MAX_GROUPS 5
+
+typedef struct
+{
+	lv_obj_t *container;
+	em_parameter_widget_ptr_linked_list *parameter_widgets;
+} em_tv_grouping;
+
 typedef struct
 {
 	em_transformer *trans;
 	
-	lv_obj_t *grid;
+	lv_obj_t *container;
 	
-	lv_coord_t col_dsc[3];
-	lv_coord_t *row_dsc;
+	lv_obj_t *group_containers[TRANSFORMER_VIEW_MAX_GROUPS];
 	
 	em_parameter_widget_ptr_linked_list *parameter_widgets;
 } em_transformer_view_str;
+
+
+em_ui_page *make_transformer_view_for(em_transformer *trans);
 
 int transformer_view_configure(em_ui_page *page, void *trans);
 

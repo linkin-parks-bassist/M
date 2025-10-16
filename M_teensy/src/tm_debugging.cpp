@@ -31,6 +31,7 @@ void print_context_info(tm_context *cxt, int depth)
 		{
 			tm_printf("Profile %d:\n", i);
 			print_profile_info(&cxt->profiles[i], depth - 1);
+			tm_printf("~~~ END PROFILE %d ~~~\n", i);
 		}
 	}
 	
@@ -127,6 +128,15 @@ void print_transformer_info(tm_transformer *trans, int depth)
 	tm_printf("Transformer type: %d (%s)\n", trans->type, transformer_type_to_string(trans->type));
 	
 	tm_printf("Data struct address: %p\n", trans->data_struct);
+	
+	tm_printf("PARAMETERS:\n");
+	for (int i = 0; i < trans->n_parameters; i++)
+	{
+		if (trans->parameters[i])
+			tm_printf("Parameter %d: %f\n", i, trans->parameters[i]->value);
+		else
+			tm_printf("Parameter %d: NULL\n", i);
+	}
 	
 	if (!depth)
 		tm_printf("\n");

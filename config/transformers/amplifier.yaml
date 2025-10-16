@@ -1,0 +1,8 @@
+name: "Amplifier"
+has_reconfigure: false
+parameters:
+- name: "Gain"
+  location: "gain"
+  min: 0.0
+  max: 2.0
+  default: 1.0

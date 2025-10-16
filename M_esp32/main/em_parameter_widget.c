@@ -4,9 +4,9 @@ static const char *TAG = "em_parameter_widget.c";
 
 IMPLEMENT_LINKED_PTR_LIST(em_parameter_widget);
 
-void format_float(char *buf, float val, int max_len)
+int format_float(char *buf, float val, int max_len)
 {
-	if (!buf) return;
+	if (!buf) return 0;
 
 	char tmp[10];
 	int i = 0;
@@ -47,19 +47,21 @@ void format_float(char *buf, float val, int max_len)
 		if (pos == max_len - 1)
 		{
 			buf[pos] = 0;
-			return;
+			return pos;
 		}
 	}
 
-	tmp[0] = '.';
-	tmp[1] = '0' + (frac_part / 10);
-	tmp[2] = '0' + (frac_part % 10);
+	tmp[0] = (pos < 5) ? '.' : 0;
+	tmp[1] = (pos < 5) ? '0' + (frac_part / 10) : 0;
+	tmp[2] = (pos < 4) ? '0' + (frac_part % 10) : 0;
 	tmp[3] = 0;
 	
-	for (i = 0; i < 4 && pos < max_len - 1; i++)
+	for (i = 0; i < 4 && pos < max_len - 1 && tmp[i]; i++)
 		buf[pos++] = tmp[i];
 
-	buf[pos] = 0;
+	buf[pos++] = 0;
+	
+	return pos;
 }
 
 int nullify_em_parameter_widget(em_parameter_widget *pw)
@@ -72,8 +74,74 @@ int nullify_em_parameter_widget(em_parameter_widget *pw)
 	pw->obj 		= NULL;
 	pw->name_label  = NULL;
 	pw->val_label   = NULL;
+	pw->container   = NULL;
 	
 	return NO_ERROR;
+}
+
+void format_parameter_widget_value_label(em_parameter_widget *pw)
+{
+	if (!pw || !pw->param)
+		return;
+	
+	int i = format_float(pw->val_label_text, pw->param->val, PARAM_WIDGET_LABEL_BUFSIZE);
+	
+	if (pw->param->units)
+		strncpy(&pw->val_label_text[i ? i - 1 : 0], pw->param->units, PARAM_WIDGET_LABEL_BUFSIZE - i);
+}
+
+int parameter_widget_update_value(em_parameter_widget *pw)
+{
+	if (!pw)
+		return ERR_NULL_PTR;
+	
+	if (!pw->param || !pw->obj)
+		return ERR_BAD_ARGS;
+	
+	uint32_t val;
+	
+	if (fabsf(pw->param->max - pw->param->min) < 1e-6)
+	{
+		val = (int)PARAMETER_WIDGET_RANGE_SIZE/2;
+	}
+	else
+	{
+		if (pw->param->scale == PARAMETER_SCALE_LOGARITHMIC)
+		{
+			
+			val = PARAMETER_WIDGET_RANGE_SIZE * ((logf(pw->param->val) - logf(pw->param->min)) /
+												 (logf(pw->param->max) - logf(pw->param->min)));
+		}
+		else
+		{
+			val = PARAMETER_WIDGET_RANGE_SIZE * ((pw->param->val - pw->param->min) /
+												 (pw->param->max - pw->param->min));
+		}
+	}
+	
+	switch (pw->param->widget_type)
+	{
+		case PARAM_WIDGET_VSLIDER:
+		case PARAM_WIDGET_HSLIDER:
+			lv_slider_set_value(pw->obj, val, LV_ANIM_ON);
+			break;
+			
+		default:
+			lv_arc_set_value(pw->obj, val);
+			break;
+	}
+	
+	return NO_ERROR;
+}
+
+void parameter_widget_update_value_label(em_parameter_widget *pw)
+{
+	if (!pw)
+		return;
+	
+	format_parameter_widget_value_label(pw);
+	
+	lv_label_set_text(pw->val_label, pw->val_label_text);
 }
 
 int configure_em_parameter_widget(em_parameter_widget *pw, em_parameter *param)
@@ -83,56 +151,69 @@ int configure_em_parameter_widget(em_parameter_widget *pw, em_parameter *param)
 	
 	pw->param = param;
 	
-	/* Almost always, I send through the value normalstyle. But sometimes
-	 * I want to have a value on the UI side that is more reasonable. Like for
-	 * the compressor where values are measured in seconds but one wants attack,
-	 * for instance, in the ms range. So I allow for, on the UI side, showing it
-	 * as some number, but multiplying by a scaling factor before sending it off */
-	
 	format_float(pw->val_label_text, pw->param->val, PARAM_WIDGET_LABEL_BUFSIZE);
 	
 	return NO_ERROR;
 }
 
-void update_virtual_pot_value_label(em_parameter_widget *pot)
+void parameter_widget_refresh_cb(lv_event_t *event)
 {
-	if (!pot)
-		return;
+	em_parameter_widget *pw = lv_event_get_user_data(event);
 	
-	format_float(pot->val_label_text, pot->param->val, PARAM_WIDGET_LABEL_BUFSIZE);
-	lv_label_set_text(pot->val_label, pot->val_label_text);
-}
-
-void virtual_pot_refresh_cb(lv_event_t *event)
-{
-	em_parameter_widget *pot = lv_event_get_user_data(event);
-	
-	if (!pot)
+	if (!pw)
 	{
-		ESP_LOGE(TAG, "NULL virtual pot pointer");
+		ESP_LOGE(TAG, "NULL virtual pw pointer");
 		return;
 	}
 	
-	lv_arc_set_value(pot->obj, ((pot->param->val - pot->param->min) * 100 ) / (pot->param->max - pot->param->min));
+	parameter_widget_update_value(pw);
 	
-	update_virtual_pot_value_label(pot);
+	parameter_widget_update_value_label(pw);
 }
 
-void virtual_pot_change_cb(lv_event_t *event)
+void parameter_widget_change_cb(lv_event_t *event)
 {
-	em_parameter_widget *pot = lv_event_get_user_data(event);
+	em_parameter_widget *pw = lv_event_get_user_data(event);
 	
-	if (!pot)
+	if (!pw)
 	{
-		ESP_LOGE(TAG, "NULL virtual pot pointer");
+		ESP_LOGE(TAG, "NULL virtual pw pointer");
 		return;
 	}
 	
-	pot->param->val = pot->param->min + ((pot->param->max - pot->param->min) * 0.01 * lv_arc_get_value(pot->obj));
+	float val;
 	
-	update_virtual_pot_value_label(pot);
+	switch (pw->param->widget_type)
+	{
+		case PARAM_WIDGET_VSLIDER:
+		case PARAM_WIDGET_HSLIDER:
+			val = (float)lv_slider_get_value(pw->obj);
+			break;
+			
+		default:
+			val = (float)lv_arc_get_value(pw->obj);
+			break;
+	}
 	
-	et_msg msg = create_et_msg_set_param(pot->param->id.profile_id, pot->param->id.transformer_id, pot->param->id.parameter_id, pot->param->val);
+	val /= PARAMETER_WIDGET_RANGE_SIZE;
+	
+	switch (pw->param->scale)
+	{
+		case PARAMETER_SCALE_LOGARITHMIC:
+			float lnmin = logf(pw->param->min);
+			float lnmax = logf(pw->param->max);
+			
+			pw->param->val = expf(lnmin + val * (lnmax - lnmin));
+			break;
+		
+		default:
+			pw->param->val = pw->param->min + val * (pw->param->max - pw->param->min);
+			break;
+	}
+	
+	parameter_widget_update_value_label(pw);
+	
+	et_msg msg = create_et_msg_set_param(pw->param->id.profile_id, pw->param->id.transformer_id, pw->param->id.parameter_id, pw->param->val);
 
 	xQueueSend(et_msg_queue, (void*)&msg, 0);
 }
@@ -142,32 +223,82 @@ int parameter_widget_create_ui(em_parameter_widget *pw, lv_obj_t *parent)
 	if (!pw || !pw->param || !parent)
 		return ERR_NULL_PTR;
 	
+	pw->container = lv_obj_create(parent);
+	lv_obj_remove_style_all(pw->container);
+	
+	int w, h;
+	//lv_obj_set_size(pw->container, PARAM_WIDGET_SIZE_W + PARAM_WIDGET_PAD_W, PARAM_WIDGET_SIZE_H + PARAM_WIDGET_PAD_H);
+	
 	switch (pw->param->widget_type)
-	{
-		case PARAM_WIDGET_VIRTUAL_POT:
-			pw->obj = lv_arc_create(parent);
+	{	
+		case PARAM_WIDGET_HSLIDER:
+			pw->obj = lv_slider_create(pw->container);
 			
-			lv_obj_set_size(pw->obj, 175, 175);
+			lv_obj_align(pw->obj, LV_ALIGN_CENTER, 0, 20);
+			lv_obj_set_size(pw->obj, HSLIDER_SIZE_W, HSLIDER_SIZE_H);
+			
+			w = HSLIDER_SIZE_W + HSLIDER_W_PAD;
+			h = HSLIDER_SIZE_H + HSLIDER_H_PAD;
+			
+			pw->name_label = lv_label_create(pw->container);
+			lv_label_set_text(pw->name_label, pw->param->name);
+			lv_obj_align_to(pw->name_label, pw->obj, LV_ALIGN_OUT_TOP_LEFT, 20, -35);
+			
+			pw->val_label = lv_label_create(pw->container);
+			lv_obj_align_to(pw->val_label, pw->obj, LV_ALIGN_OUT_TOP_RIGHT, 30, -35);
+			
+			lv_slider_set_range(pw->obj, 0, (int)PARAMETER_WIDGET_RANGE_SIZE);
+			break;
+		
+		case PARAM_WIDGET_VSLIDER:
+			pw->obj = lv_slider_create(pw->container);
+			
+			lv_obj_align(pw->obj, LV_ALIGN_CENTER, 0, 20);
+			lv_obj_set_size(pw->obj, VSLIDER_SIZE_W, VSLIDER_SIZE_H);
+			
+			w = VSLIDER_SIZE_W + VSLIDER_W_PAD;
+			h = VSLIDER_SIZE_H + VSLIDER_H_PAD;
+			
+			pw->name_label = lv_label_create(pw->container);
+			lv_label_set_text(pw->name_label, pw->param->name);
+			lv_obj_set_style_transform_angle(pw->name_label, 0, 0);
+			lv_obj_align_to(pw->name_label, pw->obj, LV_ALIGN_OUT_TOP_MID, 0, 20);
+			
+			pw->val_label = lv_label_create(pw->container);
+			lv_obj_align_to(pw->val_label, pw->obj, LV_ALIGN_OUT_BOTTOM_LEFT, 15, 0);
+			
+			lv_slider_set_range(pw->obj, 0, (int)PARAMETER_WIDGET_RANGE_SIZE);
+			break;
+			
+		default:
+			pw->obj = lv_arc_create(pw->container);
+			
+			lv_obj_center(pw->obj);
+			lv_obj_set_size(pw->obj, VIRTUAL_POT_SIZE_W, VIRTUAL_POT_SIZE_H);
+			
+			w = VIRTUAL_POT_SIZE_W;
+			h = VIRTUAL_POT_SIZE_H;
+			
 			lv_arc_set_rotation(pw->obj, 135);
 			lv_arc_set_bg_angles(pw->obj, 0, 270);
-			lv_arc_set_value(pw->obj,
-				((pw->param->val - pw->param->min) * 100 )
-			   / (pw->param->max - pw->param->min));
+			lv_arc_set_range(pw->obj, 0, (int)PARAMETER_WIDGET_RANGE_SIZE);
 			
 			pw->name_label = lv_label_create(pw->obj);
 			lv_label_set_text(pw->name_label, pw->param->name);
 			lv_obj_align(pw->name_label, LV_ALIGN_BOTTOM_MID, 0, 0);
 			
 			pw->val_label = lv_label_create(pw->obj);
-			format_float(pw->val_label_text, pw->param->val, PARAM_WIDGET_LABEL_BUFSIZE);
-			lv_label_set_text(pw->val_label, pw->val_label_text);
 			lv_obj_center(pw->val_label);
-			
-			lv_obj_add_event_cb(pw->obj, virtual_pot_change_cb, LV_EVENT_VALUE_CHANGED, pw);
-			lv_obj_add_event_cb(pw->obj, virtual_pot_refresh_cb, LV_EVENT_REFRESH, pw);
-			
 			break;
 	}
+	
+	lv_obj_set_size(pw->container, w + PARAM_WIDGET_PAD_W, h + PARAM_WIDGET_PAD_H);
+	
+	parameter_widget_update_value(pw);
+	parameter_widget_update_value_label(pw);
+	
+	lv_obj_add_event_cb(pw->obj, parameter_widget_change_cb, LV_EVENT_VALUE_CHANGED, pw);
+	lv_obj_add_event_cb(pw->obj, parameter_widget_refresh_cb, LV_EVENT_REFRESH, pw);
 	
 	return NO_ERROR;
 }
@@ -182,7 +313,7 @@ void param_widget_receive(et_msg msg, te_msg response)
 	
 	if (response.type != TE_MESSAGE_PARAM_VALUE)
 	{
-		ESP_LOGE(TAG, "Weird message (type %d) send to parameter widget...\n", response.type);
+		ESP_LOGE(TAG, "Weird message (%d) send to parameter widget...\n", response.type);
 		return;
 	}
 	
@@ -200,8 +331,8 @@ void param_widget_receive(et_msg msg, te_msg response)
 		memcpy(&pw->param->val, &response.data[6], sizeof(float));
 		
 		printf("Parameter %d.%d.%d value revieced: %f\n", profile_id, transformer_id, parameter_id, pw->param->val);
-		lv_arc_set_value(pw->obj, ((pw->param->val - pw->param->min) * 100 ) / (pw->param->max - pw->param->min));
-		update_virtual_pot_value_label(pw);
+		parameter_widget_update_value(pw);
+		parameter_widget_update_value_label(pw);
 	}
 	else
 	{

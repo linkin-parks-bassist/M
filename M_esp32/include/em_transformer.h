@@ -22,6 +22,8 @@ typedef struct
 
 int init_transformer(em_transformer *trans);
 
+int transformer_set_id(em_transformer *trans, uint16_t profile_id, uint16_t transformer_id);
+
 int init_transformer_parameter_array(em_transformer *trans);
 int init_transformer_option_array(em_transformer *trans);
 
@@ -46,8 +48,12 @@ void add_transformer_from_menu(lv_event_t *e);
 int request_append_transformer(uint16_t type, em_transformer *local);
 void transformer_recieve_id(et_msg message, te_msg response);
 
-int free_transformer(em_transformer *trans);
+
+int clone_transformer(em_transformer *dest, em_transformer *src);
+void free_transformer(em_transformer *trans);
 
 DECLARE_LINKED_PTR_LIST(em_transformer);
+
+typedef em_transformer_ptr_linked_list transformer_ll;
 
 #endif

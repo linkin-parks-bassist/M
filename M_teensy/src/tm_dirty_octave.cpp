@@ -12,17 +12,18 @@ int reconfigure_dirty_octave(void *data_struct)
 	return NO_ERROR;
 }
 
-int calc_dirty_octave(void *data_struct, float **dest, float **src, int n_samples)
+int calc_dirty_octave(void *data_struct, float *dest, float *src, int n_samples)
 {
 	if (!data_struct)
 		return ERR_NULL_PTR;
 	
 	tm_dirty_octave_str *str = (tm_dirty_octave_str*)data_struct;
 	
-	float *in_buffer  =  src ? ( src[0] ?  src[0] : zero_buffer) : zero_buffer;
-	float *out_buffer = dest ? (dest[0] ? dest[0] : sink_buffer) : sink_buffer;
+	float *in_buffer  =  src ? src  : zero_buffer;
+	float *out_buffer = dest ? dest : sink_buffer;
 	
-	float out_sample, last_out_sample = str->last_out_sample;
+	float out_sample = str->last_out_sample;
+	float last_out_sample = str->last_out_sample;
 	
 	for (int i = 0; i < n_samples; i++)
 	{
@@ -38,7 +39,7 @@ int calc_dirty_octave(void *data_struct, float **dest, float **src, int n_sample
 	return NO_ERROR;
 }
 
-int init_dirty_octave_struct_default(tm_dirty_octave_str *str)
+int init_dirty_octave_str(tm_dirty_octave_str *str)
 {
 	if (!str)
 		return ERR_NULL_PTR;

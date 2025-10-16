@@ -9,21 +9,33 @@ int init_em_context(em_context *cxt)
 		return ERR_NULL_PTR;
 	
 	cxt->n_profiles = 1;
-	cxt->active_profile = 0;
 	
-	cxt->profile_array_length = INITIAL_PROFILE_ARRAY_LENGTH;
-	cxt->profiles = malloc(sizeof(em_profile) * cxt->profile_array_length);
+	cxt->active_profile = malloc(sizeof(em_profile));
+	cxt->working_profile = cxt->active_profile;
 	
-	if (!cxt->profiles)
+	cxt->profiles = NULL;
+	
+	if (!cxt->active_profile)
 		return ERR_ALLOC_FAIL;
 	
-	for (int i = 0; i < cxt->profile_array_length; i++)
+	init_em_profile(cxt->active_profile);
+	em_profile_set_default_name_from_id(cxt->active_profile);
+	
+	cxt->active_profile->active = 1;
+	
+	printf("Created profile, %p. Name: %s\n", cxt->active_profile, cxt->active_profile->name);
+	
+	profile_ll *nl = em_profile_ptr_linked_list_append(cxt->profiles, cxt->active_profile);
+	
+	if (!nl)
 	{
-		init_em_profile(&cxt->profiles[i]);
-		cxt->profiles[i].id = i;
-		
-		em_profile_set_default_name_from_id(&cxt->profiles[i]);
+		free_profile(cxt->active_profile);
+		return ERR_ALLOC_FAIL;
 	}
+	
+	cxt->profiles = nl;
+	
+	cxt->saved_profiles_loaded = 0;
 	
 	return NO_ERROR;
 }
@@ -33,75 +45,44 @@ int em_context_add_profile(em_context *cxt)
 	if (!cxt)
 		return ERR_NULL_PTR;
 	
-	int ret_val;
+	em_profile *profile = malloc(sizeof(em_profile));
 	
-	if (cxt->n_profiles >= cxt->profile_array_length)
+	if (!profile)
+		return ERR_ALLOC_FAIL;
+	
+	init_em_profile(profile);
+	
+	profile_ll *nl = em_profile_ptr_linked_list_append(cxt->profiles, profile);
+	
+	if (!nl)
 	{
-		ret_val = em_context_enlarge_profile_array(cxt);
-		
-		if (ret_val != NO_ERROR)
-			return ret_val;
+		free_profile(profile);
+		return ERR_ALLOC_FAIL;
 	}
+	
+	cxt->profiles = nl;
 	
 	cxt->n_profiles++;
 	
 	return NO_ERROR;
 }
 
-int em_context_enlarge_profile_array(em_context *cxt)
+em_profile *cxt_get_profile_by_id(em_context *cxt, uint16_t profile_id)
 {
 	if (!cxt)
-		return ERR_NULL_PTR;
+		return NULL;
 	
+	profile_ll *current = cxt->profiles;
 	
-	int try_size = PROFILE_ARRAY_CHUNK_SIZE;
-	em_profile *new_ptr;
-	
-	do
+	while (current)
 	{
-		new_ptr = malloc(sizeof(em_profile) * (cxt->profile_array_length + try_size));
+		if (current->data && current->data->id == profile_id)
+			return current->data;
 		
-		if (!new_ptr)
-			try_size /= 2;
-	} while (!new_ptr && try_size);
-	
-	if (!new_ptr)
-		return ERR_ALLOC_FAIL;
-	
-	if (cxt->profiles)
-	{
-		memcpy(new_ptr, cxt->profiles, cxt->profile_array_length * sizeof(em_profile));
-		free(cxt->profiles);
+		current = current->next;
 	}
 	
-	for (int i = 0; i < try_size; i++)
-		init_em_profile(&new_ptr[cxt->profile_array_length + i]);
-	
-	cxt->profile_array_length = cxt->profile_array_length + try_size;
-	cxt->profiles = new_ptr;
-	
-	return NO_ERROR;
-}
-
-int em_context_set_n_profiles(em_context *cxt, int n)
-{
-	if (!cxt)
-		return ERR_NULL_PTR;
-	
-	int tries = 0;
-	
-	while (cxt->profile_array_length < n && tries < 32)
-	{
-		em_context_enlarge_profile_array(cxt);
-		tries++;
-	}
-	
-	if (cxt->profile_array_length < n)
-		return ERR_ALLOC_FAIL;
-	
-	cxt->n_profiles = n;
-	
-	return NO_ERROR;
+	return NULL;
 }
 
 em_transformer *cxt_get_transformer_by_id(em_context *cxt, uint16_t profile_id, uint16_t transformer_id)
@@ -109,10 +90,12 @@ em_transformer *cxt_get_transformer_by_id(em_context *cxt, uint16_t profile_id, 
 	if (!cxt)
 		return NULL;
 	
-	if (cxt->n_profiles <= profile_id)
+	em_profile *profile = cxt_get_profile_by_id(cxt, profile_id);
+	
+	if (!profile)
 		return NULL;
 	
-	em_transformer_ptr_linked_list *current = cxt->profiles[profile_id].pipeline.transformers;
+	em_transformer_ptr_linked_list *current = profile->pipeline.transformers;
 	
 	while (current)
 	{
@@ -162,10 +145,12 @@ int cxt_transformer_id_to_position(em_context *cxt, uint16_t profile_id, uint16_
 	if (!cxt)
 		return -ERR_NULL_PTR;
 	
-	if (profile_id >= cxt->n_profiles)
+	em_profile *profile = cxt_get_profile_by_id(cxt, profile_id);
+	
+	if (!profile)
 		return -ERR_INVALID_PROFILE_ID;
 	
-	em_transformer_ptr_linked_list *current = cxt->profiles[profile_id].pipeline.transformers;
+	transformer_ll *current = profile->pipeline.transformers;
 	
 	int i = 0;
 	while (current)
@@ -185,10 +170,12 @@ int cxt_transformer_position_to_id(em_context *cxt, uint16_t profile_id, uint16_
 	if (!cxt)
 		return -ERR_NULL_PTR;
 	
-	if (profile_id >= cxt->n_profiles)
+	em_profile *profile = cxt_get_profile_by_id(cxt, profile_id);
+	
+	if (!profile)
 		return -ERR_INVALID_PROFILE_ID;
 	
-	em_transformer_ptr_linked_list *current = cxt->profiles[profile_id].pipeline.transformers;
+	transformer_ll *current = profile->pipeline.transformers;
 	
 	int i = 0;
 	while (current)
@@ -208,16 +195,52 @@ int cxt_transformer_position_to_id(em_context *cxt, uint16_t profile_id, uint16_
 	return -ERR_INVALID_TRANSFORMER_ID;
 }
 
+int cxt_remove_profile(em_context *cxt, em_profile *profile)
+{
+	if (!cxt || !profile)
+		return ERR_NULL_PTR;
+	
+	profile_ll *current = cxt->profiles;
+	profile_ll *prev = NULL;
+	
+	if (profile && profile->fname)
+		remove(profile->fname);
+	
+	while (current)
+	{
+		if (current->data == profile)
+		{
+			queue_msg_to_teensy(create_et_msg(ET_MESSAGE_DELETE_PROFILE, "s", profile->id));
+			
+			if (!prev)
+			{
+				cxt->profiles = current->next;
+			}
+			else
+			{
+				prev->next = current->next;
+			}
+			
+			free_profile(profile);
+			free(current);
+			
+			return NO_ERROR;
+		}
+		
+		prev = current;
+		current = current->next;
+	}
+	
+	return ERR_INVALID_PROFILE_ID;
+}
+
 int cxt_remove_transformer(em_context *cxt, uint16_t pid, uint16_t tid)
 {
 	printf("cxt_remove_transformer\n");
 	if (!cxt)
 		return ERR_NULL_PTR;
 	
-	if (pid >= cxt->n_profiles)
-		return ERR_INVALID_PROFILE_ID;
-	
-	int ret_val = em_profile_remove_transformer(&cxt->profiles[pid], tid);
+	int ret_val = em_profile_remove_transformer(cxt_get_profile_by_id(cxt, pid), tid);
 	
 	if (ret_val == NO_ERROR)
 	{
@@ -226,4 +249,20 @@ int cxt_remove_transformer(em_context *cxt, uint16_t pid, uint16_t tid)
 	
 	printf("cxt_remove_transformer done\n");
 	return ret_val;
+}
+
+int set_active_profile(em_profile *profile)
+{
+	if (!profile)
+		return ERR_NULL_PTR;
+	
+	if (profile == global_cxt.active_profile)
+		return NO_ERROR;
+	
+	em_profile_set_inactive(global_cxt.active_profile);
+	em_profile_set_active(profile);
+	
+	global_cxt.active_profile = profile;
+	
+	return queue_msg_to_teensy(create_et_msg(ET_MESSAGE_SWITCH_PROFILE, "s", profile->id));
 }

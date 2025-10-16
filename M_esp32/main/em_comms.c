@@ -9,14 +9,14 @@ QueueHandle_t et_msg_queue;
 void em_comms_task(void *param);
 
 #ifdef PING_TEENSY
-int em_online = 0;
+int teensy_online = 0;
 #else
-int em_online = 1;
+int teensy_online = 1;
 #endif
 
 int queue_msg_to_teensy(et_msg msg)
 {
-	printf("Queueing message of type %d\n", msg.type);
+	//printf("Queueing message of type %d\n", msg.type);
 	
 	if (xQueueSend(et_msg_queue, (void*)&msg, (TickType_t)10) != pdPASS)
 	{
@@ -40,12 +40,12 @@ int init_em_msg_queue()
 int begin_em_comms()
 {
 	xTaskCreatePinnedToCore(
-		em_comms_task,	 		// Task function
-		"Teens Comms Task",			// Name (for debugging)
-		4096,			  			// Stack size (words, not bytes) — tune as needed
-		NULL,			  			// Task parameters
-		8,				 			// Priority — >3 if real-time, <=3 if best-effort
-		NULL,			   			// Task handle (optional)
+		em_comms_task,
+		"Teens Comms Task",
+		4096,
+		NULL,
+		8,
+		NULL,
 		1
 	);
 	
@@ -63,7 +63,7 @@ static int send_msg_to_teensy(et_msg msg)
 		return ERR_ET_MSG_INVALID;
 	}
 	
-	ESP_LOGI(TAG, "Sending type %d message to Teensy...\n", msg.type);
+	//ESP_LOGI(TAG, "Sending type %d message to Teensy...\n", msg.type);
 	int ret_val = i2c_transmit(TEENSY_ADDR, buf, len);
 	
 	return ret_val;
@@ -103,7 +103,7 @@ void handle_em_response(et_msg msg, te_msg response)
 			break;
 		
 		case TE_MESSAGE_HI:
-			em_online = 1;
+			teensy_online = 1;
 			printf("Teensy reports status flags %d = 0b", (int)arg16_1);
 			
 			for (int i = 0; i < 16; i++)
@@ -115,52 +115,8 @@ void handle_em_response(et_msg msg, te_msg response)
 			break;
 		
 		case TE_MESSAGE_OK:
-			em_online = 1;
+			teensy_online = 1;
 			break;
-		
-		case TE_MESSAGE_ERROR:
-			
-			break;
-		
-		case TE_MESSAGE_PROFILE_ID:
-			
-			break;
-
-
-		case TE_MESSAGE_N_PROFILES:
-			em_context_set_n_profiles(&global_cxt, arg16_1);
-			break;
-		
-		case TE_MESSAGE_N_TRANSFORMERS:
-			
-			
-			break;
-		
-		case TE_MESSAGE_TRANSFORMER_ID:
-			
-			break;
-		
-		case TE_MESSAGE_TRANSFORMER_TYPE:
-			trans = cxt_get_transformer_by_id(&global_cxt, arg16_1, arg16_2);
-			
-			if (trans)
-				trans->type = arg16_3;
-			break;
-		
-		case TE_MESSAGE_N_PARAMETERS:
-			trans = cxt_get_transformer_by_id(&global_cxt, arg16_1, arg16_2);
-			
-			if (trans)
-				em_transformer_set_n_parameters(trans, arg16_3);
-			break;
-		
-		case TE_MESSAGE_N_OPTIONS:
-			trans = cxt_get_transformer_by_id(&global_cxt, arg16_1, arg16_2);
-			
-			if (trans)
-				em_transformer_set_n_options(trans, arg16_3);
-			break;
-		
 		
 		default:
 		case TE_MESSAGE_INVALID:
@@ -194,7 +150,7 @@ void em_comms_task(void *param)
 	{
 		TickType_t now = xTaskGetTickCount();
 		#ifdef PING_TEENSY
-		if ((now - last_hi) >= pdMS_TO_TICKS(em_online ? ET_PING_INTERVAL_MS_ONLINE : ET_PING_INTERVAL_MS_OFFLINE))
+		if ((now - last_hi) >= pdMS_TO_TICKS(teensy_online ? ET_PING_INTERVAL_MS_ONLINE : ET_PING_INTERVAL_MS_OFFLINE))
 		{
 			msg.type = ET_MESSAGE_HI;
 
@@ -224,14 +180,14 @@ void em_comms_task(void *param)
 			}
 			else
 			{
-				em_online = 0;
+				teensy_online = 0;
 			}
 
 			last_hi = now;
 		}
 		#endif
 		
-		while (em_online && xQueueReceive(et_msg_queue, &msg, 0) == pdTRUE)
+		while (teensy_online && xQueueReceive(et_msg_queue, &msg, 0) == pdTRUE)
 		{
 			ret_val = send_msg_to_teensy(msg);
 			

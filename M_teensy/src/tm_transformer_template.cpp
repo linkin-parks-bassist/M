@@ -1,6 +1,15 @@
 #if 0
 #include "tm.h"
 
+int init_transformer_str(tm_transformer_str *str)
+{
+	if (!str)
+		return ERR_NULL_PTR;
+	
+	
+	
+	return NO_ERROR;
+}
 
 int reconfigure_transformer(void *data_struct)
 {
@@ -9,30 +18,29 @@ int reconfigure_transformer(void *data_struct)
 	
 	tm_transformer_str *str = (tm_transformer_str*)data_struct;
 	
+	
+	
+	
 	return NO_ERROR;
 }
 
-int calc_transformer(void *data_struct, float **dest, float **src, int n_samples)
+int calc_transformer(void *data_struct, float *dest, float *src, int n_samples)
 {
 	if (!data_struct)
 		return ERR_NULL_PTR;
 	
 	tm_transformer_str *str = (tm_transformer_str*)data_struct;
 	
-	float *in_buffer  =  src ? ( src[0] ?  src[0] : zero_buffer) : zero_buffer;
-	float *out_buffer = dest ? (dest[0] ? dest[0] : sink_buffer) : sink_buffer;
+	float *in_buffer  =  src ? src  : zero_buffer;
+	float *out_buffer = dest ? dest : sink_buffer;
 
+	for (int i = 0; i < n_samples; i++)
+	{
+		out_buffer[i] = 0.0;
+	}
 	
 	return NO_ERROR;
 }
 
-int init_transformer_struct_default(tm_transformer_str *str)
-{
-	if (!str)
-		return ERR_NULL_PTR;
-	
 
-	
-	return NO_ERROR;
-}
 #endif

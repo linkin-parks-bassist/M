@@ -101,6 +101,20 @@ int transformer_rectify_param_ids(em_transformer *trans)
 	return NO_ERROR;
 }
 
+int transformer_set_id(em_transformer *trans, uint16_t profile_id, uint16_t transformer_id)
+{
+	if (!trans)
+		return ERR_NULL_PTR;
+	
+	trans->profile_id = profile_id;
+	trans->transformer_id = transformer_id;
+	
+	transformer_rectify_param_ids(trans);
+	
+	return NO_ERROR;
+}
+
+
 int em_transformer_enlarge_parameter_array(em_transformer *trans)
 {
 	if (!trans)
@@ -292,6 +306,26 @@ int em_transformer_set_n_options(em_transformer *trans, int n)
 	return NO_ERROR;
 }
 
+int transformer_add_option(em_transformer *trans, em_option *option)
+{
+	if (!trans)
+		return ERR_NULL_PTR;
+	
+	int ret_val;
+	
+	if (trans->n_options >= trans->option_array_length)
+	{
+		ret_val = em_transformer_enlarge_option_array(trans);
+		
+		if (ret_val != NO_ERROR)
+			return ret_val;
+	}
+	
+	trans->options[trans->n_options++] = *option;
+	
+	return NO_ERROR;
+}
+
 int transformer_init_ui_page(em_transformer *trans, em_ui_page *parent)
 {
 	printf("transformer_init_ui_page...\n");
@@ -312,10 +346,63 @@ int transformer_init_ui_page(em_transformer *trans, em_ui_page *parent)
 	return NO_ERROR;
 }
 
-int free_transformer(em_transformer *trans)
+int clone_transformer(em_transformer *dest, em_transformer *src)
+{
+	if (!src || !dest)
+		return ERR_NULL_PTR;
+	
+	printf("Cloning transformer...\n");
+	uint16_t profile_id;
+	uint16_t transformer_id;
+	
+	init_transformer(dest);
+	
+	dest->type = src->type;
+	dest->position = src->position;
+	
+	for(int i = 0; i < src->n_parameters; i++)
+		transformer_add_parameter(dest, &src->parameters[i]);
+	
+	for (int i = 0; i < src->n_options; i++)
+		transformer_add_option(dest, &src->options[i]);
+	
+	src->view_page = NULL;
+	
+	printf("Clone transformer done\n");
+	
+	return NO_ERROR;
+}
+
+
+void gut_transformer(em_transformer *trans)
 {
 	if (!trans)
-		return ERR_NULL_PTR;
+		return;
+	
+	free(trans->parameters);
+	trans->parameters = NULL;
+	free(trans->options);
+	trans->options = NULL;
+	
+	free_transformer_view(trans->view_page);
+	trans->view_page = NULL;
+	
+	trans->profile_id 	  = 0;
+	trans->transformer_id = 0;
+	trans->type 		  = 0;
+	trans->position 	  = 0;
+	
+	trans->n_parameters = 0;
+	trans->parameter_array_length = 0;
+	trans->n_options = 0;
+	trans->option_array_length = 0;
+}
+
+
+void free_transformer(em_transformer *trans)
+{
+	if (!trans)
+		return;
 	
 	free(trans->parameters);
 	free(trans->options);
@@ -323,6 +410,4 @@ int free_transformer(em_transformer *trans)
 	free_transformer_view(trans->view_page);
 	
 	free(trans);
-	
-	return NO_ERROR;
 }

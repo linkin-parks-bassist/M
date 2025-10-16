@@ -31,6 +31,8 @@ int nullify_profile(tm_profile *profile)
 	profile->jobs  = NULL;
 	profile->ujobs = NULL;
 	
+	profile->active = 0;
+	
 	return NO_ERROR;
 }
 
@@ -68,6 +70,8 @@ int init_profile(tm_profile *profile)
 	
 	if (!profile->prev_block)
 		return ERR_ALLOC_FAIL;
+	
+	profile->active = 0;
 	
 	memset(profile->prev_block, 0, AUDIO_BLOCK_SAMPLES);
 	
@@ -154,6 +158,18 @@ int profile_apply_pipeline_mod(tm_profile *profile, tm_pipe_line_mod mod)
 	
 	tm_pipe_line_mod_linked_list *nl;
 	int ret_val = NO_ERROR;
+	
+	if (!profile->active)
+	{
+		ret_val = apply_pipe_line_mod(profile->front_pipeline, mod);
+		
+		if (ret_val != NO_ERROR)
+			return ret_val;
+		
+		ret_val = apply_pipe_line_mod(profile->back_pipeline, mod);
+		
+		return ret_val;
+	}
 	
 	if (!profile->pipelines_swapping)
 	{
@@ -242,7 +258,7 @@ int profile_process(tm_profile *profile, float *dest, float *src)
 			return ERR_BAD_ARGS;
 		}
 		
-		if (!profile->back_pipeline_warmed_up)
+		/*if (!profile->back_pipeline_warmed_up)
 		{
 			float *tmp = allocate_buffer();
 			if (tmp)
@@ -256,7 +272,7 @@ int profile_process(tm_profile *profile, float *dest, float *src)
 			{
 				tm_printf("Could allocate temporary buffer to warm up back pipeline!\n");
 			}
-		}
+		}*/
 		
 		int swap_complete = 0;
 		
@@ -354,8 +370,8 @@ int profile_process(tm_profile *profile, float *dest, float *src)
 				ratio = (float)(profile->pipeline_swap_progress) / (float)profile->pipeline_swap_samples;
 				
 				coef = trig_transition_function(ratio);
-				dest[i] = coef * output_buffers[0][i] + (1.0 - coef) * output_buffers[1][i];
 				
+				dest[i] = coef * output_buffers[0][i] + (1.0 - coef) * output_buffers[1][i];
 				profile->pipeline_swap_progress++;
 			}
 			

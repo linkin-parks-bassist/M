@@ -8,8 +8,6 @@ typedef struct
 	
 	uint16_t type;
 	char *name;
-	
-	em_profile *profile;
 } em_trans_selector_button;
 
 DECLARE_LINKED_PTR_LIST(em_trans_selector_button);
@@ -21,11 +19,9 @@ typedef struct
 	em_trans_selector_button_ptr_linked_list *buttons;
 	
 	int page_offset;
-	uint16_t pid;
-	em_profile *profile;
 } em_transformer_selector_str;
 
-int init_transformer_selector_button(em_trans_selector_button *button, int index, em_profile *profile);
+int init_transformer_selector_button(em_trans_selector_button *button, int index);
 
 char *transformer_type_name(uint16_t type);
 

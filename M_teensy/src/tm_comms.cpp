@@ -1,4 +1,3 @@
-#include <Wire.h>
 #include "tm.h"
 #include "tm_comms.h"
 #include "signal.h"
@@ -308,15 +307,24 @@ void i2c_recieve_isr(int n)
 		{
 			for (i = 0; i < n; i++)
 			{
+				#ifndef TM_SIMULATED
 				Wire.read();
+				#else
+				
+				#endif
 				if (i < ET_MESSAGE_MAX_LEN)
 					recieve_buffer[i] = 0;
 			}
 		}
 		else
 		{
+			#ifndef TM_SIMULATED
 			for (i = 0; i < n; i++)
 				recieve_buffer[i] = Wire.read();
+			#else
+			for (i = 0; i < n; i++)
+				recieve_buffer[i] = simulated_i2c_send_buffer[i];
+			#endif
 		
 			while (i < ET_MESSAGE_MAX_LEN)
 				recieve_buffer[i++] = 0xFF;
@@ -332,7 +340,7 @@ void i2c_recieve_isr(int n)
 void i2c_request_isr()
 {
 	tm_AudioNoInterrupts();
-	//tm_printf("i2c request isr\n");
+	tm_printf("i2c request isr\n");
 	
 	if (response_ready)
 	{
@@ -340,7 +348,11 @@ void i2c_request_isr()
 		
 		encode_te_msg(send_buffer, response);
 		
+		#ifndef TM_SIMULATED
 		Wire.write(send_buffer, TE_MESSAGE_MAX_LEN);
+		#else
+		teensy_i2c_response = response;
+		#endif
 		
 		tm_printf("Responding with message of type %s\n", te_msg_code_to_string(response.type));
 		//tm_printf("Sent response:\n\t");
@@ -350,16 +362,24 @@ void i2c_request_isr()
 	else
 	{
 		tm_printf("not ready !!\n");
+		#ifndef TM_SIMULATED
 		Wire.write(wait_message, TE_MESSAGE_MAX_LEN);
+		#else
+		teensy_i2c_response.type = TE_MESSAGE_WAIT;
+		#endif
 	}
 	tm_AudioInterrupts();
 }
 
 int init_esp32_link()
 {
+	#ifndef TM_SIMULATED
 	Wire.begin(TEENSY_I2C_SLAVE_ADDR);
 	Wire.onReceive(i2c_recieve_isr);
 	Wire.onRequest(i2c_request_isr);
+	#else
+	
+	#endif
 	
 	wait_message[0] = TE_MESSAGE_WAIT;
 	

@@ -5,7 +5,7 @@ int init_transformer(tm_transformer *trans, int type,
 					 vec2i 		   *inputs,  vec2i 		  *outputs,
 					 int n_options, int n_parameters,
 					 void *data_struct,
-					 int (*compute_transformer)(void *data_struct, float **dest, float **src, int n_samples))
+					 int (*compute_transformer)(void *data_struct, float *dest, float *src, int n_samples))
 {
 	if (!trans)
 		return ERR_NULL_PTR;
@@ -64,7 +64,7 @@ int transformer_init_parameter_array(tm_transformer *trans, int n)
 	
 	trans->n_parameters = 0;
 	trans->parameter_array_size = n;
-	trans->parameters 	= (n) ? (tm_parameter**)malloc(sizeof(tm_parameter*) * n) : NULL;
+	trans->parameters 	= (tm_parameter**)malloc(sizeof(tm_parameter*) * n);
 	
 	if (!trans->parameters)
 		return ERR_ALLOC_FAIL;
@@ -75,14 +75,22 @@ int transformer_init_parameter_array(tm_transformer *trans, int n)
 	return NO_ERROR;
 }
 
-int transformer_init_n_options(tm_transformer *trans, int n)
+int transformer_init_option_array(tm_transformer *trans, int n)
 {
 	if (!trans)
 		return ERR_NULL_PTR;
 	
+	if (n == 0)
+	{
+		trans->n_options = 0;
+		trans->option_array_size = 0;
+		trans->options = NULL;
+		return NO_ERROR;
+	}
+	
 	trans->n_options = 0;
 	trans->option_array_size = n;
-	trans->options 	= (n) ? (tm_option**)malloc(sizeof(tm_option*) * n) : NULL;
+	trans->options 	= (tm_option**)malloc(sizeof(tm_option*) * n);
 	
 	if (!trans->options)
 		return ERR_ALLOC_FAIL;
@@ -125,10 +133,15 @@ static int rectify_block_divider(int divider)
 }
 
 
-int run_transformer(tm_transformer *trans, float **dest, float **src)
+int run_transformer(tm_transformer *trans, float *dest, float *src)
 {
 	if (!trans)
 		return ERR_NULL_PTR;
+	
+	if (!trans->compute_transformer)
+	{
+		return ERR_BAD_ARGS;
+	}
 	
 	int divider = 1;
 	int local_divider;
@@ -138,14 +151,8 @@ int run_transformer(tm_transformer *trans, float **dest, float **src)
 	int long_update[trans->n_parameters];
 	float deltas[trans->n_parameters];
 	
-	float *inputs[TRANSFORMER_MAX_INPUTS];
-	float *outputs[TRANSFORMER_MAX_OUTPUTS];
-	
-	for (int i = 0; i < TRANSFORMER_MAX_INPUTS; i++)
-		inputs [i] = src  ? src [i] : NULL;
-	
-	for (int i = 0; i < TRANSFORMER_MAX_OUTPUTS; i++)
-		outputs[i] = dest ? dest[i] : NULL;
+	float max_jump;
+	float factor;
 	
 	for (int i = 0; i < trans->n_parameters; i++)
 		long_update[i] = 0;
@@ -182,9 +189,16 @@ int run_transformer(tm_transformer *trans, float **dest, float **src)
 		// Take the difference
 		deltas[i] = trans->parameters[i]->new_value - trans->parameters[i]->value;
 		
+		// If the parameter has the logarithmic scale, scale the max_jump by its value
+		// So it moves faster when it's higher, like how e.g., a cutoff frequency
+		// should work
+		max_jump = (trans->parameters[i]->scale == PARAMETER_SCALE_LOGARITHMIC)
+			? (trans->parameters[i]->max_jump * trans->parameters[i]->value)
+			:  trans->parameters[i]->max_jump;
+		
 		// If it's smaller than the max jump, just go ahead and change
 		// the value. If max_jump is set well, there will be no artifact
-		if (fabsf(deltas[i]) < trans->parameters[i]->max_jump)
+		if (fabsf(deltas[i]) < max_jump)
 		{
 			trans->parameters[i]->value = trans->parameters[i]->new_value;
 			trans->parameters[i]->updated = 0;
@@ -194,7 +208,7 @@ int run_transformer(tm_transformer *trans, float **dest, float **src)
 		
 		// Otherwise, calculate the min steps needed to move to the
 		// new value in jumps of at most max_jump
-		local_divider = (int)(fabsf(deltas[i] / trans->parameters[i]->max_jump));
+		local_divider = (int)(fabsf(deltas[i] / max_jump));
 		
 		// If it's too big, we won't carry out the full update this block
 		long_update[i] = (local_divider > MAX_BLOCK_DIVIDER);
@@ -209,7 +223,7 @@ int run_transformer(tm_transformer *trans, float **dest, float **src)
 	// If no parameters have been updated, just run the transformer like normal
 	if (!any_updates)
 	{
-		trans->compute_transformer(trans->data_struct, outputs, inputs, AUDIO_BLOCK_SAMPLES);
+		trans->compute_transformer(trans->data_struct, dest, src, AUDIO_BLOCK_SAMPLES);
 		return NO_ERROR;
 	}
 	
@@ -223,9 +237,14 @@ int run_transformer(tm_transformer *trans, float **dest, float **src)
 		for (int i = 0; i < trans->n_parameters; i++)
 		{
 			if (long_update[i])
-				deltas[i] = trans->parameters[i]->max_jump * ((deltas[i] < 0) ? -1.0 : 1.0);
+			{
+				factor = ((deltas[i] < 0) ? -1.0 : 1.0) * ((trans->parameters[i]->scale == PARAMETER_SCALE_LOGARITHMIC) ? trans->parameters[i]->value : 1.0);
+				deltas[i] = factor * trans->parameters[i]->max_jump;
+			}
 			else
+			{
 				deltas[i] /= divider;
+			}
 		}
 	}
 	
@@ -243,14 +262,10 @@ int run_transformer(tm_transformer *trans, float **dest, float **src)
 			trans->reconfigure((void*)trans->data_struct);
 		
 		// Hand the partial block over to the transformer for computation
-		trans->compute_transformer(trans->data_struct, outputs, inputs, n_samples);
+		trans->compute_transformer(trans->data_struct, dest, src, n_samples);
 		
-		
-		for (int j = 0; j < TRANSFORMER_MAX_INPUTS; j++)
-			inputs [j] = inputs [j] ? &inputs [j][n_samples] : NULL;
-		
-		for (int j = 0; j < TRANSFORMER_MAX_OUTPUTS; j++)
-			outputs[j] = outputs[j] ? &outputs[j][n_samples] : NULL;
+		src  = &src [n_samples];
+		dest = &dest[n_samples];
 	}
 	
 	// After having applied the transformer, if any parameters
@@ -338,7 +353,7 @@ int propagate_transformer(tm_pipeline *pipeline, tm_transformer *trans)
 	
 	int ret_val = NO_ERROR;
 	
-	if (!trans->compute_transformer)
+	if (!trans->compute_transformer_nl && !trans->compute_transformer)
 	{
 		ret_val = ERR_TRANSFORMER_MALFORMED;
 		calc = 0;
@@ -349,7 +364,12 @@ int propagate_transformer(tm_pipeline *pipeline, tm_transformer *trans)
 	
 	// run_transformer
 	if (calc)
-		ret_val = trans->compute_transformer(trans->data_struct, dest, src, AUDIO_BLOCK_SAMPLES);
+	{
+		if (trans->compute_transformer_nl)
+			ret_val = trans->compute_transformer_nl(trans->data_struct, dest, src, AUDIO_BLOCK_SAMPLES);
+		else
+			ret_val = trans->compute_transformer(trans->data_struct, dest[0], src[0], AUDIO_BLOCK_SAMPLES);
+	}
 	
 	if (!calc || ret_val != NO_ERROR)
 		run_bypass(dest, src, trans->n_inputs, n_valid_inputs, trans->n_outputs);

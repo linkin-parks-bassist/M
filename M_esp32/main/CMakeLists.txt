@@ -1,4 +1,5 @@
 idf_component_register(SRCS "em.c"
+							"em_sd.c"
 							"em_i2c.c"
 							"em_comms.c"
 							"em_display.c"
@@ -7,6 +8,7 @@ idf_component_register(SRCS "em.c"
 							"em_ui.c"
 							"m_comms.c"
 							"m_error_codes.c"
+							"m_transformer_enum.c"
 							"em_comms.c"
 							"em_touch_irq.c"
 							"em_context.c"
@@ -23,6 +25,9 @@ idf_component_register(SRCS "em.c"
 							"em_profile.c"
 							"em_profile_view.c"
 							"em_context.c"
+							"em_files.c"
+							"em_profile_send.c"
+							"em_menu.c"
 					INCLUDE_DIRS "." "../../shared" "../include")
 
 target_compile_options(${COMPONENT_LIB} PRIVATE -DM_ESP32)

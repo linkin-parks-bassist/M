@@ -1,14 +1,14 @@
 #include "tm.h"
 
-int calc_biquad(void *data_struct, float **dest, float **src, int n_samples)
+int calc_biquad(void *data_struct, float *dest, float *src, int n_samples)
 {
 	if (!data_struct)
 		return ERR_NULL_PTR;
 	
 	tm_biquad_str *biquad = (tm_biquad_str*)data_struct;
 	
-	float *in_buffer  =  src ? (src[0]  ?  src[0] : zero_buffer) : zero_buffer;
-	float *out_buffer = dest ? (dest[0] ? dest[0] : sink_buffer) : sink_buffer;
+	float *in_buffer  =  src ? src  : zero_buffer;
+	float *out_buffer = dest ? dest : sink_buffer;
 	
 	float in_sample, out_sample;
 	
@@ -43,21 +43,6 @@ int calc_biquad(void *data_struct, float **dest, float **src, int n_samples)
 	}
 	
 	return NO_ERROR;
-}
-
-int init_biquad_struct_lowpass(tm_biquad_str *biquad, float cutoff)
-{
-	return init_biquad_struct(biquad, low_pass, cutoff, 0.707, 1.0);
-}
-
-int init_biquad_struct_highpass(tm_biquad_str *biquad, float cutoff)
-{
-	return init_biquad_struct(biquad, high_pass, cutoff, 0.707, 1.0);
-}
-
-int init_biquad_struct_bandpass(tm_biquad_str *biquad, float center, float bandwidth)
-{
-	return init_biquad_struct(biquad, band_pass, center, bandwidth, 1.0);
 }
 
 int reconfigure_biquad(void *data_struct)
@@ -155,14 +140,10 @@ int reconfigure_biquad(void *data_struct)
 	return NO_ERROR;
 }
 
-int init_biquad_struct_default(tm_biquad_str *str)
+int init_biquad_str(tm_biquad_str *str)
 {
 	if (!str)
 		return ERR_NULL_PTR;
-	
-	str->type.value = band_pass;
-	
-	reconfigure_biquad(str);
 	
 	str->x1 = 0.0;
 	str->x2 = 0.0;
@@ -170,130 +151,4 @@ int init_biquad_struct_default(tm_biquad_str *str)
 	str->y2 = 0.0;
 	
 	return NO_ERROR;
-}
-
-int init_biquad_struct(tm_biquad_str *biquad, biquad_type type, float cutoff, float bandwidth, float db_gain)
-{
-	if (!biquad)
-		return ERR_NULL_PTR;
-	
-	init_option_simple(&biquad->type, type);
-
-	init_parameter_simple(&biquad->cutoff, cutoff);
-	init_parameter_simple(&biquad->bandwidth, bandwidth);
-	init_parameter_simple(&biquad->db_gain, db_gain);
-	
-	reconfigure_biquad(biquad);
-	
-	biquad->x1 = 0.0;
-	biquad->x2 = 0.0;
-	biquad->y1 = 0.0;
-	biquad->y2 = 0.0;
-	
-	return NO_ERROR;
-}
-
-int init_biquad(tm_transformer *trans, vec2i input, vec2i output, biquad_type type, float cutoff, float bandwidth, float db_gain)
-{
-	if (!trans)
-		return ERR_NULL_PTR;
-	
-	trans->type = TRANSFORMER_BIQUAD;
-	trans->bypass = 0;
-	
-	trans->n_inputs  = 1;
-	trans->n_outputs = 1;
-	
-	trans->inputs [0] = input;
-	trans->outputs[0] = output;
-	
-	tm_biquad_str *data_struct = (tm_biquad_str*)malloc(sizeof(tm_biquad_str));
-	
-	int ret_val = init_biquad_struct(data_struct, type, cutoff, bandwidth, db_gain);
-	
-	if (ret_val != NO_ERROR)
-	{
-		free(data_struct);
-		return ret_val;
-	}
-	
-	trans->data_struct = (void*)data_struct;
-	
-	trans->compute_transformer = &calc_biquad;
-	
-	transformer_add_option(trans, &data_struct->type);
-	
-	transformer_add_parameter(trans, &data_struct->cutoff);
-	transformer_add_parameter(trans, &data_struct->bandwidth);
-	transformer_add_parameter(trans, &data_struct->db_gain);
-	
-	return NO_ERROR;
-}
-
-tm_transformer *alloc_biquad_transformer(vec2i input, vec2i output, biquad_type type, float cutoff, float bandwidth, float db_gain)
-{
-	tm_transformer *biquad = (tm_transformer*)malloc(sizeof(tm_transformer));
-	int ret_val;
-	if ((ret_val = init_biquad(biquad, input, output, type, cutoff, bandwidth, db_gain)) != NO_ERROR)
-	{
-		if (biquad)
-			free(biquad);
-		return NULL;
-	}
-	return biquad;
-}
-
-int init_low_pass(tm_transformer *trans, vec2i input, vec2i output, float cutoff)
-{
-	return init_biquad(trans, input, output, low_pass, cutoff, 0.707, 1.0);
-}
-
-int init_high_pass(tm_transformer *trans, vec2i input, vec2i output, float cutoff)
-{
-	return init_biquad(trans, input, output, high_pass, cutoff, 0.707, 1.0);
-}
-
-int init_band_pass(tm_transformer *trans, vec2i input, vec2i output, float center, float bandwidth)
-{
-	return init_biquad(trans, input, output, band_pass, center, bandwidth, 1.0);
-}
-
-
-tm_transformer *alloc_low_pass_transformer(vec2i input, vec2i output, float cutoff)
-{
-	tm_transformer *biquad = (tm_transformer*)malloc(sizeof(tm_transformer));
-	int ret_val;
-	if ((ret_val = init_low_pass(biquad, input, output, cutoff)) != NO_ERROR)
-	{
-		if (biquad)
-			free(biquad);
-		return NULL;
-	}
-	return biquad;
-}
-
-tm_transformer *alloc_high_pass_transformer(vec2i input, vec2i output, float cutoff)
-{
-	tm_transformer *biquad = (tm_transformer*)malloc(sizeof(tm_transformer));
-	int ret_val;
-	if ((ret_val = init_high_pass(biquad, input, output, cutoff)) != NO_ERROR)
-	{
-		if (biquad)
-			free(biquad);
-		return NULL;
-	}
-	return biquad;
-}
-
-tm_transformer *alloc_band_pass_transformer(vec2i input, vec2i output, float center, float bandwidth)
-{
-	tm_transformer *biquad = (tm_transformer*)malloc(sizeof(tm_transformer));
-	int ret_val;
-	if ((ret_val = init_band_pass(biquad, input, output, center, bandwidth)) != NO_ERROR)
-	{
-		if (biquad)
-			free(biquad);
-		return NULL;
-	}
-	return biquad;
 }

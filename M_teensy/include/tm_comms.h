@@ -7,4 +7,7 @@ int init_esp32_link();
 
 void esp32_message_check_handle();
 
+void i2c_recieve_isr(int n);
+void i2c_request_isr();
+
 #endif

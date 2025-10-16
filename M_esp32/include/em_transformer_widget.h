@@ -13,7 +13,7 @@
 
 #define TRANSFORMER_WIDGET_DEL_BTN_FADE_IN_MS 	75
 #define TRANSFORMER_WIDGET_DEL_BTN_FADE_OUT_MS 	300
-#define TRANSFORMER_WIDGET_DEL_BTN_REMAIN_MS 	1000
+#define TRANSFORMER_WIDGET_DEL_BTN_REMAIN_MS 	STANDARD_DEL_BTN_REMAIN_MS
 
 #define TRANSFORMER_WIDGET_DEL_ANIM_MS 			100
 
@@ -65,7 +65,6 @@ void transformer_widget_pressing_cb(lv_event_t *e);
 void transformer_widget_trigger_scale_anim(em_transformer_widget *tw, int direction);
 void transformer_widget_trigger_glide_anim(em_transformer_widget *tw, int32_t new_pos_y);
 
-void transformer_widget_delete(em_transformer_widget *tw);
 void free_transformer_widget(em_transformer_widget *tw);
 
 DECLARE_LINKED_PTR_LIST(em_transformer_widget);

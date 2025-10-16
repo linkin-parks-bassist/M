@@ -1,0 +1,5 @@
+name: "High Pass Filter"
+parameters:
+- name: "Cutoff Frequency"
+  default: 1000.0
+  type: freq

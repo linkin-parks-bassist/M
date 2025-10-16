@@ -1,0 +1,24 @@
+name: "Compressor"
+parameters:
+- name: "Ratio"
+  default: 2.0
+  min: 1.0
+  max: 10.0
+
+- name: "Threshold"
+  default: -5.0
+  min:   0.0
+  max: -30.0
+  units: db
+
+- name: "Attack"
+  default: 30.0
+  min: 0.01
+  max: 250.0
+  units: ms
+
+- name: "Release"
+  default: 30.0
+  min: 0.01
+  max: 250.0
+  units: ms

@@ -16,6 +16,7 @@ typedef struct
 	tm_pipe_line_mod_linked_list *jobs;
 	tm_pipe_line_mod_linked_list *ujobs;
 	
+	int active;
 	int transition_policy;
 	
 	float *prev_block;

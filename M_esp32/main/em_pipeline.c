@@ -61,3 +61,68 @@ int em_pipeline_remove_transformer(em_pipeline *pipeline, uint16_t id)
 	printf("em_pipeline_remove_transformer finished without finding the transformer\n");
 	return ERR_INVALID_TRANSFORMER_ID;
 }
+
+int em_pipeline_get_n_transformers(em_pipeline *pipeline)
+{
+	if (!pipeline)
+		return -ERR_NULL_PTR;
+	
+	int n = 0;
+	
+	em_transformer_ll *current = pipeline->transformers;
+	
+	while (current)
+	{
+		if (current->data)
+			n++;
+		current = current->next;
+	}
+	
+	return n;
+}
+
+int clone_pipeline(em_pipeline *dest, em_pipeline *src)
+{
+	if (!src || !dest)
+		return ERR_NULL_PTR;
+	
+	printf("Cloning pipeline...\n");
+	
+	em_transformer_ll *current = src->transformers;
+	em_transformer_ll *nl;
+	em_transformer *trans = NULL;
+	
+	int i = 0;
+	while (current)
+	{
+		printf("Cloning transformer %d... current = %p, current->next = %p\n", i, current, current->next);
+		if (current->data)
+		{
+			trans = malloc(sizeof(em_transformer));
+			
+			if (!trans)
+				return ERR_ALLOC_FAIL;
+			
+			clone_transformer(trans, current->data);
+			
+			nl = em_transformer_ptr_linked_list_append(dest->transformers, trans);
+		
+			if (nl)
+				dest->transformers = nl;
+		}
+		
+		current = current->next;
+		i++;
+	}
+	
+	return NO_ERROR;
+}
+
+void gut_pipeline(em_pipeline *pipeline)
+{
+	if (!pipeline)
+		return;
+	
+	destructor_free_em_transformer_ptr_linked_list(pipeline->transformers, free_transformer);
+	pipeline->transformers = NULL;
+}

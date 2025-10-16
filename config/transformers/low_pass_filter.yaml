@@ -1,0 +1,5 @@
+name: "Low Pass Filter"
+parameters:
+- name: "Cutoff Frequency"
+  default: 100.0
+  type: freq

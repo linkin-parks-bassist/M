@@ -3,16 +3,21 @@
 
 #define MAX_N_PROFILES 256
 
+typedef em_profile_ptr_linked_list profile_ll;
+
 typedef struct
 {
 	int n_profiles;
-	int active_profile;
+	int active_profile_id;
 	
-	int profile_array_length;
-	
-	em_profile *profiles;
+	em_profile *working_profile;
+	em_profile *active_profile;
 	
 	em_ui_context ui_cxt;
+	
+	em_profile_ptr_linked_list *profiles;
+	
+	int saved_profiles_loaded;
 } em_context;
 
 extern em_context global_cxt;
@@ -30,6 +35,9 @@ em_option *cxt_get_option_by_id(em_context *cxt, uint16_t profile_id, uint16_t t
 int cxt_transformer_id_to_position(em_context *cxt, uint16_t profile_id, uint16_t transformer_id);
 int cxt_transformer_position_to_id(em_context *cxt, uint16_t profile_id, uint16_t transformer_pos);
 
+int cxt_remove_profile(em_context *cxt, em_profile *profile);
 int cxt_remove_transformer(em_context *cxt, uint16_t pid, uint16_t tid);
+
+int set_active_profile(em_profile *profile);
 
 #endif

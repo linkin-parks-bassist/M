@@ -11,8 +11,8 @@ typedef struct
 	float last_out_sample;
 } tm_dirty_octave_str;
 
+int init_dirty_octave_str(tm_dirty_octave_str *str);
 int reconfigure_dirty_octave(void *data_struct);
-int calc_dirty_octave(void *data_struct, float **dest, float **src, int n_samples);
-int init_dirty_octave_struct_default(tm_dirty_octave_str *str);
+int calc_dirty_octave(void *data_struct, float *dest, float *src, int n_samples);
 
 #endif

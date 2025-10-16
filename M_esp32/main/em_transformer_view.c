@@ -2,6 +2,37 @@
 
 static const char *TAG = "em_transformer_view.c";
 
+em_ui_page *make_transformer_view_for(em_transformer *trans)
+{
+	if (!trans)
+		return NULL;
+	
+	em_ui_page *page = malloc(sizeof(em_ui_page));
+	
+	if (!page)
+		return NULL;
+	
+	init_ui_page(page);
+	
+	int ret_val = init_transformer_view(page);
+	
+	if (ret_val != NO_ERROR)
+	{
+		free_transformer_view(page);
+		return NULL;
+	}
+	
+	ret_val = configure_transformer_view(page, trans);
+	
+	if (ret_val != NO_ERROR)
+	{
+		free_transformer_view(page);
+		return NULL;
+	}
+	
+	return page;
+}
+
 int init_transformer_view(em_ui_page *page)
 {
 	printf("Init transformer view...\n");
@@ -15,16 +46,10 @@ int init_transformer_view(em_ui_page *page)
 	if (!str)
 		return ERR_ALLOC_FAIL;
 	
-	str->col_dsc[0] = 250;
-	str->col_dsc[1] = 200;
-	str->col_dsc[2] = LV_GRID_TEMPLATE_LAST;
-	
-	str->trans = NULL;
+	str->trans 			   = NULL;
 	str->parameter_widgets = NULL;
 	
-	str->grid = NULL;
-	
-	str->row_dsc = NULL;
+	str->container 		   = NULL;
 	
 	page->configure  		 = configure_transformer_view;
 	page->create_ui  		 = create_transformer_view_ui;
@@ -32,18 +57,25 @@ int init_transformer_view(em_ui_page *page)
 	page->enter_page_forward = enter_transformer_view_forward;
 	page->enter_page_back 	 = enter_transformer_view_back;
 	
+	for (int i = 0; i < TRANSFORMER_VIEW_MAX_GROUPS; i++)
+		str->group_containers[i] = NULL;
+	
 	printf("Done\n");
 	return NO_ERROR;
 }
 
 int configure_transformer_view(em_ui_page *page, void *data)
 {
-	printf("Configure transformer view...\n");
-	if (!data)
+	printf("Configure transformer view... page = %p, data = %p\n", page, data);
+	if (!page || !data)
 	{
-		page->data_struct = NULL;
+		if (page)
+			page->data_struct = NULL;
 		return ERR_NULL_PTR;
 	}
+	
+	if (page->configured)
+		return NO_ERROR;
 	
 	em_transformer *trans = (em_transformer*)data;
 	em_transformer_view_str *str = page->data_struct;
@@ -69,6 +101,8 @@ int configure_transformer_view(em_ui_page *page, void *data)
 		str->parameter_widgets = em_parameter_widget_ptr_linked_list_append(str->parameter_widgets, pw);
 	}
 	
+	page->configured = 1;
+	
 	printf("Done.\n");
 	return NO_ERROR;
 }
@@ -78,6 +112,9 @@ int create_transformer_view_ui(em_ui_page *page)
 	printf("Create transformer view ui...\n");
 	if (!page)
 		return ERR_NULL_PTR;
+	
+	if (page->ui_created)
+		return NO_ERROR;
 	
 	page->screen = lv_obj_create(NULL);
 	
@@ -91,43 +128,59 @@ int create_transformer_view_ui(em_ui_page *page)
 	if (!str->trans)
 		return ERR_BAD_ARGS;
 	
-	int n_rows = (str->trans->n_parameters + 1) / 2;
-	
-	str->row_dsc = malloc(sizeof(lv_coord_t) * (n_rows + 1));
-	
-	if (!str->row_dsc)
-		return ERR_ALLOC_FAIL;
-	
-	for (int i = 0; i < n_rows; i++)
-		str->row_dsc[i] = TRANSFORMER_VIEW_GRID_CELL_VSIZE;
-	
-	str->row_dsc[n_rows] = LV_GRID_TEMPLATE_LAST;
-	
-	str->grid = lv_obj_create(page->screen);
-	
 	printf("Create top panel...\n");
 	create_top_panel_with_back_button(page, transformer_type_name(str->trans->type), NULL);
 	
-	lv_obj_set_style_grid_column_dsc_array(str->grid, str->col_dsc, 0);
-	lv_obj_set_style_grid_row_dsc_array(str->grid, str->row_dsc, 0);
-	lv_obj_set_size(str->grid, 500, 800);
-	lv_obj_center(str->grid);
+	str->container = lv_obj_create(page->screen);
+    
+    lv_obj_set_layout(str->container, LV_LAYOUT_FLEX);
+    lv_obj_set_flex_flow(str->container, LV_FLEX_FLOW_ROW_WRAP);
+    lv_obj_set_flex_align(str->container, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_SPACE_EVENLY);
 	
-	lv_obj_set_layout(str->grid, LV_LAYOUT_GRID);
+	lv_obj_set_size(str->container, 500, 800);
+	
+	lv_obj_center(str->container);
+	
+	if (str->trans->n_parameters <= 3)
+		lv_obj_set_style_pad_bottom(str->container, 320, 0);
 
 	int i = 0;
+	int group;
 	em_parameter_widget_ptr_linked_list *current = str->parameter_widgets;
 	
 	while (current)
 	{
 		if (current->data)
 		{
-			parameter_widget_create_ui(current->data, str->grid);
-			lv_obj_set_grid_cell(current->data->obj, LV_GRID_ALIGN_CENTER, i % 2, 1, LV_GRID_ALIGN_CENTER, i / 2, 1);
+			if (current->data->param)
+			{
+				group = current->data->param->group;
+				if (0 <= group && group < TRANSFORMER_VIEW_MAX_GROUPS)
+				{
+					if (!str->group_containers[group])
+					{
+						str->group_containers[group] = lv_obj_create(str->container);
+						lv_obj_remove_style_all(str->group_containers[group]);
+						lv_obj_set_flex_flow (str->group_containers[group], LV_FLEX_FLOW_ROW_WRAP);
+						lv_obj_set_flex_align(str->group_containers[group], LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_SPACE_EVENLY);
+					}
+					
+					parameter_widget_create_ui(current->data, str->group_containers[group]);
+					
+					lv_obj_set_width(str->group_containers[group], LV_SIZE_CONTENT);
+					lv_obj_set_height(str->group_containers[group], LV_SIZE_CONTENT);
+				}
+				else
+				{
+					parameter_widget_create_ui(current->data, str->container);
+				}
+			}
 		}
 		current = current->next;
 		i++;
 	}
+	
+	page->ui_created = 1;
 	
 	printf("Done\n");
 	return NO_ERROR;
@@ -145,6 +198,11 @@ int enter_transformer_view(em_ui_page *page)
 
 int enter_transformer_view_forward(em_ui_page *page)
 {
+	if (!page)
+	{
+		printf("Error: transformer view is NULL\n");
+		return ERR_NULL_PTR;
+	}
 	printf("Enter transformer view...\n");
 	lv_scr_load_anim(page->screen, LV_SCR_LOAD_ANIM_MOVE_LEFT, UI_PAGE_TRANSITION_ANIM_MS, 0, false);
 	
@@ -211,10 +269,10 @@ int free_transformer_view(em_ui_page *page)
 	em_transformer_view_str *str = (em_transformer_view_str*)page->data_struct;
 	
 	if (str)
-	{
 		destructor_free_em_parameter_widget_ptr_linked_list(str->parameter_widgets, free_parameter_widget);
-		free(str->row_dsc);
-	}
+	
+	if (page->screen)
+		lv_obj_del(page->screen);
 	
 	free(page);
 	

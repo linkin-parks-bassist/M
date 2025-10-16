@@ -16,12 +16,13 @@ int init_tm_context(tm_context *cxt)
 	if (!cxt->profiles)
 		return ERR_ALLOC_FAIL;
 	
-	for (int i = 1; i < cxt->profile_array_size; i++)
+	for (int i = 0; i < cxt->profile_array_size; i++)
 		nullify_profile(&cxt->profiles[i]);
 	
 	init_profile(&cxt->profiles[0]);
 	cxt->n_profiles = 1;
 	cxt->active_profile = 0;
+	cxt->profiles[0].active = 1;
 	
 	cxt->unconfigured_pipeline = NULL;
 	
@@ -124,6 +125,9 @@ tm_parameter *cxt_get_parameter_by_id(tm_context *cxt, uint16_t pid, uint16_t ti
 	
 	tm_transformer *trans = pipe_line_get_transformer_by_id(cxt->profiles[pid].front_pipeline, tid);
 	
+	if (!trans)
+		return NULL;
+	
 	if (ppid >= trans->n_parameters)
 		return NULL;
 	
@@ -190,18 +194,32 @@ int cxt_update_parameter_value_by_id(tm_context *cxt, uint16_t pid, uint16_t tid
 	if (!back_param)
 		return ERR_INCONSISTENT_BACK_PIPELINE;
 	
-	front_param->new_value = new_value;
-	front_param->updated = 1;
-	
-	if (cxt->profiles[pid].pipelines_swapping)
+	if (cxt->profiles[pid].active)
 	{
-		back_param->new_value = new_value;
-		back_param->updated = 1;
+		front_param->new_value = new_value;
+		front_param->updated = 1;
+		
+		if (cxt->profiles[pid].pipelines_swapping)
+		{
+			back_param->new_value = new_value;
+			back_param->updated = 1;
+		}
+		else
+		{
+			back_param->value = new_value;
+			back_param->updated = 0;
+		}
 	}
 	else
 	{
+		front_param->new_value = new_value;
+		front_param->old_value = new_value;
+		front_param->value = new_value;
+		front_param->updated = 1;
+		back_param->new_value = new_value;
+		back_param->old_value = new_value;
 		back_param->value = new_value;
-		back_param->updated = 0;
+		back_param->updated = 1;
 	}
 	
 	return NO_ERROR;
@@ -239,7 +257,11 @@ int cxt_update_option_value_by_id(tm_context *cxt, uint16_t pid, uint16_t tid, u
 void tm_safe_reboot(tm_context *cxt)
 {
 	tm_printf("Rebooting...\n");
+	#ifndef TM_SIMULATED
 	_reboot_Teensyduino_(); //rofl
+	#else
+	
+	#endif
 }
 
 int reset_context(tm_context *cxt)
@@ -260,7 +282,7 @@ int cxt_append_transformer_to_profile(tm_context *cxt, uint16_t pid, uint16_t ty
 	if (pid > cxt->n_profiles)
 		return -ERR_BAD_ARGS;
 	
-	int ret_val = profile_apply_pipeline_mod(&cxt->profiles[cxt->active_profile], create_pipe_line_mod_append_transformer(type));
+	int ret_val = profile_apply_pipeline_mod(&cxt->profiles[pid], create_pipe_line_mod_append_transformer(type));
 	
 	return ret_val;
 }
@@ -477,8 +499,13 @@ int runs = 0;
 
 int cxt_process(tm_context *cxt)
 {
+	
+	#ifndef TM_SIMULATED
 	static uint32_t last_runtime = micros();
 	uint32_t end_time;
+	#else
+	
+	#endif
 	
 	int16_t block[AUDIO_BLOCK_SAMPLES];
 	uint8_t click_buffer[AUDIO_BLOCK_SAMPLES + DECLICK_BUFSIZE - 1];
@@ -489,11 +516,20 @@ int cxt_process(tm_context *cxt)
 	float s1, s2;
 	float *tmp;
 	
+	#ifndef TM_SIMULATED
 	i2s_input_update();
 	cxt_update_avg_noise(cxt, i2s_input_blocks[1].data);
+	#else
+	tmsim_get_input_block(block);
+	#endif
 	
+	
+	#ifndef TM_SIMULATED
 	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
 		block[i] = i2s_input_blocks[1].data[i] - (int16_t)cxt->avg_noise[i];
+	#else
+	
+	#endif
 	
 	if (cxt->profile_switch_triggered)
 	{
@@ -511,7 +547,12 @@ int cxt_process(tm_context *cxt)
 	float *output_buffers[2] = {NULL, NULL};
 	
 	float ratio;
+	
+	#ifndef TM_SIMULATED
 	uint32_t start_time = micros();
+	#else
+	
+	#endif
 	
 	if (!src)
 		goto panic_bypass;
@@ -526,6 +567,8 @@ int cxt_process(tm_context *cxt)
 	if (cxt->profiles_switching)
 	{
 		tm_profile *new_profile = &cxt->profiles[cxt->new_profile];
+		
+		new_profile->active = 1;
 		
 		int switch_complete = 0;
 		
@@ -615,7 +658,9 @@ int cxt_process(tm_context *cxt)
 		
 		if (switch_complete)
 		{
+			cxt->profiles[cxt->active_profile].active = 0;
 			cxt->active_profile = cxt->new_profile;
+			cxt->profiles[cxt->active_profile].active = 1;
 			cxt->profiles_switching = 0;
 		}
 		
@@ -627,6 +672,8 @@ int cxt_process(tm_context *cxt)
 		profile_process(active_profile, dest, src);
 	}
 	
+	
+	#ifndef TM_SIMULATED
 	i2s_output_transmit_mono_float(dest);
 	i2s_output_update();
 	
@@ -647,11 +694,18 @@ int cxt_process(tm_context *cxt)
 	#endif
 	}
 
+	#else
+	tmsim_send_output_block(dest);
+	#endif
+	
+	
 	
 	release_buffer(src);
 	release_buffer(dest);
 
+	#ifndef TM_SIMULATED
 	asm("DSB");
+	#endif
 	
 	return NO_ERROR;
 
@@ -668,7 +722,12 @@ panic_bypass:
 		release_buffer(output_buffers[1]);
 	
 	tm_printf("alloc fail!!\n");
+	
+	#ifndef TM_SIMULATED
 	i2s_output_transmit_mono_int(block);
 	asm("DSB");
+	#else
+	
+	#endif
 	return ERR_NULL_PTR;
 }

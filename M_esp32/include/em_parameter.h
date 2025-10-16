@@ -9,11 +9,8 @@
 
 #define PARAM_NAME_MAX_LEN 254
 
-#define PARAM_WIDGET_VIRTUAL_POT 0
-
-#define OPTION_WIDGET_HSLIDER 	 0
-#define OPTION_WIDGET_VSLIDER 	 1
-#define OPTION_WIDGET_SWITCH 	 2
+#define PARAMETER_SCALE_LINEAR		0
+#define PARAMETER_SCALE_LOGARITHMIC	1
 
 typedef struct
 {
@@ -36,6 +33,11 @@ typedef struct
 	
 	int widget_type;
 	char *name;
+	char *units;
+	
+	int scale;
+	
+	int group;
 } em_parameter;
 
 typedef struct
@@ -62,5 +64,8 @@ int init_parameter(em_parameter *param, char *name, float level, float min, floa
 
 int init_em_option(em_option *option);
 int init_option(em_option *option, char *name, uint16_t level);
+
+void clone_parameter(em_parameter *dest, em_parameter *src);
+void clone_option(em_option *dest, em_option *src);
 
 #endif

@@ -11,8 +11,6 @@
 #define FADER_FADE_IN  0
 #define FADER_FADE_OUT 1
 
-#define LN_2 0.69314718055994530942
-
 #define PRINT_TRANSFORMER_INFO
 
 #define TRANSFORMER_SWITCH_ACTION_BYPASS 0
@@ -44,7 +42,8 @@ typedef struct
 	tm_parameter **parameters;
 	
 	void *data_struct;
-	int (*compute_transformer)(void *data_struct, float **dest, float **src, int n_samples);
+	int (*compute_transformer)(void *data_struct, float *dest, float *src, int n_samples);
+	int (*compute_transformer_nl)(void *data_struct, float **dest, float **src, int n_samples);
 	
 	int (*reconfigure)(void *data_struct);
 	int (*free_struct)(void *data_struct);
@@ -53,13 +52,6 @@ typedef struct
 	int transition_policy;
 } tm_transformer;
 
-int init_transformer(tm_transformer *trans, int type,
-					 unsigned int n_inputs,  unsigned int n_outputs,
-					 vec2i 		   *inputs,  vec2i 		  *outputs,
-					 int n_options, int n_parameters,
-					 void *data_struct,
-					 int (*compute_transformer)(void *data_struct, float **dest, float **src, int n));
-
 int transformer_add_option(tm_transformer *trans, tm_option *option);
 int transformer_add_parameter(tm_transformer *trans, tm_parameter *param);
 
@@ -67,11 +59,9 @@ tm_parameter *transformer_get_parameter(tm_transformer *trans, uint16_t ppid);
 tm_option *transformer_get_option(tm_transformer *trans, uint16_t oid);
 
 int transformer_init_parameter_array(tm_transformer *trans, int n);
-int transformer_init_n_options(tm_transformer *trans, int n);
+int transformer_init_option_array(tm_transformer *trans, int n);
 
-int init_transformer_default(tm_transformer *trans, uint16_t type);
-
-int run_transformer(tm_transformer *trans, float **dest, float **src);
+int run_transformer(tm_transformer *trans, float *dest, float *src);
 
 void free_transformer(tm_transformer *trans);
 

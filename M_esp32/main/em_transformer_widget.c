@@ -47,15 +47,12 @@ void transformer_widget_scale_cb(void *data, int32_t value)
 	
 	tw->pos_y = tw->pos_y - (new_height - lv_obj_get_height(tw->obj));
 	lv_obj_align(tw->obj, LV_ALIGN_TOP_MID, 0, tw->pos_y);
-	
-	printf("transformer_widget_scale_cb. new_width = %d, new_height = %d, tw->pos_y = %d\n", (int)new_width, (int)new_height, tw->pos_y);
 }
 
 void transformer_widget_glide_cb(void *data, int32_t value)
 {
 	em_transformer_widget *tw = (em_transformer_widget*)data;
 	
-	printf("transformer_widget_glide_cb; %p : %d -> %d\n", tw, lv_obj_get_y(tw->obj), (int)value);
 	lv_obj_set_y(tw->obj, value);
 	tw->pos_y = value;
 }
@@ -74,7 +71,7 @@ void transformer_widget_del_button_faded_out_cb(lv_anim_t *anim)
 	lv_obj_add_flag(tw->del_button, LV_OBJ_FLAG_HIDDEN);
 }
 
-void transformer_widget_delete_anim_cb(void *data, int32_t value)
+void free_transformer_widget_anim_cb(void *data, int32_t value)
 {
 	em_transformer_widget *tw = (em_transformer_widget*)data;
 	
@@ -140,18 +137,18 @@ void transformer_widget_trigger_del_button_fade_out(em_transformer_widget *tw)
 	lv_anim_start(&tw->del_button_fade);
 }
 
-void transformer_widget_delete_anim_ready_cb(lv_anim_t *anim)
+void free_transformer_widget_anim_ready_cb(lv_anim_t *anim)
 {
 	em_transformer_widget *tw = (em_transformer_widget*)anim->user_data;
-	transformer_widget_delete(tw);
+	free_transformer_widget(tw);
 }
 
 void transformer_widget_trigger_del_anim(em_transformer_widget *tw)
 {
 	lv_anim_init			(&tw->delete_anim);
 	lv_anim_set_var			(&tw->delete_anim, tw);
-	lv_anim_set_exec_cb		(&tw->delete_anim, transformer_widget_delete_anim_cb);
-	lv_anim_set_ready_cb	(&tw->delete_anim, transformer_widget_delete_anim_ready_cb);
+	lv_anim_set_exec_cb		(&tw->delete_anim, free_transformer_widget_anim_cb);
+	lv_anim_set_ready_cb	(&tw->delete_anim, free_transformer_widget_anim_ready_cb);
 	lv_anim_set_time		(&tw->delete_anim, TRANSFORMER_WIDGET_DEL_ANIM_MS);
 	lv_anim_set_values		(&tw->delete_anim, 100, 0);
 	
@@ -170,6 +167,7 @@ int transformer_widget_force_index(em_transformer_widget *tw, int i)
 	transformer_widget_trigger_glide_anim(tw, new_pos_y);
 	
 	tw->index = i;
+	tw->prev_index = i;
 	
 	return NO_ERROR;
 }
@@ -226,8 +224,6 @@ void transformer_widget_long_pressed_cb(lv_event_t *e)
 	local_point.y -= parent_coords.y1;
 	
 	tw->relative_touch_y = local_point.y - tw->pos_y;
-	
-    profile_view_enter_drag_state(tw->parent);
     
 	transformer_widget_trigger_scale_anim(tw, TRANSFORMER_WIDGET_SCALE_EXPAND);
 	
@@ -292,8 +288,6 @@ void transformer_widget_pressing_cb(lv_event_t *e)
 			else
 				current->data->index = i;
 			
-			printf("Transformer %d has index %d\n", j, i);
-			
 			current = current->next;
 			j++;
 		}
@@ -317,15 +311,27 @@ void transformer_widget_release_cb(lv_event_t *e)
 		tw->long_pressed = 0;
 		
 		transformer_widget_trigger_scale_anim(tw, TRANSFORMER_WIDGET_SCALE_CONTRACT);
-		profile_view_exit_drag_state(tw->parent);
 		
 		transformer_widget_force_index(tw, tw->index);
 		
 		if (tw->index != tw->prev_index)
 		{
+			if (!tw->trans)
+			{
+				ESP_LOGE(TAG, "Transformer widget is not associated with a transformer!\n");
+				return;
+			}
+			
+			
 			printf("Send message to move transformer %d to position %d\n", tw->trans->transformer_id, tw->index);
-			queue_msg_to_teensy(create_et_msg(ET_MESSAGE_MOVE_TRANSFORMER, "sss", tw->trans->transformer_id, tw->index));
+			queue_msg_to_teensy(create_et_msg(ET_MESSAGE_MOVE_TRANSFORMER, "sss", tw->trans->profile_id, tw->trans->transformer_id, tw->index));
 			tw->prev_index = tw->index;
+			
+			if (tw->parent && tw->parent->data_struct && ((em_profile_view_str*)tw->parent->data_struct)->profile)
+			{
+				((em_profile_view_str*)tw->parent->data_struct)->profile->unsaved_changes = 1;
+				profile_view_refresh_save_button(tw->parent);
+			}
 		}
 		
 		tw->del_button_remain_timer = lv_timer_create(transformer_widget_del_button_remain_timer_cb, TRANSFORMER_WIDGET_DEL_BTN_REMAIN_MS, tw);
@@ -359,6 +365,13 @@ void tw_del_button_cb(lv_event_t *e)
 		cxt_remove_transformer(&global_cxt, tw->trans->profile_id, tw->trans->transformer_id);
 	}
 	printf("tw_del_button_cb done\n");
+	
+	if (tw->parent && tw->parent->data_struct)
+	{
+		if (((em_profile_view_str*)tw->parent->data_struct)->profile)
+			((em_profile_view_str*)tw->parent->data_struct)->profile->unsaved_changes = 1;
+		profile_view_refresh_save_button(tw->parent);
+	}
 }
 
 int create_transformer_widget_ui(em_transformer_widget *tw, lv_obj_t *parent)
@@ -387,10 +400,6 @@ int create_transformer_widget_ui(em_transformer_widget *tw, lv_obj_t *parent)
 		lv_obj_add_event_cb(tw->obj, transformer_widget_long_pressed_cb, LV_EVENT_LONG_PRESSED, tw);
 		lv_obj_add_event_cb(tw->obj, transformer_widget_pressing_cb, LV_EVENT_PRESSING, tw);
 	}
-	else
-	{
-		lv_obj_add_event_cb(tw->obj, enter_transformer_selector_cb, LV_EVENT_CLICKED, tw->parent);
-	}
 	
 	tw->del_button = lv_btn_create(tw->obj);
 	lv_obj_align(tw->del_button, LV_ALIGN_RIGHT_MID, 10, 0);
@@ -399,36 +408,33 @@ int create_transformer_widget_ui(em_transformer_widget *tw, lv_obj_t *parent)
 	lv_obj_add_flag(tw->del_button, LV_OBJ_FLAG_HIDDEN);
 	
 	tw->del_button_label = lv_label_create(tw->del_button);
-	lv_label_set_text(tw->del_button_label, "X");
+	lv_label_set_text(tw->del_button_label, LV_SYMBOL_TRASH);
 	lv_obj_center(tw->del_button_label);
 	
 	printf("success\n");
 	return NO_ERROR;
 }
 
-void transformer_widget_delete(em_transformer_widget *tw)
-{
-	if (!tw)
-		return;
-	
-	lv_anim_del(tw, NULL);
-	
-	if (tw->del_button_remain_timer)
-	{
-		lv_timer_del(tw->del_button_remain_timer);
-		tw->del_button_remain_timer = NULL;
-	}
-	
-	lv_obj_del_async(tw->obj);
-	
-	profile_view_remove_tw(tw->parent, tw);
-}
-
-
 void free_transformer_widget(em_transformer_widget *tw)
 {
 	if (!tw)
 		return;
+	
+	// If its UI has been created
+	if (tw->obj)
+	{
+		lv_anim_del(tw, NULL);
+		
+		if (tw->del_button_remain_timer)
+		{
+			lv_timer_del(tw->del_button_remain_timer);
+			tw->del_button_remain_timer = NULL;
+		}
+		
+		lv_obj_del_async(tw->obj);
+		
+		profile_view_remove_tw_from_list(tw->parent, tw);
+	}
 	
 	free(tw);
 }

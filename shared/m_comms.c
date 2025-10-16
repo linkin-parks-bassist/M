@@ -61,6 +61,9 @@ int et_message_data_length(et_msg msg)
 		case ET_MESSAGE_SWITCH_PROFILE:
 			return 1 * sizeof(uint16_t);
 		
+		case ET_MESSAGE_DELETE_PROFILE:
+			return 1 * sizeof(uint16_t);
+		
 		default:
 			return -1;
 	}
@@ -183,7 +186,7 @@ et_msg create_et_msg_new_profile()
 
 int valid_et_msg_type(uint8_t type)
 {
-	return (ET_MESSAGE_HI <= type && type <= ET_MESSAGE_SWITCH_PROFILE);
+	return (ET_MESSAGE_HI <= type && type <= ET_MESSAGE_TYPE_MAX);
 }
 
 const char *et_msg_code_to_string(uint16_t code)
