@@ -1,0 +1,14 @@
+name: "3 Band Eq"
+parameters:
+- name: "Low"
+  min: 0.0
+  max: 2.0
+  default: 1.0
+- name: "Mid"
+  min: 0.0
+  max: 2.0
+  default: 1.0
+- name: "High"
+  min: 0.0
+  max: 2.0
+  default: 1.0

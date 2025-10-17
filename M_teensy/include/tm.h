@@ -85,6 +85,8 @@
 #include "tm_transformer_init.h"
 
 #include "tm_buffer_mixer_amp.h"
+#include "tm_linkowitz_riley.h"
+#include "tm_equaliser.h"
 #include "tm_pass_filter.h"
 #include "tm_biquad.h"
 #include "tm_compressor.h"

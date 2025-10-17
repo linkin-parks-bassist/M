@@ -398,6 +398,51 @@ int init_distortion(tm_transformer *trans)
 	return init_distortion_str(str);
 }
 
+int init_3_band_eq(tm_transformer *trans)
+{
+	if (!trans)
+		return ERR_NULL_PTR;
+
+	int ret_val = NO_ERROR;
+
+	trans->type = TRANSFORMER_3_BAND_EQ;
+
+	trans->compute_transformer    = calc_3_band_eq;
+	trans->compute_transformer_nl = NULL;
+	trans->bypass = 0;
+	trans->transition_policy = TRANSFORMER_TRANSITION_MONOBLOCK_LINEAR;
+
+	trans->n_inputs  = 1;
+	trans->n_inputs  = 1;
+
+	ret_val = transformer_init_parameter_array(trans, 3);
+	if (ret_val != NO_ERROR)
+		return ret_val;
+
+	tm_3_band_eq_str *str = (tm_3_band_eq_str*)malloc(sizeof(tm_3_band_eq_str));
+	trans->data_struct = (void*)str;
+
+	if (!str)
+		return ERR_ALLOC_FAIL;
+
+	trans->reconfigure = reconfigure_3_band_eq;
+	trans->free_struct = NULL;
+
+	init_parameter(&str->low, 1.0, 0.0, 2.0, 0.002, PARAMETER_SCALE_LINEAR);
+	if ((ret_val = transformer_add_parameter(trans, &str->low)) != NO_ERROR)
+		return ret_val;
+
+	init_parameter(&str->mid, 1.0, 0.0, 2.0, 0.002, PARAMETER_SCALE_LINEAR);
+	if ((ret_val = transformer_add_parameter(trans, &str->mid)) != NO_ERROR)
+		return ret_val;
+
+	init_parameter(&str->high, 1.0, 0.0, 2.0, 0.002, PARAMETER_SCALE_LINEAR);
+	if ((ret_val = transformer_add_parameter(trans, &str->high)) != NO_ERROR)
+		return ret_val;
+
+	return init_3_band_eq_str(str);
+}
+
 int init_transformer(tm_transformer *trans, uint16_t type)
 {
 	if (!trans)
@@ -414,6 +459,7 @@ int init_transformer(tm_transformer *trans, uint16_t type)
 		case TRANSFORMER_NOISE_SUPPRESSOR: return init_noise_suppressor(trans);
 		case TRANSFORMER_PERCUSSIFIER:     return init_percussifier(trans);
 		case TRANSFORMER_DISTORTION:       return init_distortion(trans);
+		case TRANSFORMER_3_BAND_EQ:        return init_3_band_eq(trans);
 		default: return ERR_BAD_ARGS;
 	}
 

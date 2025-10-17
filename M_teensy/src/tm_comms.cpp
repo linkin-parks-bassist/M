@@ -9,7 +9,10 @@ te_msg response;
 te_msg prev_response;
 et_msg received;
 
-volatile uint8_t receive_buffer	[ET_MESSAGE_MAX_TRANSFER_LEN];
+#ifndef TM_SIMULATED
+volatile 
+#endif
+		  uint8_t receive_buffer	[ET_MESSAGE_MAX_TRANSFER_LEN];
 uint8_t response_buffer[ET_MESSAGE_MAX_TRANSFER_LEN];
 uint8_t wait_message	[ET_MESSAGE_MAX_TRANSFER_LEN];
 
@@ -378,9 +381,11 @@ void i2c_request_isr()
 		
 		prev_response = response;
 		tm_printf("Responding with message of type %s\n", te_msg_code_to_string(response.type));
+		#ifdef PRINT_RESPONSE_BYTES
 		tm_printf("Sent response:\n\t");
 		for (int i = 0; i < TE_MESSAGE_MAX_TRANSFER_LEN; i++)
 			tm_printf("0x%02x%s", response_buffer[i], (i == TE_MESSAGE_MAX_TRANSFER_LEN - 1) ? "\n" : " ");
+		#endif
 	}
 	else
 	{
