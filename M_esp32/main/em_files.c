@@ -15,7 +15,7 @@ void dump_file_contents(char *fname)
 	
 	if (!file)
 	{
-		printf("Failed to open file %s\n", fname);
+		//printf("Failed to open file %s\n", fname);
 	}
 	
 	uint8_t byte;
@@ -23,7 +23,7 @@ void dump_file_contents(char *fname)
 	int i = 1;
 	while (fread(&byte, 1, 1, file))
 	{
-		printf("0x%x%s", byte, (i % 32 == 0) ? "\n" : " ");
+		//printf("0x%x%s", byte, (i % 32 == 0) ? "\n" : " ");
 		i++;
 	}
 	
@@ -32,11 +32,11 @@ void dump_file_contents(char *fname)
 
 int save_profile_as_file(em_profile *profile, char *fname)
 {
-	printf("save_profile_as_file\n");
+	//printf("save_profile_as_file\n");
 	
 	if (!fname || !profile)
 	{
-		printf("NULL pointer lol\n");
+		//printf("NULL pointer lol\n");
 		return ERR_NULL_PTR;
 	}
 	
@@ -46,7 +46,7 @@ int save_profile_as_file(em_profile *profile, char *fname)
 	
 	if (!file)
 	{
-		printf("Could not open file %s\n", fname);
+		//printf("Could not open file %s\n", fname);
 		return ERR_FOPEN_FAIL;
 	}
 	
@@ -114,7 +114,7 @@ int save_profile_as_file(em_profile *profile, char *fname)
 	
 	fclose(file);
 	
-	printf("save_profile_as_file done\n");
+	//printf("save_profile_as_file done\n");
 	
 	return NO_ERROR;
 }
@@ -132,10 +132,10 @@ int save_profile_as_file(em_profile *profile, char *fname)
 
 int read_profile_from_file(em_profile *profile, char *fname)
 {
-	printf("read_profile_from_file\n");
+	//printf("read_profile_from_file\n");
 	if (!fname || !profile)
 	{
-		printf("NULL pointer lol\n");
+		//printf("NULL pointer lol\n");
 		return ERR_NULL_PTR;
 	}
 	
@@ -145,7 +145,7 @@ int read_profile_from_file(em_profile *profile, char *fname)
 	
 	if (!file)
 	{
-		printf("Could not open file %s\n", fname);
+		//printf("Could not open file %s\n", fname);
 		return ERR_FOPEN_FAIL;
 	}
 	
@@ -207,7 +207,7 @@ int read_profile_from_file(em_profile *profile, char *fname)
 	
 	for (int i = 0; i < n_transformers; i++)
 	{
-		printf("Reading transformer %d...\n", i);
+		//printf("Reading transformer %d...\n", i);
 		//Get transformer type
 		read_short(arg16);
 		
@@ -237,22 +237,22 @@ int read_profile_from_file(em_profile *profile, char *fname)
 		
 		for (uint16_t j = 0; j < trans->n_parameters; j++)
 		{
-			printf("Reading parameter %d...\n", j);
+			//printf("Reading parameter %d...\n", j);
 			param = &trans->parameters[j];
 			
-			printf("Read value...\n");
+			//printf("Read value...\n");
 			read_float(param->val);
-			printf("Got: %f\n", param->val);
+			//printf("Got: %f\n", param->val);
 			
-			printf("Parameter %s has value %f\n", param->name, param->val);
+			//printf("Parameter %s has value %f\n", param->name, param->val);
 		}
 		
-		printf("Done reading parameters for transformer %d...\n", (int)i);
+		//printf("Done reading parameters for transformer %d...\n", (int)i);
 	}
 	
-	printf("File done! closing...\n");
+	//printf("File done! closing...\n");
 	fclose(file);
-	printf("Closed. Returning\n");
+	//printf("Closed. Returning\n");
 	
 	profile->fname = strndup(fname, 128);
 	profile->unsaved_changes = 0;
@@ -260,10 +260,10 @@ int read_profile_from_file(em_profile *profile, char *fname)
 	return ret_val;
 	
 profile_read_bail:
-	printf("BAILING\n");
+	//printf("BAILING\n");
 	fclose(file);
 	
-	printf("BAILED\n");
+	//printf("BAILED\n");
 	return ret_val;
 }
 
@@ -386,12 +386,12 @@ int save_profile(em_profile *profile)
 	
 	if (ret_val == NO_ERROR)
 	{
-		printf("Sucessfully saved profile as %s. Dumping file...\n", profile->fname);
+		//printf("Sucessfully saved profile as %s. Dumping file...\n", profile->fname);
 		dump_file_contents(profile->fname);
 	}
 	else
 	{
-		printf("Profile save error: %s\n", m_error_code_to_string(ret_val));
+		//printf("Profile save error: %s\n", m_error_code_to_string(ret_val));
 	}
 	
 	return ret_val;

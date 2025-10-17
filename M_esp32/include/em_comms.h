@@ -7,6 +7,8 @@
 //#define PRINT_RESPONSE_BYTES
 //#define PING_TEENSY
 
+DECLARE_LINKED_PTR_LIST(et_msg);
+
 extern QueueHandle_t et_msg_queue;
 
 int init_em_msg_queue();

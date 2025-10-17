@@ -51,6 +51,10 @@
 #define ERR_UNFINISHED_WRITE			33
 #define ERR_MANGLED_FILE				34
 
+#define ERR_I2C_FAIL					35
+#define ERR_NO_RESPONSE					36
+#define ERR_COMMS_FAIL					37
+
 #define ERR_UNKNOWN_ERR					4999
 #define ERR_UNIMPLEMENTED				5000
 

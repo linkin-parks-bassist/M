@@ -99,7 +99,7 @@ void transformer_widget_trigger_scale_anim(em_transformer_widget *tw, int direct
 
 void transformer_widget_trigger_glide_anim(em_transformer_widget *tw, int32_t new_pos_y)
 {
-	printf("Triggering glide of %p from %d to %d\n", tw, (int)tw->pos_y, (int)new_pos_y);
+	//printf("Triggering glide of %p from %d to %d\n", tw, (int)tw->pos_y, (int)new_pos_y);
 	lv_anim_init			(&tw->glide_anim);
 	lv_anim_set_var			(&tw->glide_anim, tw);
 	lv_anim_set_exec_cb		(&tw->glide_anim, transformer_widget_glide_cb);
@@ -112,7 +112,7 @@ void transformer_widget_trigger_glide_anim(em_transformer_widget *tw, int32_t ne
 
 void transformer_widget_trigger_del_button_fade_in(em_transformer_widget *tw)
 {
-	printf("button fade in...\n");
+	//printf("button fade in...\n");
 	lv_anim_init			(&tw->del_button_fade);
 	lv_anim_set_var			(&tw->del_button_fade, tw);
 	lv_anim_set_exec_cb		(&tw->del_button_fade, transformer_widget_del_button_fade_cb);
@@ -174,7 +174,7 @@ int transformer_widget_force_index(em_transformer_widget *tw, int i)
 
 int transformer_widget_set_index(em_transformer_widget *tw, int i)
 {
-	//printf("Set transformer widget index (%p, %d)\n", tw, i);
+	////printf("Set transformer widget index (%p, %d)\n", tw, i);
 	if (!tw)
 		return ERR_NULL_PTR;
 	
@@ -209,7 +209,7 @@ void transformer_widget_long_pressed_cb(lv_event_t *e)
 	}
 	
 	tw->long_pressed = 1;
-	printf("long press detected...\n");
+	//printf("long press detected...\n");
 	
 	lv_point_t touch_point;
 	lv_indev_t *indev = lv_indev_get_act();
@@ -305,7 +305,7 @@ void transformer_widget_release_cb(lv_event_t *e)
 		return;
 	}
 	
-	printf("long_pressed = %d\n", tw->long_pressed);
+	//printf("long_pressed = %d\n", tw->long_pressed);
 	if (tw->long_pressed)
 	{
 		tw->long_pressed = 0;
@@ -323,7 +323,7 @@ void transformer_widget_release_cb(lv_event_t *e)
 			}
 			
 			
-			printf("Send message to move transformer %d to position %d\n", tw->trans->transformer_id, tw->index);
+			//printf("Send message to move transformer %d to position %d\n", tw->trans->transformer_id, tw->index);
 			queue_msg_to_teensy(create_et_msg(ET_MESSAGE_MOVE_TRANSFORMER, "sss", tw->trans->profile_id, tw->trans->transformer_id, tw->index));
 			tw->prev_index = tw->index;
 			
@@ -353,7 +353,7 @@ void transformer_widget_release_cb(lv_event_t *e)
 
 void tw_del_button_cb(lv_event_t *e)
 {
-	printf("tw_del_button_cb\n");
+	//printf("tw_del_button_cb\n");
 	em_transformer_widget *tw = (em_transformer_widget*)lv_event_get_user_data(e);
 	
 	transformer_widget_trigger_del_anim(tw);
@@ -364,7 +364,7 @@ void tw_del_button_cb(lv_event_t *e)
 	{
 		cxt_remove_transformer(&global_cxt, tw->trans->profile_id, tw->trans->transformer_id);
 	}
-	printf("tw_del_button_cb done\n");
+	//printf("tw_del_button_cb done\n");
 	
 	if (tw->parent && tw->parent->data_struct)
 	{
@@ -376,13 +376,13 @@ void tw_del_button_cb(lv_event_t *e)
 
 int create_transformer_widget_ui(em_transformer_widget *tw, lv_obj_t *parent)
 {
-	printf("create_transformer_widget_ui...\n");
+	//printf("create_transformer_widget_ui...\n");
 	if (!tw)
 		return ERR_NULL_PTR;
 	
 	tw->obj = lv_btn_create(parent);
 	
-	printf("tw->obj = %p\n", tw->obj);
+	//printf("tw->obj = %p\n", tw->obj);
     lv_obj_set_size(tw->obj, TRANSFORMER_WIDGET_WIDTH, TRANSFORMER_WIDGET_HEIGHT);
     
 	tw->pos_y = profile_view_index_y_position(tw->index);
@@ -391,7 +391,7 @@ int create_transformer_widget_ui(em_transformer_widget *tw, lv_obj_t *parent)
 	
 	tw->label = lv_label_create(tw->obj);
 	lv_label_set_text(tw->label, tw->label_text);
-	printf("label: %s\n", tw->label_text);
+	//printf("label: %s\n", tw->label_text);
 	lv_obj_center(tw->label);
 	
 	if (tw->trans)
@@ -411,7 +411,7 @@ int create_transformer_widget_ui(em_transformer_widget *tw, lv_obj_t *parent)
 	lv_label_set_text(tw->del_button_label, LV_SYMBOL_TRASH);
 	lv_obj_center(tw->del_button_label);
 	
-	printf("success\n");
+	//printf("success\n");
 	return NO_ERROR;
 }
 

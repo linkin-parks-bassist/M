@@ -56,7 +56,45 @@ int i2c_transmit(uint8_t addr, uint8_t *buf, int n)
 	return NO_ERROR;
 }
 
-int i2c_recieve(uint8_t addr, uint8_t *buf, int n)
+int i2c_transmit_persistent(uint8_t addr, uint8_t *buf, int n, int retries)
+{
+	if (!buf)
+		return ERR_NULL_PTR;
+	
+	if (n < 0)
+		return ERR_BAD_ARGS;
+	
+	esp_err_t transmit_ret = ESP_FAIL;
+	int ret_val = NO_ERROR;
+	
+	for (int tries = 0; tries < retries && transmit_ret != ESP_OK; tries++)
+	{
+		if (xSemaphoreTake(i2c_mutex, pdMS_TO_TICKS(I2C_MASTER_TIMEOUT_MS)) != pdTRUE)
+		{
+			ESP_LOGE(TAG, "Failed to obtain I2C mutex. Retrying; tries remaining: %d\n", retries - tries);
+			ret_val = ERR_MUTEX_UNAVAILABLE;
+			continue;
+		}
+		
+		transmit_ret = i2c_master_write_to_device(I2C_MASTER_NUM, addr, buf, n, pdMS_TO_TICKS(I2C_MASTER_TIMEOUT_MS));
+		
+		xSemaphoreGive(i2c_mutex);
+		
+		if (ret_val != ESP_OK)
+		{
+			ESP_LOGE(TAG, "I2C write failed: %s. Retrying; tries remaning: %d", esp_err_to_name(ret_val), retries - tries);
+			ret_val = ERR_I2C_FAIL;
+		}
+		else
+		{
+			ret_val = NO_ERROR;
+		}
+	}
+	
+	return ret_val;
+}
+
+int i2c_receive(uint8_t addr, uint8_t *buf, int n)
 {
 	if (!buf)
 		return ERR_NULL_PTR;

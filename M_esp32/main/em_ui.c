@@ -48,7 +48,7 @@ int em_ui_page_set_background_default(em_ui_page *page)
 
 void make_ui(lv_disp_t *disp)
 {
-	printf("Setting up UI...\n");
+	//printf("Setting up UI...\n");
 	
 	init_ui_context(&global_cxt.ui_cxt);
 	em_profile_set_active(global_cxt.active_profile);
@@ -118,30 +118,30 @@ em_ui_page *create_ui_page()
 
 int configure_ui_page(em_ui_page *page, void *data)
 {
-	printf("configure_ui_page\n");
+	//printf("configure_ui_page\n");
 	if (!page)
 		return ERR_NULL_PTR;
 	
 	if (page->configured)
 	{
-		printf("page already configured\n");
+		//printf("page already configured\n");
 		return NO_ERROR;
 	}
 	
 	if (page->configure)
 	{
-		printf("Function pointer exists\n");
+		//printf("Function pointer exists\n");
 		page->configure(page, data);
 	}
 	else
 	{
-		printf("No configure function pointer!\n");
+		//printf("No configure function pointer!\n");
 		return ERR_BAD_ARGS;
 	}
 	
 	page->configured = 1;
 	
-	printf("configure_ui_page done\n");
+	//printf("configure_ui_page done\n");
 	return NO_ERROR;
 }
 
@@ -165,7 +165,7 @@ int create_page_ui(em_ui_page *page)
 
 int enter_ui_page_forward(em_ui_page *page)
 {
-	printf("enter ui page... %p\n", page);
+	//printf("enter ui page... %p\n", page);
 	
 	if (!page)
 		return ERR_NULL_PTR;
@@ -183,11 +183,11 @@ int enter_ui_page_forward(em_ui_page *page)
 
 int enter_ui_page(em_ui_page *page)
 {
-	printf("enter ui page...\n");
+	//printf("enter ui page...\n");
 	
 	if (!page)
 	{
-		printf("Error! No page!\n");
+		//printf("Error! No page!\n");
 		return ERR_NULL_PTR;
 	}
 	
@@ -195,17 +195,17 @@ int enter_ui_page(em_ui_page *page)
 	{
 		if (!page->configured)
 		{
-			printf("Error! Page is unconfigured\n");
+			//printf("Error! Page is unconfigured\n");
 			return ERR_BAD_ARGS;
 		}
 		
 		if (!page->create_ui)
 		{
-			printf("Error! Page has no UI, and no create_ui function pointer!\n");
+			//printf("Error! Page has no UI, and no create_ui function pointer!\n");
 			return ERR_BAD_ARGS;
 		}
 		
-		printf("Page has not created its UI yet. Creating now...\n");
+		//printf("Page has not created its UI yet. Creating now...\n");
 		page->create_ui(page);
 	}
 	
@@ -217,7 +217,7 @@ int enter_ui_page(em_ui_page *page)
 	{
 		if (!page->screen)
 		{
-			printf("Error! Page has no screen!\n");
+			//printf("Error! Page has no screen!\n");
 			//return ERR_BAD_ARGS;
 		}
 		lv_scr_load(page->screen);
@@ -228,7 +228,7 @@ int enter_ui_page(em_ui_page *page)
 
 int enter_ui_page_back(em_ui_page *page)
 {
-	printf("enter ui page...\n");
+	//printf("enter ui page...\n");
 	
 	if (!page)
 		return ERR_NULL_PTR;
@@ -246,7 +246,7 @@ int enter_ui_page_back(em_ui_page *page)
 
 int enter_ui_page_indirect(em_ui_page **_page)
 {
-	printf("enter ui page indirect...\n");
+	//printf("enter ui page indirect...\n");
 	
 	if (!_page)
 		return ERR_NULL_PTR;
@@ -258,7 +258,7 @@ int enter_ui_page_indirect(em_ui_page **_page)
 
 int enter_ui_page_indirect_forward(em_ui_page **_page)
 {
-	printf("enter ui page indirect...\n");
+	//printf("enter ui page indirect...\n");
 	
 	if (!_page)
 		return ERR_NULL_PTR;
@@ -281,7 +281,7 @@ int enter_ui_page_indirect_forward(em_ui_page **_page)
 
 int enter_ui_page_indirect_back(em_ui_page **_page)
 {
-	printf("enter ui page indirect...\n");
+	//printf("enter ui page indirect...\n");
 	
 	if (!_page)
 		return ERR_NULL_PTR;
@@ -306,21 +306,21 @@ int enter_ui_page_indirect_back(em_ui_page **_page)
 
 void enter_ui_page_cb(lv_event_t *e)
 {
-	printf("enter ui page callback triggered\n");
+	//printf("enter ui page callback triggered\n");
 	em_ui_page **_page = (em_ui_page**)lv_event_get_user_data(e);
 	enter_ui_page_indirect(_page);
 }
 
 void enter_ui_page_forward_cb(lv_event_t *e)
 {
-	printf("enter ui page callback triggered\n");
+	//printf("enter ui page callback triggered\n");
 	em_ui_page **_page = (em_ui_page**)lv_event_get_user_data(e);
 	enter_ui_page_indirect_forward(_page);
 }
 
 void enter_ui_page_back_cb(lv_event_t *e)
 {
-	printf("enter ui page callback triggered\n");
+	//printf("enter ui page callback triggered\n");
 	em_ui_page **_page = (em_ui_page**)lv_event_get_user_data(e);
 	enter_ui_page_indirect_back(_page);
 }
@@ -474,12 +474,12 @@ int create_top_panel_rw_title_and_left_button(em_ui_page *page, char *title_text
     
     if (menu_cb)
     {
-		printf("'menu' callmenu provided; connecting...\n");
+		//printf("'menu' callmenu provided; connecting...\n");
 		lv_obj_add_event_cb(page->top_panel->menu_button, menu_cb, LV_EVENT_CLICKED, page);
 	}
 	else
 	{
-		printf("No 'menu' callmenu provided; assigning default...\n");
+		//printf("No 'menu' callmenu provided; assigning default...\n");
 		lv_obj_add_event_cb(page->top_panel->menu_button, menu_cb, LV_EVENT_CLICKED, page);
 	}
 
@@ -516,12 +516,12 @@ int create_top_panel_with_back_button(em_ui_page *page, const char *title_text, 
     
     if (back_cb)
     {
-		printf("'back' callback provided; connecting...\n");
+		//printf("'back' callback provided; connecting...\n");
 		lv_obj_add_event_cb(page->top_panel->back_button, back_cb, LV_EVENT_CLICKED, page);
 	}
 	else
 	{
-		printf("No 'back' callback provided; assigning default...\n");
+		//printf("No 'back' callback provided; assigning default...\n");
 		lv_obj_add_event_cb(page->top_panel->back_button, enter_ui_page_back_cb, LV_EVENT_CLICKED, &page->parent);
 	}
 

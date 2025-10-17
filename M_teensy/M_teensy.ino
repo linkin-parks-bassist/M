@@ -7,7 +7,6 @@
 
 tm_context global_cxt;
 
-
 void setup()
 {
 	Serial.begin(115200);
@@ -66,7 +65,7 @@ void setup()
 int LED = 1;
 #define LED_BLINK_MILLIS 	50
 #define DEBUG_PRINTS
-#define DEBUG_PRINT_MILLIS 2000
+#define DEBUG_PRINT_MILLIS 10000
 
 //#define SGTL5000_CHECK 
 #define SGTL5000_CHECK_PERIOD 100

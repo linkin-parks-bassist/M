@@ -7,9 +7,8 @@
 
 /* Messages from ESP32 to Teensy */
 
-#define ET_MESSAGE_MAX_LEN 16
-
 #define ET_MESSAGE_NO_MESSAGE				255
+#define ET_MESSAGE_CRC_FAIL					254
 #define ET_MESSAGE_INVALID					0
 #define ET_MESSAGE_HI 						1
 #define ET_MESSAGE_RESET					2
@@ -32,50 +31,46 @@
 #define ET_MESSAGE_STRING_CONTINUING		19
 #define ET_MESSAGE_SWITCH_PROFILE			20
 #define ET_MESSAGE_DELETE_PROFILE			21
+#define ET_MESSAGE_REPEAT_MESSAGE			22
 
-#define ET_MESSAGE_TYPE_MAX ET_MESSAGE_SWITCH_PROFILE
+#define ET_MESSAGE_TYPE_MAX ET_MESSAGE_REPEAT_MESSAGE
 
 #include "m_vec2i.h"
 
 #define MESSAGE_LEN_VARIABLE				-2
-#define TE_MESSAGE_MAX_LEN 16
+#define ET_MESSAGE_MAX_DATA_LEN 16
+#define ET_MESSAGE_MAX_TRANSFER_LEN (TE_MESSAGE_MAX_DATA_LEN + 2)
+
+#define TE_MESSAGE_MAX_DATA_LEN 16
+#define TE_MESSAGE_MAX_TRANSFER_LEN (TE_MESSAGE_MAX_DATA_LEN + 2)
 
 typedef struct
 {
 	uint8_t type;
-	uint8_t data[TE_MESSAGE_MAX_LEN - 1];
+	uint8_t data[TE_MESSAGE_MAX_DATA_LEN];
 	void *extra;
 } te_msg;
 
 typedef struct et_msg
 {
 	uint8_t type;
-	uint8_t data[ET_MESSAGE_MAX_LEN];
+	uint8_t data[TE_MESSAGE_MAX_DATA_LEN];
 	void (*callback)(struct et_msg msg, te_msg response);
 	void *cb_arg;
+	int retries;
 } et_msg;
 
 et_msg create_et_msg_nodata(uint16_t type);
 et_msg create_et_msg(uint16_t type, const char *fmt, ...);
 
-et_msg create_et_msg_2_short(uint16_t type, uint16_t s1, uint16_t s2);
-et_msg create_et_msg_3_short(uint16_t type, uint16_t s1, uint16_t s2, uint16_t s3);
-
-et_msg create_et_msg_get_param_value(uint16_t pid, uint16_t tid, uint16_t ppid);
-et_msg create_et_msg_set_param(uint16_t pid, uint16_t tid, uint16_t ppid, float new_val);
-
-et_msg create_et_msg_new_profile();
-et_msg create_et_msg_new_transformer(uint16_t pid, uint16_t type);
-
-const char *et_msg_code_to_string(uint16_t code);
-
 /* Messages from Teensy to ESP32 */
 
 #define TE_MESSAGE_NO_MESSAGE			255
+#define TE_MESSAGE_CRC_FAIL				254
 #define TE_MESSAGE_INVALID				0
 #define TE_MESSAGE_WAIT					1
 #define TE_MESSAGE_HI 					2
-#define TE_MESSAGE_BAD_TRANSFER 		3
+#define TE_MESSAGE_BAD_MESSAGE 			3
 #define TE_MESSAGE_BAD_REQUEST  		4
 #define TE_MESSAGE_TRY_AGAIN			5
 #define TE_MESSAGE_OK					6
@@ -92,6 +87,10 @@ const char *et_msg_code_to_string(uint16_t code);
 #define TE_MESSAGE_STRING_CONTINUING	18
 #define TE_MESSAGE_START_OVER			19
 #define TE_MESSAGE_SWITCHING_PROFILE	20
+#define TE_MESSAGE_DELETED_PROFILE		21
+#define TE_MESSAGE_REPEAT_MESSAGE		22
+
+#define TE_MESSAGE_TYPE_MAX TE_MESSAGE_REPEAT_MESSAGE
 
 te_msg create_te_msg_nodata(uint16_t type);
 te_msg create_te_msg(uint16_t type, const char *fmt, ...);
@@ -104,15 +103,18 @@ te_msg create_te_msg_parameter_value(uint16_t pid, uint16_t tid, uint16_t ppid, 
 te_msg create_te_msg_transformer_vec2i(uint16_t type, uint16_t pid, uint16_t tid, uint16_t i, vec2i vec);
 
 int et_message_data_length(et_msg msg);
-int encode_et_msg(uint8_t *buf, et_msg msg);
 int valid_et_msg_type(uint8_t type);
-et_msg decode_et_msg(uint8_t *bytes);
+
+int encode_et_msg(uint8_t *buf, et_msg msg);
+et_msg decode_et_msg(uint8_t *bytes, unsigned int len);
+
 int te_message_data_length(te_msg msg);
-int encode_te_msg(uint8_t *buf, te_msg msg);
 
 int valid_te_msg_type(uint8_t type);
-te_msg decode_te_msg(uint8_t *bytes);
+int encode_te_msg(uint8_t *buf, te_msg msg);
+te_msg decode_te_msg(uint8_t *bytes, unsigned int len);
 
+const char *et_msg_code_to_string(uint16_t code);
 const char *te_msg_code_to_string(uint16_t code);
 
 #endif

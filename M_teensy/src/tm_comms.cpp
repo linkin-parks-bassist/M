@@ -6,10 +6,15 @@
 #include "tm_error_codes.h"
 
 te_msg response;
-et_msg recieved;
+te_msg prev_response;
+et_msg received;
 
-uint8_t recieve_buffer[ET_MESSAGE_MAX_LEN];
-uint8_t wait_message[ET_MESSAGE_MAX_LEN];
+volatile uint8_t receive_buffer	[ET_MESSAGE_MAX_TRANSFER_LEN];
+uint8_t response_buffer[ET_MESSAGE_MAX_TRANSFER_LEN];
+uint8_t wait_message	[ET_MESSAGE_MAX_TRANSFER_LEN];
+
+volatile unsigned int received_length;
+unsigned int response_length;
 
 volatile sig_atomic_t message_pending = 0;
 volatile sig_atomic_t response_ready  = 0;
@@ -68,6 +73,14 @@ void handle_esp32_message(et_msg msg)
 	
 	switch (msg.type)
 	{
+		case ET_MESSAGE_REPEAT_MESSAGE:
+			response = prev_response;
+			break;
+			
+		case ET_MESSAGE_CRC_FAIL:
+			response.type = TE_MESSAGE_REPEAT_MESSAGE;
+			break;
+			
 		case ET_MESSAGE_HI:
 			response = create_te_msg(TE_MESSAGE_HI, "s", global_cxt.status_flags);
 			break;
@@ -87,21 +100,30 @@ void handle_esp32_message(et_msg msg)
 			
 			tm_printf("ret_val: %d\n", ret_val);
 			if (ret_val >= 0)	// A positive return is the ID of the new profile
-				response = create_te_msg_profile_id(ret_val);
+			{
+				response = create_te_msg(TE_MESSAGE_PROFILE_ID, "s", ret_val);
+			}
 			else 				// A negative return is an error code
+			{
 				response = create_te_msg_error(-ret_val);
+			}
 			break;
 		
 		case ET_MESSAGE_APPEND_TRANSFORMER:
-			tm_printf("Creating new transformer of type %d...\n", arg16_2);
+			tm_printf("Creating new transformer of type %d to profile %d...\n", arg16_2, arg16_1);
 			
 			ret_val = cxt_append_transformer_to_profile(&global_cxt, arg16_1, arg16_2);
 			
-			tm_printf("Obtained transformer id %d; sending back\n", ret_val);
 			if (ret_val < 0)
+			{
+				tm_printf("Appending transformer failed with error %s\n", m_error_code_to_string(-ret_val));
 				response = create_te_msg_error(-ret_val);
+			}
 			else
+			{
+				tm_printf("Success. Obtained transformer id %d; sending back\n", ret_val);
 				response = create_te_msg_transformer_id(arg16_1, ret_val);
+			}
 			break;
 		
 		case ET_MESSAGE_MOVE_TRANSFORMER:
@@ -264,7 +286,7 @@ void handle_esp32_message(et_msg msg)
 			{
 				string_received = 0;
 				
-				for (int i = 0; i < ET_MESSAGE_MAX_LEN; i++)
+				for (int i = 0; i < ET_MESSAGE_MAX_TRANSFER_LEN; i++)
 				{
 					string_in[string_in_pos++] = (char)msg.data[i];
 					if (msg.data[i] == 0)
@@ -277,18 +299,19 @@ void handle_esp32_message(et_msg msg)
 				response = create_te_msg_ok();
 			}
 			break;
-		
-		case ET_MESSAGE_INVALID:
-			response.type = TE_MESSAGE_BAD_TRANSFER;
+			
+		default:
+			response.type = TE_MESSAGE_BAD_MESSAGE;
 			break;
 	}
 	
+	response_length = encode_te_msg(response_buffer, response);
 	response_ready = 1;
 }
 
-void i2c_recieve_isr(int n)
+void i2c_receive_isr(int n)
 {
-	printf("i2c_recieve_isr\n");
+	printf("i2c_receive_isr\n");
 	tm_AudioNoInterrupts();
 	
 	if (message_pending)
@@ -300,11 +323,11 @@ void i2c_recieve_isr(int n)
 		message_pending = 1;
 		response_ready  = 0;
 		
-		
 		int i = 0;
 		
-		if (n > ET_MESSAGE_MAX_LEN)
+		if (n > ET_MESSAGE_MAX_TRANSFER_LEN)
 		{
+			received_length = 1;
 			for (i = 0; i < n; i++)
 			{
 				#ifndef TM_SIMULATED
@@ -312,27 +335,31 @@ void i2c_recieve_isr(int n)
 				#else
 				
 				#endif
-				if (i < ET_MESSAGE_MAX_LEN)
-					recieve_buffer[i] = 0;
+				if (i < ET_MESSAGE_MAX_TRANSFER_LEN)
+					receive_buffer[i] = 0xFF;
+				
 			}
+			
+			receive_buffer[0] = ET_MESSAGE_INVALID;
 		}
 		else
 		{
+			received_length = n;
 			#ifndef TM_SIMULATED
 			for (i = 0; i < n; i++)
-				recieve_buffer[i] = Wire.read();
+				receive_buffer[i] = Wire.read();
 			#else
 			for (i = 0; i < n; i++)
-				recieve_buffer[i] = simulated_i2c_send_buffer[i];
+				receive_buffer[i] = simulated_i2c_send_buffer[i];
 			#endif
 		
-			while (i < ET_MESSAGE_MAX_LEN)
-				recieve_buffer[i++] = 0xFF;
+			while (i < ET_MESSAGE_MAX_TRANSFER_LEN)
+				receive_buffer[i++] = 0xFF;
 		}
 	}
 	
 	//for (int i = 0; i < n; i++)
-	//	tm_printf("%d%s", recieve_buffer[i], (i < n - 1) ? ", " : "\n");
+	//	tm_printf("%d%s", receive_buffer[i], (i < n - 1) ? ", " : "\n");
 	
 	tm_AudioInterrupts();
 }
@@ -340,30 +367,25 @@ void i2c_recieve_isr(int n)
 void i2c_request_isr()
 {
 	tm_AudioNoInterrupts();
-	tm_printf("i2c request isr\n");
 	
 	if (response_ready)
 	{
-		uint8_t send_buffer[TE_MESSAGE_MAX_LEN + 1];
-		
-		encode_te_msg(send_buffer, response);
-		
 		#ifndef TM_SIMULATED
-		Wire.write(send_buffer, TE_MESSAGE_MAX_LEN);
+		Wire.write(response_buffer, TE_MESSAGE_MAX_TRANSFER_LEN);
 		#else
 		teensy_i2c_response = response;
 		#endif
 		
+		prev_response = response;
 		tm_printf("Responding with message of type %s\n", te_msg_code_to_string(response.type));
-		//tm_printf("Sent response:\n\t");
-		//for (int i = 0; i < TE_MESSAGE_MAX_LEN; i++)
-		//	tm_printf("0x%02x%s", send_buffer[i], (i == TE_MESSAGE_MAX_LEN - 1) ? "\n" : " ");
+		tm_printf("Sent response:\n\t");
+		for (int i = 0; i < TE_MESSAGE_MAX_TRANSFER_LEN; i++)
+			tm_printf("0x%02x%s", response_buffer[i], (i == TE_MESSAGE_MAX_TRANSFER_LEN - 1) ? "\n" : " ");
 	}
 	else
 	{
-		tm_printf("not ready !!\n");
 		#ifndef TM_SIMULATED
-		Wire.write(wait_message, TE_MESSAGE_MAX_LEN);
+		Wire.write(wait_message, TE_MESSAGE_MAX_TRANSFER_LEN);
 		#else
 		teensy_i2c_response.type = TE_MESSAGE_WAIT;
 		#endif
@@ -375,7 +397,7 @@ int init_esp32_link()
 {
 	#ifndef TM_SIMULATED
 	Wire.begin(TEENSY_I2C_SLAVE_ADDR);
-	Wire.onReceive(i2c_recieve_isr);
+	Wire.onReceive(i2c_receive_isr);
 	Wire.onRequest(i2c_request_isr);
 	#else
 	
@@ -390,7 +412,7 @@ void esp32_message_check_handle()
 {
 	if (message_pending)
 	{
-		handle_esp32_message(decode_et_msg(recieve_buffer));
+		handle_esp32_message(decode_et_msg(receive_buffer, received_length));
 		message_pending = 0;
 	}
 }

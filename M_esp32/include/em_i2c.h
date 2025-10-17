@@ -13,8 +13,9 @@
 
 esp_err_t i2c_master_init();
 
+int i2c_transmit_persistent(uint8_t addr, uint8_t *buf, int n, int retries);
 int i2c_transmit(uint8_t addr, uint8_t *buf, int n);
-int i2c_recieve(uint8_t addr, uint8_t *buf, int n);
+int i2c_receive(uint8_t addr, uint8_t *buf, int n);
 
 extern SemaphoreHandle_t i2c_mutex;
 

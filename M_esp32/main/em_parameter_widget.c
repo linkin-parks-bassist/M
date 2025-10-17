@@ -213,7 +213,7 @@ void parameter_widget_change_cb(lv_event_t *event)
 	
 	parameter_widget_update_value_label(pw);
 	
-	et_msg msg = create_et_msg_set_param(pw->param->id.profile_id, pw->param->id.transformer_id, pw->param->id.parameter_id, pw->param->val);
+	et_msg msg = create_et_msg(ET_MESSAGE_SET_PARAM_VALUE, "sssf", pw->param->id.profile_id, pw->param->id.transformer_id, pw->param->id.parameter_id, pw->param->val);
 
 	xQueueSend(et_msg_queue, (void*)&msg, 0);
 }
@@ -336,7 +336,7 @@ void param_widget_receive(et_msg msg, te_msg response)
 	}
 	else
 	{
-		ESP_LOGE(TAG, "Data for parameter %d.%d.%d recieved by parameter %d.%d.%d...\n",
+		ESP_LOGE(TAG, "Data for parameter %d.%d.%d received by parameter %d.%d.%d...\n",
 			profile_id, transformer_id, parameter_id, 
 			pw->param->id.profile_id, pw->param->id.transformer_id, pw->param->id.parameter_id); 
 	}
@@ -348,7 +348,7 @@ int param_widget_request_value(em_parameter_widget *pw)
 	if (!pw)
 		return ERR_NULL_PTR;
 	
-	et_msg msg = create_et_msg_get_param_value(pw->param->id.profile_id, pw->param->id.transformer_id, pw->param->id.parameter_id);
+	et_msg msg = create_et_msg(ET_MESSAGE_GET_PARAM_VALUE, "sss", pw->param->id.profile_id, pw->param->id.transformer_id, pw->param->id.parameter_id);
 	msg.callback = param_widget_receive;
 	msg.cb_arg = pw;
 

@@ -39,7 +39,7 @@ void menu_page_link_clicked_cb(lv_event_t *e)
 {
 	em_menu_item *item = (em_menu_item*)lv_event_get_user_data(e);
 	
-	printf("menu_page_link_clicked_cb\n");
+	//printf("menu_page_link_clicked_cb\n");
 	
 	if (!item)
 		return;
@@ -343,7 +343,7 @@ int init_menu_page(em_ui_page *page)
 
 int configure_menu_page(em_ui_page *page, void *data)
 {
-	printf("configure_menu_page\n");
+	//printf("configure_menu_page\n");
 	if (!page)
 		return ERR_NULL_PTR;
 	
@@ -372,19 +372,19 @@ int configure_menu_page(em_ui_page *page, void *data)
 	
 	page->configured = (ret_val == NO_ERROR);
 	
-	printf("configure_menu_page done\n");
+	//printf("configure_menu_page done\n");
 	return ret_val;
 }
 
 int create_menu_page_ui(em_ui_page *page)
 {
-	printf("create_menu_page_ui, page = %p\n", page);
+	//printf("create_menu_page_ui, page = %p\n", page);
 	if (!page)
 		return ERR_NULL_PTR;
 	
 	if (page->ui_created)
 	{
-		printf("UI already created\n");
+		//printf("UI already created\n");
 		return NO_ERROR;
 	}
 	
@@ -392,14 +392,14 @@ int create_menu_page_ui(em_ui_page *page)
 	
 	if (!str)
 	{
-		printf("No struct !\n");
+		//printf("No struct !\n");
 		return ERR_BAD_ARGS;
 	}
 	
 	page->screen = lv_obj_create(NULL);
 	
-	printf("page = %p. page->str = %p. page->str->name = %p = %s\n",
-		page, page->data_struct, str->name, str->name);
+	//printf("page = %p. page->str = %p. page->str->name = %p = %s\n",
+	//	page, page->data_struct, str->name, str->name);
 	
 	create_top_panel_with_back_button(page, str->name, NULL);
 	
@@ -418,7 +418,7 @@ int create_menu_page_ui(em_ui_page *page)
 	
 	page->ui_created = 1;
 	
-	printf("create_menu_page_ui done\n");
+	//printf("create_menu_page_ui done\n");
 	return NO_ERROR;
 }
 
@@ -437,7 +437,7 @@ int menu_page_add_item(em_menu_page_str *str, em_menu_item *item)
 	if (!str || !item)
 		return ERR_NULL_PTR;
 	
-	printf("menu_page_add_item(%p, %p). str->items = %p\n", str, item, str->items);
+	//printf("menu_page_add_item(%p, %p). str->items = %p\n", str, item, str->items);
 	
 	menu_item_ll *nl = em_menu_item_ptr_linked_list_append(str->items, item);
 	
@@ -456,11 +456,11 @@ void enter_main_menu_cb(lv_event_t *e)
 
 int init_main_menu(em_ui_page *page)
 {
-	printf("init_main_menu...\n");
+	//printf("init_main_menu...\n");
 	if (!page)
 		return ERR_NULL_PTR;
 	
-	printf("init_menu_page(main_menu)\n");
+	//printf("init_menu_page(main_menu)\n");
 	init_menu_page(page);
 	
 	em_menu_page_str *str = (em_menu_page_str*)page->data_struct;
@@ -477,7 +477,7 @@ int init_main_menu(em_ui_page *page)
 	
 	em_menu_item *item = create_page_link_menu_item("Profiles", profile_list, page);
 	
-	printf("Created profile list menu item, %p\n", item);
+	//printf("Created profile list menu item, %p\n", item);
 	
 	menu_page_add_item(str, item);
 	
@@ -519,18 +519,18 @@ int init_profile_list(em_ui_page *page)
 	if (!page)
 		return ERR_NULL_PTR;
 	
-	printf("init_profile_list\n");
+	//printf("init_profile_list\n");
 	init_menu_page(page);
 	
 	page->configure = configure_profile_list;
 	
-	printf("init_profile_list done\n");
+	//printf("init_profile_list done\n");
 	return NO_ERROR;
 }
 
 int configure_profile_list(em_ui_page *page, void *data)
 {
-	printf("Configure profile list\n");
+	//printf("Configure profile list\n");
 	if (!page)
 		return ERR_NULL_PTR;
 	
@@ -547,18 +547,18 @@ int configure_profile_list(em_ui_page *page, void *data)
 	str->name = "Profiles";
 	
 	profile_ll *current = global_cxt.profiles;
-	printf("current = global_cxt.profiles = %p\n", current);
+	//printf("current = global_cxt.profiles = %p\n", current);
 	menu_item_ll *nl;
 	
 	int i = 0;
 	while (current)
 	{
-		printf("current = %p, current->data = %p\n",
-			current, current->data);
+		//printf("current = %p, current->data = %p\n",
+		//	current, current->data);
 		if (current->data)
 		{
-			printf("Add list item for profile %d, %p = %s\n", i, current->data, current->data->name);
-			printf("Profile view page pointer: %p, dbl ptr: %p\n", current->data->view_page, &current->data->view_page);
+			//printf("Add list item for profile %d, %p = %s\n", i, current->data, current->data->name);
+			//printf("Profile view page pointer: %p, dbl ptr: %p\n", current->data->view_page, &current->data->view_page);
 			menu_page_add_item(str, create_profile_listing_menu_item(current->data->name, current->data, page));
 		}
 		
@@ -567,7 +567,7 @@ int configure_profile_list(em_ui_page *page, void *data)
 	}
 	
 	page->configured = 1;
-	printf("Configure profile list done\n");
+	//printf("Configure profile list done\n");
 	
 	return NO_ERROR;
 }

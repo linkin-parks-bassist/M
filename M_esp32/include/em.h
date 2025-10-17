@@ -17,12 +17,12 @@
 #include <lvgl.h>
 #include <lvgl_port.h>
 
+#include "m_linked_list.h"
 #include "m_error_codes.h"
 #include "m_status.h"
 #include "m_vec2i.h"
 #include "m_transformer_enum.h"
 #include "m_comms.h"
-#include "m_linked_list.h"
 
 #include "em_i2c.h"
 #include "em_display.h"

@@ -46,7 +46,7 @@ int transformer_init_ui_page(em_transformer *trans, em_ui_page *parent);
 void add_transformer_from_menu(lv_event_t *e);
 
 int request_append_transformer(uint16_t type, em_transformer *local);
-void transformer_recieve_id(et_msg message, te_msg response);
+void transformer_receive_id(et_msg message, te_msg response);
 
 
 int clone_transformer(em_transformer *dest, em_transformer *src);

@@ -35,7 +35,7 @@ em_ui_page *make_transformer_view_for(em_transformer *trans)
 
 int init_transformer_view(em_ui_page *page)
 {
-	printf("Init transformer view...\n");
+	//printf("Init transformer view...\n");
 	if (!page)
 		return ERR_NULL_PTR;
 	
@@ -60,13 +60,13 @@ int init_transformer_view(em_ui_page *page)
 	for (int i = 0; i < TRANSFORMER_VIEW_MAX_GROUPS; i++)
 		str->group_containers[i] = NULL;
 	
-	printf("Done\n");
+	//printf("Done\n");
 	return NO_ERROR;
 }
 
 int configure_transformer_view(em_ui_page *page, void *data)
 {
-	printf("Configure transformer view... page = %p, data = %p\n", page, data);
+	//printf("Configure transformer view... page = %p, data = %p\n", page, data);
 	if (!page || !data)
 	{
 		if (page)
@@ -97,19 +97,19 @@ int configure_transformer_view(em_ui_page *page, void *data)
 		
 		nullify_em_parameter_widget(pw);
 		ret_val = configure_em_parameter_widget(pw, &trans->parameters[i]);
-		printf("Error code %d encountered at parameter %d.%d.%d\n", ret_val, trans->profile_id, trans->transformer_id, trans->parameters[i].id.parameter_id);
+		//printf("Error code %d encountered at parameter %d.%d.%d\n", ret_val, trans->profile_id, trans->transformer_id, trans->parameters[i].id.parameter_id);
 		str->parameter_widgets = em_parameter_widget_ptr_linked_list_append(str->parameter_widgets, pw);
 	}
 	
 	page->configured = 1;
 	
-	printf("Done.\n");
+	//printf("Done.\n");
 	return NO_ERROR;
 }
 
 int create_transformer_view_ui(em_ui_page *page)
 {
-	printf("Create transformer view ui...\n");
+	//printf("Create transformer view ui...\n");
 	if (!page)
 		return ERR_NULL_PTR;
 	
@@ -120,7 +120,7 @@ int create_transformer_view_ui(em_ui_page *page)
 	
 	em_transformer_view_str *str = (em_transformer_view_str*)page->data_struct;
 	
-	printf("str->trans->n_parameters: %d\n", str->trans->n_parameters);
+	//printf("str->trans->n_parameters: %d\n", str->trans->n_parameters);
 	
 	if (!str)
 		return ERR_BAD_ARGS;
@@ -128,7 +128,7 @@ int create_transformer_view_ui(em_ui_page *page)
 	if (!str->trans)
 		return ERR_BAD_ARGS;
 	
-	printf("Create top panel...\n");
+	//printf("Create top panel...\n");
 	create_top_panel_with_back_button(page, transformer_type_name(str->trans->type), NULL);
 	
 	str->container = lv_obj_create(page->screen);
@@ -182,17 +182,17 @@ int create_transformer_view_ui(em_ui_page *page)
 	
 	page->ui_created = 1;
 	
-	printf("Done\n");
+	//printf("Done\n");
 	return NO_ERROR;
 }
 
 int enter_transformer_view(em_ui_page *page)
 {
-	printf("Enter transformer view...\n");
+	//printf("Enter transformer view...\n");
 	lv_scr_load(page->screen);
 	
 	transformer_view_request_parameter_values(page);
-	printf("Done\n");
+	//printf("Done\n");
 	return NO_ERROR;
 }
 
@@ -200,24 +200,24 @@ int enter_transformer_view_forward(em_ui_page *page)
 {
 	if (!page)
 	{
-		printf("Error: transformer view is NULL\n");
+		//printf("Error: transformer view is NULL\n");
 		return ERR_NULL_PTR;
 	}
-	printf("Enter transformer view...\n");
+	//printf("Enter transformer view...\n");
 	lv_scr_load_anim(page->screen, LV_SCR_LOAD_ANIM_MOVE_LEFT, UI_PAGE_TRANSITION_ANIM_MS, 0, false);
 	
 	transformer_view_request_parameter_values(page);
-	printf("Done\n");
+	//printf("Done\n");
 	return NO_ERROR;
 }
 
 int enter_transformer_view_back(em_ui_page *page)
 {
-	printf("Enter transformer view...\n");
+	//printf("Enter transformer view...\n");
 	lv_scr_load_anim(page->screen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, UI_PAGE_TRANSITION_ANIM_MS, 0, false);
 	
 	transformer_view_request_parameter_values(page);
-	printf("Done\n");
+	//printf("Done\n");
 	return NO_ERROR;
 }
 
@@ -228,7 +228,7 @@ int clear_transformer_view()
 
 int transformer_view_request_parameter_values(em_ui_page *page)
 {
-	printf("transformer_view_request_parameter_values...\n");
+	//printf("transformer_view_request_parameter_values...\n");
 	if (!page)
 		return ERR_NULL_PTR;
 	
@@ -245,7 +245,7 @@ int transformer_view_request_parameter_values(em_ui_page *page)
 		current = current->next;
 	}
 	
-	printf("done transformer_view_request_parameter_values\n");
+	//printf("done transformer_view_request_parameter_values\n");
 	
 	return NO_ERROR;
 }

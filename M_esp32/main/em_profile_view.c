@@ -37,7 +37,7 @@ em_ui_page *make_profile_view_for(em_profile *profile)
 
 int init_profile_view(em_ui_page *page)
 {
-	printf("init_profile_view...\n");
+	//printf("init_profile_view...\n");
 	if (!page)
 		return ERR_NULL_PTR;
 	
@@ -73,13 +73,13 @@ int init_profile_view(em_ui_page *page)
 	str->menu_button = NULL;
 	str->menu_button_label = NULL;
 	
-	printf("success\n");
+	//printf("success\n");
 	return NO_ERROR;
 }
 
 int configure_profile_view(em_ui_page *page, void *data)
 {
-	printf("configure_profile_view...\n");
+	//printf("configure_profile_view...\n");
 	if (!page || !data)
 		return ERR_NULL_PTR;
 	
@@ -162,7 +162,7 @@ int configure_profile_view(em_ui_page *page, void *data)
 	
 	page->configured = 1;
 	
-	printf("success\n");
+	//printf("success\n");
 	return alloc_fail ? ERR_ALLOC_FAIL : NO_ERROR;
 }
 
@@ -178,7 +178,7 @@ void save_button_cb(lv_event_t *e)
 	if (!str)
 		return;
 	
-	printf("Saving profile...\n");
+	//printf("Saving profile...\n");
 	save_profile(str->profile);
 	
 	lv_obj_add_flag(str->save_button, LV_OBJ_FLAG_HIDDEN);
@@ -256,7 +256,7 @@ void profile_view_activate_profile_cb(lv_event_t *e)
 
 int create_profile_view_ui(em_ui_page *page)
 {
-	printf("create_profile_view_ui...\n");
+	//printf("create_profile_view_ui...\n");
 	if (!page)
 		return ERR_NULL_PTR;
 	
@@ -273,7 +273,7 @@ int create_profile_view_ui(em_ui_page *page)
 	
 	page->screen = lv_obj_create(NULL);
 	
-	printf("Creating top panel with label %s\n", str->profile->name ? str->profile->name : "(null)");
+	//printf("Creating top panel with label %s\n", str->profile->name ? str->profile->name : "(null)");
 	create_top_panel_rw_title_and_left_button(page, str->profile->name ? str->profile->name : "Profile", profile_view_enter_main_menu_cb);
 	
 	create_standard_container(&str->transformer_list, page->screen);
@@ -325,7 +325,7 @@ int create_profile_view_ui(em_ui_page *page)
 	
 	page->ui_created = 1;
 	
-	printf("success\n");
+	//printf("success\n");
 	return NO_ERROR;
 }
 
@@ -336,7 +336,7 @@ int enter_profile_view(em_ui_page *page)
 	
 	em_profile_view_str *str = (em_profile_view_str*)page->data_struct;
 	
-	printf("Entering profile view. Profile: %p. Profile name: %s\n", str->profile, str->profile->name);
+	//printf("Entering profile view. Profile: %p. Profile name: %s\n", str->profile, str->profile->name);
 	
 	transformer_ll *current = str->profile->pipeline.transformers;
 	
@@ -347,7 +347,7 @@ int enter_profile_view(em_ui_page *page)
 		i++;
 	}
 	
-	printf("Profile has %d transformers. The view page has %d transformer widgets\n", i, str->n_transformer_widgets);
+	//printf("Profile has %d transformers. The view page has %d transformer widgets\n", i, str->n_transformer_widgets);
 	
 	lv_scr_load(page->screen);
 	
@@ -365,13 +365,13 @@ int enter_profile_view(em_ui_page *page)
 
 int enter_profile_view_forward(em_ui_page *page)
 {
-	printf("Entering profile view...\n");
+	//printf("Entering profile view...\n");
 	if (!page)
 		return ERR_NULL_PTR;
 	
 	em_profile_view_str *str = page->data_struct;
 	
-	printf("Load page...\n");
+	//printf("Load page...\n");
 	lv_scr_load_anim(page->screen, LV_SCR_LOAD_ANIM_MOVE_LEFT, UI_PAGE_TRANSITION_ANIM_MS, 0, false);
 	
 	if (str)
@@ -383,7 +383,7 @@ int enter_profile_view_forward(em_ui_page *page)
 	profile_view_refresh_play_button(page);
 	profile_view_refresh_save_button(page);
 	
-	printf("All good\n");
+	//printf("All good\n");
 	return NO_ERROR;
 }
 
@@ -467,14 +467,14 @@ int profile_view_print_tw_list(em_ui_page *page)
 	
 	em_transformer_widget_ptr_linked_list *current = str->tws;
 	
-	printf("Printing transformer widget linked list. n_tramsformer_widgets = %d\n", str->n_transformer_widgets);
+	//printf("Printing transformer widget linked list. n_tramsformer_widgets = %d\n", str->n_transformer_widgets);
 	
 	int i = 0;
 	while (current)
 	{
-		printf("Transformer widget %d. pointer: %p.\n", i, current->data);
-		printf("Transformer ptr %p, index %d, y_pos %d\n",
-			current->data->trans, current->data->index, (int)current->data->pos_y);
+		//printf("Transformer widget %d. pointer: %p.\n", i, current->data);
+		//printf("Transformer ptr %p, index %d, y_pos %d\n",
+		//	current->data->trans, current->data->index, (int)current->data->pos_y);
 		current = current->next;
 		i++;
 	}
@@ -492,7 +492,7 @@ int profile_view_append_transformer(em_ui_page *page, em_transformer *trans)
 	if (!str)
 		return ERR_BAD_ARGS;
 	
-	printf("profile_view_append_transformer... n_transformer_widgets = %d\n", str->n_transformer_widgets);
+	//printf("profile_view_append_transformer... n_transformer_widgets = %d\n", str->n_transformer_widgets);
 	
 	em_transformer_widget *tw = malloc(sizeof(em_transformer_widget));
 	

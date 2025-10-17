@@ -190,15 +190,15 @@ int request_append_transformer(uint16_t type, em_transformer *local)
 		return ERR_NULL_PTR;
 	
 	et_msg msg = create_et_msg(ET_MESSAGE_APPEND_TRANSFORMER, "ss", local->profile_id, local->type);
-	msg.callback = transformer_recieve_id;
+	msg.callback = transformer_receive_id;
 	msg.cb_arg = local;
 	
 	return queue_msg_to_teensy(msg);
 }
 
-void transformer_recieve_id(et_msg message, te_msg response)
+void transformer_receive_id(et_msg message, te_msg response)
 {
-	printf("Transformer recieve ID!\n");
+	printf("Transformer receive ID!\n");
 	em_transformer *trans = message.cb_arg;
 	
 	if (!trans)
