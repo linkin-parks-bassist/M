@@ -1,14 +1,20 @@
 name: "3 Band Eq"
 parameters:
-- name: "Low"
-  min: 0.0
-  max: 2.0
-  default: 1.0
-- name: "Mid"
-  min: 0.0
-  max: 2.0
-  default: 1.0
 - name: "High"
-  min: 0.0
-  max: 2.0
-  default: 1.0
+  min: -18.0
+  max: 18.0
+  default: 0.0
+  group: 0
+  widget: vslider
+- name: "Mid"
+  min: -18.0
+  max: 18.0
+  default: 0.0
+  group: 0
+  widget: vslider
+- name: "Low"
+  min: -18.0
+  max: 18.0
+  default: 0.0
+  widget: vslider
+  group: 0

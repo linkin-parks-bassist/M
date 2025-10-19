@@ -14,10 +14,28 @@ parameters:
  
 - name: "Trigger Threshold"
   default: 3.0
-  min: 2.0
+  min: 0.0
   max: 4.0
  
 - name: "Arm Threshold"
   default: 1.5
-  min: 1.0
+  min: 0.0
   max: 2.0
+  
+- name: "Fade In"
+  default: 2.9
+  min: 0.5
+  max: 10.0
+  units: ms
+  
+- name: "Fade Out"
+  default: 6
+  min: 0.5
+  max: 10.0
+  units: ms
+ 
+- name: "Refractory Period"
+  default: 100.0
+  min: 0.0
+  max: 700
+  units: ms

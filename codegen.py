@@ -218,6 +218,7 @@ def tm_transformer_init_function(trans):
 	output += [f"	trans->transition_policy = TRANSFORMER_TRANSITION_{trans.transition};", ""]
 	output += [f"	trans->n_inputs  = {trans.n_inputs};", f"	trans->n_inputs  = {trans.n_outputs};", ""]
 	output += [f"	ret_val = transformer_init_parameter_array(trans, {len(trans.parameters)});"]
+	output += [f"	ret_val = transformer_init_option_array(trans, {len(trans.options)});"]
 	output += ret_val_guard
 
 	if not trans.has_struct:
@@ -232,6 +233,8 @@ def tm_transformer_init_function(trans):
 	for param in trans.parameters:
 		output += [f"	init_parameter(&str->{param.location}, {param.default}, {param.min_val}, {param.max_val}, {param.max_jump}, {param.scale});"]
 		output += [f"	if ((ret_val = transformer_add_parameter(trans, &str->{param.location})) != NO_ERROR)", "		return ret_val;", ""]
+
+	
 
 	return output + [f"	return {trans.init_str_fn}(str);", "}", ""]
 

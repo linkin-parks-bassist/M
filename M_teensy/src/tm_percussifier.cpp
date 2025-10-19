@@ -20,6 +20,10 @@ int reconfigure_percussifier(void *data_struct)
 	
 	str->hold_samples = AUDIO_SAMPLE_RATE * (60.0 / str->tempo.value) * (4.0 / str->note.value);
 	
+	str->refractory_samples = MS_TO_SAMPLES(str->refractory_period.value);
+	str->fade_in_samples = MS_TO_SAMPLES(str->fade_in.value);
+	str->fade_alpha = expf(-7.0/MS_TO_SAMPLES(str->fade_out.value));
+	
 	return NO_ERROR;
 }
 
@@ -39,8 +43,8 @@ int calc_percussifier(void *data_struct, float *dest, float *src, int n_samples)
 	
 	for (int i = 0; i < n_samples; i++)
 	{
-		rms_short = (1.0 - str->alpha_short) * rms_short + (str->alpha_short) * sqr(in_buffer[i]);
-		rms_long  = (1.0 - str->alpha_long)  * rms_long  + (str->alpha_long)  * sqr(in_buffer[i]);
+		rms_short = (1.0 - str->alpha_short) * rms_short + (str->alpha_short) * fabsf(in_buffer[i]);
+		rms_long  = (1.0 - str->alpha_long)  * rms_long  + (str->alpha_long)  * fabsf(in_buffer[i]);
 		
 		/*if (i == 127 && str->r % 64 == 0)
 		{
@@ -124,7 +128,7 @@ int init_percussifier_str(tm_percussifier_str *str)
 	str->rms_long  = 0.0;
 	
 	str->alpha_short = 0.003;
-	str->alpha_long  = 0.00005;
+	str->alpha_long  = 0.0005;
 	
 	str->timer = 0;
 	str->gain = 0.0;

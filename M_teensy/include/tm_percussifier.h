@@ -13,6 +13,9 @@ typedef struct
 	tm_parameter note;
 	tm_parameter trigger_threshold;
 	tm_parameter arm_threshold;
+	tm_parameter refractory_period;
+	tm_parameter fade_in;
+	tm_parameter fade_out;
 	
 	int state;
 	int fade_in_samples;

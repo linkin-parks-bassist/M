@@ -71,7 +71,7 @@ int init_distortion_str(tm_distortion_str *str)
 	init_waveshaper_str(&str->mid_distortion);
 	
 	str->high_distortion.coefficient.value = str->gain.value * str->ratio.value;
-	str->high_distortion.shape = tanhf;
+	str->high_distortion.shape = soft_fold;
 	init_waveshaper_str(&str->high_distortion);
 	
 	str->low_pass_1.cutoff_frequency.value = str->bass_cutoff.value;

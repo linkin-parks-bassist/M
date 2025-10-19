@@ -14,7 +14,7 @@ typedef struct
 
 
 extern te_msg teensy_i2c_response;
-extern uint8_t simulated_i2c_send_buffer[ET_MESSAGE_MAX_LEN];
+extern uint8_t simulated_i2c_send_buffer[ET_MESSAGE_MAX_TRANSFER_LEN];
 
 DECLARE_LINKED_LIST(et_msg_timed);
 

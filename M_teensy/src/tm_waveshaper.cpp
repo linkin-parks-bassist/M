@@ -27,23 +27,44 @@ int calc_waveshaper(void *data_struct, float *dest, float *src, int n_samples)
 	
 	float local_amplitude = str->local_amplitude;
 	
-	tm_printf("Waveshaper. coefficient = %f, local amplitude = %f. in_buffer[0] = %f\n", str->coefficient.value, local_amplitude, in_buffer[0]);
+	float *local_amplitudes = allocate_buffer();
+	float max_local_amplitude = 0.0;
+	
+	if (!local_amplitudes)
+		return ERR_ALLOC_FAIL;
+	
+	for (int i = 0; i < n_samples; i++)
+	{
+		if (fabs(in_buffer[i]) > local_amplitude)
+			local_amplitudes[i] = WAVESHAPER_ENVELOPE_ATTACK * ((i == 0) ? local_amplitude : local_amplitudes[i-1]) + (1.0 - WAVESHAPER_ENVELOPE_ATTACK) * fabsf(in_buffer[i]);
+		else
+			local_amplitudes[i] = WAVESHAPER_ENVELOPE_RELEASE * ((i == 0) ? local_amplitude : local_amplitudes[i-1]) + (1.0 - WAVESHAPER_ENVELOPE_RELEASE) * fabsf(in_buffer[i]);
+		
+		if (local_amplitudes[i] > max_local_amplitude)
+			max_local_amplitude = local_amplitudes[i];
+	}
+	
+	if (max_local_amplitude < 0.00000001)
+	{
+		for (int i = 0; i < n_samples; i++)
+			out_buffer[i] = 0.0;
+		
+		str->local_amplitude = local_amplitudes[n_samples - 1];
+		release_buffer(local_amplitudes);
+		return NO_ERROR;
+	}
 	
 	// Actual computation loop
 	for (int i = 0; i < n_samples; i++)
 	{
-		if (fabs(in_buffer[i]) > local_amplitude)
-			local_amplitude = fabs(in_buffer[i]);//WAVESHAPER_ENVELOPE_ATTACK * local_amplitude + (1.0 - WAVESHAPER_ENVELOPE_ATTACK) * fabs(in_buffer[i]);
-		else
-			local_amplitude = WAVESHAPER_ENVELOPE_RELEASE * local_amplitude + (1.0 - WAVESHAPER_ENVELOPE_RELEASE) * fabs(in_buffer[i]);
-		
 		if (local_amplitude < 1e-30f)
 			out_buffer[i] = 0.0;
 		else
-			out_buffer[i] = local_amplitude *  str->shape(str->coefficient.value * (in_buffer[i] * (1.0 / local_amplitude)));
+			out_buffer[i] = local_amplitudes[i] *  str->shape(str->coefficient.value * (in_buffer[i] * (1.0 / local_amplitudes[i])));
 	}
 	
-	str->local_amplitude = local_amplitude;
+	str->local_amplitude = local_amplitudes[n_samples - 1];
+	release_buffer(local_amplitudes);
 	
 	return NO_ERROR;
 }

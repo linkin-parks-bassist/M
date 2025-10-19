@@ -69,6 +69,9 @@
 
 #define LN_2 0.69314718055994530942
 
+#define MS_TO_SAMPLES(x) (((x) / 1000.0) * AUDIO_SAMPLE_RATE)
+#define AUDIO_BLOCK_MS		(((float)AUDIO_BLOCK_SAMPLES * 1000.0) / (float)AUDIO_SAMPLE_RATE)
+
 #include "m_transformer_enum.h"
 #include "m_error_codes.h"
 #include "m_status.h"
@@ -95,6 +98,7 @@
 #include "tm_dirty_octave.h"
 #include "tm_noise_suppressor.h"
 #include "tm_percussifier.h"
+#include "tm_envelope.h"
 
 #include "tm_pipeline.h"
 #include "tm_pipe_line.h"

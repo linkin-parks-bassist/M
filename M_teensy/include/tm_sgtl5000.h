@@ -28,7 +28,7 @@ int sgtl5000_dac_volume_ramp();
 int sgtl5000_dac_volume_ramp_linear();
 int sgtl5000_dac_volume_ramp_disable();
 unsigned short sgtl5000_adc_high_pass_filter_enable();
-unsigned short sgtl5000_adc_high_pass_filterFreeze();
+unsigned short sgtl5000_adc_high_pass_filter_freeze();
 unsigned short sgtl5000_adc_high_pass_filter_disable();
 unsigned short sgtl5000_audio_pre_processor_enable();
 unsigned short sgtl5000_audio_post_processor_enable();

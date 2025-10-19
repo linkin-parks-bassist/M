@@ -5,12 +5,15 @@ int init_3_band_eq_str(tm_3_band_eq_str *str)
 	if (!str)
 		return ERR_NULL_PTR;
 	
-	str->control_mode = TM_EQ_CONTROL_DIRECT;
+	str->control_mode = TM_EQ_CONTROL_DB_GAIN;
 	
-	str->filters[0].cutoff_frequency.value = 200.0;
+	str->filters[0].cutoff_frequency.value = 250.0;
 	str->filters[0].cutoff_frequency.updated = 1;
 	str->filters[1].cutoff_frequency.value = 4000.0;
 	str->filters[1].cutoff_frequency.updated = 1;
+	
+	init_lr_low_pass_filter_str(&str->filters[0]);
+	init_lr_low_pass_filter_str(&str->filters[1]);
 	
 	reconfigure_lr_low_pass_filter(&str->filters[0]);
 	reconfigure_lr_low_pass_filter(&str->filters[1]);
@@ -33,9 +36,9 @@ int reconfigure_3_band_eq(void *data_struct)
 	}
 	else
 	{
-		str->coefs[0] = log10f(str->low.value);
-		str->coefs[1] = log10f(str->mid.value);
-		str->coefs[2] = log10f(str->high.value);
+		str->coefs[0] = pow(10, str->low.value / 20.0);
+		str->coefs[1] = pow(10, str->mid.value / 20.0);
+		str->coefs[2] = pow(10, str->high.value / 20.0);
 	}
 	
 	return NO_ERROR;

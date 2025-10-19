@@ -214,18 +214,36 @@ int pipe_line_append_transformer(tm_pipe_line *pipeline, tm_transformer *trans)
 
 int pipe_line_remove_transformer(tm_pipe_line *pipeline, uint16_t tid)
 {
+	tm_printf("pipe_line_remove_transformer. pipeline = %p, tid = %d\n", pipeline, tid);
 	if (!pipeline)
 		return ERR_NULL_PTR;
 	
+	tm_printf("pipeline->n_transformers = %d, pipeline->transformers = %p\n", pipeline->n_transformers, pipeline->transformers);
+	
+	if (pipeline->transformers)
+	{
+		for (int j = 0; j < pipeline->n_transformers; j++)
+			tm_printf("pipeline->transformers[%d] = %p,\n", pipeline->transformers[j]);
+	}
+	
 	for (int i = 0; i < pipeline->n_transformers; i++)
 	{
+		tm_printf("iteration %d. pipeline->transformers[%d] = %p, pipeline->transformers[%d]->id = %d\n", i, i,
+			pipeline->transformers[i], i, (pipeline->transformers[i] ? pipeline->transformers[i]->id : -420232012));
 		if (pipeline->transformers[i] && pipeline->transformers[i]->id == tid)
 		{
+			tm_printf("this is the one! freeing it...\n");
 			free_transformer(pipeline->transformers[i]);
+			tm_printf("freed!\n");
 			pipeline->n_transformers--;
 			
 			for (int j = i; j < pipeline->n_transformers; j++)
 				pipeline->transformers[j] = pipeline->transformers[j + 1];
+			
+			tm_printf("Transformer array now: \n");
+			
+			for (int j = 0; j < pipeline->n_transformers; j++)
+				tm_printf("pipeline->transformers[%d] = %p,\n", pipeline->transformers[j]);
 			
 			return NO_ERROR;
 		}

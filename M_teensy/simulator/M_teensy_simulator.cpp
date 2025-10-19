@@ -9,7 +9,7 @@ IMPLEMENT_LINKED_LIST(et_msg_timed);
 et_msg_timed_linked_list *message_list = NULL;
 
 te_msg teensy_i2c_response;
-uint8_t simulated_i2c_send_buffer[ET_MESSAGE_MAX_LEN];
+uint8_t simulated_i2c_send_buffer[ET_MESSAGE_MAX_TRANSFER_LEN];
 
 SF_INFO sfinfo_out;
 SNDFILE *outfile = NULL;
@@ -54,10 +54,19 @@ void add_message_to_queue(et_msg msg, int block_no)
 
 void generate_msg_queue()
 {
-	add_message_to_queue(create_et_msg(ET_MESSAGE_APPEND_TRANSFORMER, "ss", 0, TRANSFORMER_DISTORTION), 64);
-	add_message_to_queue(create_et_msg(ET_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, 0, 0.0), 128);
-	add_message_to_queue(create_et_msg(ET_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, 0, 2.0), 256);
-	add_message_to_queue(create_et_msg(ET_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, 0, 5.0), 512);
+	add_message_to_queue(create_et_msg(ET_MESSAGE_CREATE_PROFILE,     "", 0), 0);
+	add_message_to_queue(create_et_msg(ET_MESSAGE_APPEND_TRANSFORMER, "ss", 1, TRANSFORMER_DISTORTION), 0);
+	add_message_to_queue(create_et_msg(ET_MESSAGE_SET_PARAM_VALUE,    "sssf", 1, 0, 0, 0.0), 0);
+	add_message_to_queue(create_et_msg(ET_MESSAGE_SET_PARAM_VALUE,    "sssf", 1, 0, 1, 0.0), 0);
+	add_message_to_queue(create_et_msg(ET_MESSAGE_SET_PARAM_VALUE,    "sssf", 1, 0, 2, 0.0), 0);
+	add_message_to_queue(create_et_msg(ET_MESSAGE_SET_PARAM_VALUE,    "sssf", 1, 0, 3, 0.797844), 0);
+	add_message_to_queue(create_et_msg(ET_MESSAGE_SET_PARAM_VALUE,    "sssf", 1, 0, 4, 0.300000), 0);
+	add_message_to_queue(create_et_msg(ET_MESSAGE_SET_PARAM_VALUE,    "sssf", 1, 0, 5, 2000.000000), 0);
+	add_message_to_queue(create_et_msg(ET_MESSAGE_SET_PARAM_VALUE,    "sssf", 1, 0, 6, 200.000000), 0);
+	add_message_to_queue(create_et_msg(ET_MESSAGE_SET_PARAM_VALUE,    "sssf", 1, 0, 7, 0.100000), 0);
+	add_message_to_queue(create_et_msg(ET_MESSAGE_APPEND_TRANSFORMER,    "ss", 0, TRANSFORMER_ENVELOPE), 128);
+	add_message_to_queue(create_et_msg(ET_MESSAGE_APPEND_TRANSFORMER,    "ss", 0, TRANSFORMER_DISTORTION), 256);
+	add_message_to_queue(create_et_msg(ET_MESSAGE_REMOVE_TRANSFORMER,    "sss", 0, 0, 1), 312);
 }
 
 et_msg generate_random_msg()
@@ -92,7 +101,7 @@ int tmsim_send_et_msg(et_msg msg)
 	printf("Sending message to simulated teensy...\n");
 	int len = encode_et_msg(simulated_i2c_send_buffer, msg);
 	
-	i2c_recieve_isr(len);
+	i2c_receive_isr(len);
 	
 	ask_for_response = 1;
 	
@@ -129,7 +138,7 @@ int main(int argc, char **argv)
 		abort();
 	}
 	
-	int n_blocks = 1 << 14;
+	int n_blocks = 314;
 	
 	run_teensy_init();
 	generate_msg_queue();
@@ -171,7 +180,10 @@ int tmsim_get_input_block(int16_t *block)
 	
 	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
 	{
-		block[i] = (1 << 15) * 0.5 * sinf(PI * n_samples * (440.0 * SAMPLE_FREQUENCY));
+		block[i] = (1 << 15) * (0.333 * sinf(PI * n_samples * (30.0 * SAMPLE_FREQUENCY))
+							  + 0.333 * sinf(PI * n_samples * (2000.0 * SAMPLE_FREQUENCY))
+							  + 0.333 * sinf(PI * n_samples * (10000.0 * SAMPLE_FREQUENCY))
+							  );
 		n_samples++;
 	}
 	#endif

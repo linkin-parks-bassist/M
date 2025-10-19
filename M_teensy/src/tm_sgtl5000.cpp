@@ -97,6 +97,8 @@ int sgtl5000_enable()
 	sgtl5000_write_reg(0x0020, 0x055); // +7.5dB gain (1.3Vp-p full scale)
 	sgtl5000_write_reg(0x0024, ana_ctrl | (1<<2));
 	
+	sgtl5000_modify_reg(CHIP_ADCDAC_CTRL, 0, 0x300);
+	
 	return NO_ERROR;
 }
 
@@ -329,7 +331,7 @@ unsigned short sgtl5000_adc_high_pass_filter_enable()
 	return sgtl5000_modify_reg(CHIP_ADCDAC_CTRL, 0, 3);
 }
 
-unsigned short sgtl5000_adc_high_pass_filterFreeze()
+unsigned short sgtl5000_adc_high_pass_filter_freeze()
 {
 	return sgtl5000_modify_reg(CHIP_ADCDAC_CTRL, 2, 3);
 }

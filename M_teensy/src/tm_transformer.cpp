@@ -1,54 +1,5 @@
 #include "tm.h"
 
-int init_transformer(tm_transformer *trans, int type,
-					 unsigned int n_inputs,  unsigned int n_outputs,
-					 vec2i 		   *inputs,  vec2i 		  *outputs,
-					 int n_options, int n_parameters,
-					 void *data_struct,
-					 int (*compute_transformer)(void *data_struct, float *dest, float *src, int n_samples))
-{
-	if (!trans)
-		return ERR_NULL_PTR;
-	
-	trans->type 	= type;
-	trans->bypass 	= 0;
-	trans->runs 	= 0;
-	
-	trans->n_inputs  = (n_inputs  < TRANSFORMER_MAX_INPUTS)  ? n_inputs  : TRANSFORMER_MAX_INPUTS;
-	trans->n_outputs = (n_outputs < TRANSFORMER_MAX_OUTPUTS) ? n_outputs : TRANSFORMER_MAX_OUTPUTS;
-	
-	unsigned int i;
-	if (inputs)
-	{
-		for (i = 0; i < n_inputs; i++)
-			trans->inputs[i] = inputs ? inputs[i] : DISCONNECTED;
-		
-		for (; i < TRANSFORMER_MAX_INPUTS; i++)
-			trans->inputs[i] = DISCONNECTED;
-	}
-	
-	if (outputs)
-	{
-		for (i = 0; i < n_outputs; i++)
-			trans->outputs[i] = outputs ? outputs[i] : DISCONNECTED;
-		
-		for (; i < TRANSFORMER_MAX_OUTPUTS; i++)
-			trans->outputs[i] = DISCONNECTED;
-	}
-	
-	trans->data_struct 	= data_struct;
-	trans->compute_transformer 	= compute_transformer;
-	
-	trans->n_options = 0;
-	trans->option_array_size = n_options;
-	trans->options 	 = (n_options) ? (tm_option**)malloc(sizeof(tm_option*) * n_options) : NULL;
-	
-	for (int i = 0; i < n_options; i++)
-		trans->options[i] = NULL;
-	
-	return NO_ERROR;
-}
-
 int transformer_init_parameter_array(tm_transformer *trans, int n)
 {
 	if (!trans)
@@ -478,16 +429,27 @@ tm_option *transformer_get_option(tm_transformer *trans, uint16_t oid)
 
 void free_transformer(tm_transformer *trans)
 {
+	tm_printf("free_transformer\n");
 	if (!trans)
 		return;
 	
+	tm_printf("trans->parameters = %p, trans->options = %p, trans->data_struct = %p\n",
+		trans->parameters, trans->options, trans->data_struct);
+	
 	if (trans->parameters)
+	{
+		tm_printf("Freeing parameter array...\n");
 		free(trans->parameters);
+	}
 	if (trans->options)
+	{
+		tm_printf("Freeing option array...\n");
 		free(trans->options);
+	}
 	
 	if (trans->data_struct)
 	{
+		tm_printf("Freeing data struct...trans->free_struct = %p\n", trans->free_struct);
 		if (trans->free_struct)
 			trans->free_struct(trans->data_struct);
 		else
