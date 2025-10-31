@@ -6,7 +6,7 @@ typedef struct
 	float a0, a1, a2, a3, a4;
 	float x1, x2, y1, y2;
 	
-	tm_option type;
+	tm_setting type;
 	tm_parameter cutoff;
 	tm_parameter bandwidth;
 	tm_parameter db_gain;

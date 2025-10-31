@@ -7,14 +7,6 @@
 #define AUDIO_SAMPLE_RATE 				AUDIO_SAMPLE_RATE_EXACT
 #define SAMPLE_FREQUENCY				0.0000226757369615
 
-#ifndef TM_SIMULATED
-#define tm_AudioNoInterrupts() 			(NVIC_DISABLE_IRQ(IRQ_SOFTWARE))
-#define tm_AudioInterrupts()   			(NVIC_ENABLE_IRQ(IRQ_SOFTWARE))
-#else
-#define tm_AudioNoInterrupts()
-#define tm_AudioInterrupts()
-#endif
-
 #define NUM_MASKS  						(((MAX_AUDIO_MEMORY / AUDIO_BLOCK_SAMPLES / 2) + 31) / 32)
 
 #define M_TEENSY
@@ -31,13 +23,6 @@
 
 #ifndef TM_SIMULATED
 #include <arm_math.h>
-
-#include <DMAChannel.h>
-#include <TeensyThreads.h>
-
-#include <Wire.h>
-
-#include "utility/imxrt_hw.h"
 #endif
 
 #ifdef __cplusplus
@@ -47,6 +32,9 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cmath>
+#include "utility/imxrt_hw.h"
+
+extern "C" {
 #else
 #include <stdint.h>
 #include <string.h>
@@ -54,6 +42,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+
+#include "utility/imxrt_hw.h"
 #endif
 
 #ifdef TM_SIMULATED
@@ -72,16 +62,21 @@
 #define MS_TO_SAMPLES(x) (((x) / 1000.0) * AUDIO_SAMPLE_RATE)
 #define AUDIO_BLOCK_MS		(((float)AUDIO_BLOCK_SAMPLES * 1000.0) / (float)AUDIO_SAMPLE_RATE)
 
+//#define ENABLE_LOGGING
+
 #include "m_transformer_enum.h"
 #include "m_error_codes.h"
 #include "m_status.h"
 #include "m_comms.h"
 #include "m_linked_list.h"
 
+#include "tm_useful_functions.h"
+
 #include "tm_audio_block.h"
 #include "tm_mempool.h"
 
 #include "tm_globals.h"
+#include "tm_logging.h"
 
 #include "tm_parameter.h"
 #include "tm_transformer.h"
@@ -93,7 +88,10 @@
 #include "tm_pass_filter.h"
 #include "tm_biquad.h"
 #include "tm_compressor.h"
+#include "tm_low_end_compressor.h"
 #include "tm_waveshaper.h"
+#include "tm_adaptive_waveshaper.h"
+#include "tm_simple_distortion.h"
 #include "tm_distortion.h"
 #include "tm_dirty_octave.h"
 #include "tm_noise_suppressor.h"
@@ -132,5 +130,9 @@
 #define binary_min(x, y) ((x > y) ? y : x)
 
 float trig_transition_function(float x);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

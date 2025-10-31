@@ -5,7 +5,7 @@
 
 typedef struct
 {
-	tm_option type;
+	tm_setting type;
 	
 	tm_low_pass_filter_str  low_pass_1;
 	tm_low_pass_filter_str  low_pass_2;

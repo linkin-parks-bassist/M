@@ -1,9 +1,15 @@
+#include <cstdint>
 #include "tm.h"
-#include "tm_comms.h"
-#include "signal.h"
-#include "m_vec2i.h"
-#include "tm_context.h"
-#include "tm_error_codes.h"
+
+extern "C"
+{
+	#include "signal.h"
+}
+
+#include <Wire.h>
+#include "utility/imxrt_hw.h"
+
+static const char *FNAME = "tm_comms.cpp";
 
 te_msg response;
 te_msg prev_response;
@@ -24,16 +30,22 @@ volatile sig_atomic_t response_ready  = 0;
 
 int et_msg_sanity_check(et_msg msg, int len)
 {
+	FUNCTION_START();
+
 	tm_printf("Message sanity check. msg.type = %d. length = %d. expected length = %d.\n", msg.type, len, et_message_data_length(msg));
 	if (!valid_et_msg_type(msg.type))
-		return 0;
+	{
+		RETURN_INT(0);
+	}
 	
 	int expected_len = et_message_data_length(msg);
 	
 	if (expected_len != MESSAGE_LEN_VARIABLE && len != expected_len)
-		return 0;
+	{
+		RETURN_INT(0);
+	}
 	
-	return 1;
+	RETURN_INT(1);
 }
 
 typedef enum
@@ -55,6 +67,8 @@ comms_fstm_state_t comms_fstm_state = IDLE;
 
 void handle_esp32_message(et_msg msg)
 {
+	FUNCTION_START();
+	
 	tm_printf("Recieved message of type %s\n", et_msg_code_to_string(msg.type));
 	int ret_val;
 	int string_received = 0;
@@ -68,7 +82,7 @@ void handle_esp32_message(et_msg msg)
 	memcpy(&arg16_5, &msg.data[8],  sizeof(uint16_t));
 	
 	tm_parameter *param;
-	tm_option *option;
+	tm_setting *setting;
 	float value_f;
 	uint16_t value_i;
 	
@@ -213,25 +227,25 @@ void handle_esp32_message(et_msg msg)
 			break;
 		
 		case ET_MESSAGE_GET_N_OPTIONS:
-			tm_printf("esp32 asks: what is the n_options of transformer %d.%d? answer: %d\n", arg16_1, arg16_2, cxt_get_n_transformer_options(&global_cxt, arg16_1, arg16_2));
+			tm_printf("esp32 asks: what is the n_settings of transformer %d.%d? answer: %d\n", arg16_1, arg16_2, cxt_get_n_transformer_settings(&global_cxt, arg16_1, arg16_2));
 			response = create_te_msg(TE_MESSAGE_N_OPTIONS, "sss", arg16_1, arg16_2,
-									 cxt_get_n_transformer_options(&global_cxt, arg16_1, arg16_2));
+									 cxt_get_n_transformer_settings(&global_cxt, arg16_1, arg16_2));
 			break;
 		
 		case ET_MESSAGE_GET_OPTION_VALUE:
-			tm_printf("Request for value of option %d.%d.%d...\n", arg16_1, arg16_2, arg16_3);
+			tm_printf("Request for value of setting %d.%d.%d...\n", arg16_1, arg16_2, arg16_3);
 			
-			option = cxt_get_option_by_id(&global_cxt, arg16_1, arg16_2, arg16_3);
+			setting = cxt_get_setting_by_id(&global_cxt, arg16_1, arg16_2, arg16_3);
 			
-			if (option)
+			if (setting)
 			{
-				tm_printf("Request valid. Parameter ptr: 0x%08x, value %d\n", option, option->value);
+				tm_printf("Request valid. Parameter ptr: 0x%08x, value %d\n", setting, setting->value);
 				response = create_te_msg(TE_MESSAGE_OPTION_VALUE, "sss", arg16_1, arg16_2, arg16_3);
-				memcpy(&response.data[6], &option->value, sizeof(uint16_t));
+				memcpy(&response.data[6], &setting->value, sizeof(uint16_t));
 			}
 			else
 			{
-				tm_printf("Requested option doesn't exist !\n");
+				tm_printf("Requested setting doesn't exist !\n");
 				response.type = TE_MESSAGE_BAD_REQUEST;
 			}
 			break;
@@ -239,19 +253,19 @@ void handle_esp32_message(et_msg msg)
 		case ET_MESSAGE_SET_OPTION_VALUE:
 			memcpy(&value_i, &msg.data[6], sizeof(uint16_t));
 			
-			tm_printf("Request to set option %d.%d.%d to value %d\n", arg16_1, arg16_2, arg16_3, value_i);
-			option = cxt_get_option_by_id(&global_cxt, arg16_1, arg16_2, arg16_3);
+			tm_printf("Request to set setting %d.%d.%d to value %d\n", arg16_1, arg16_2, arg16_3, value_i);
+			setting = cxt_get_setting_by_id(&global_cxt, arg16_1, arg16_2, arg16_3);
 			
-			if (option)
+			if (setting)
 			{
-				tm_printf("The option exists; with address %p, and current value %d\n", option, option->value);
-				update_option(option, value_i);
-				tm_printf("It has been updated to value %d.\n", option->new_value);
-				response = create_te_msg(TE_MESSAGE_OPTION_VALUE, "ssss", arg16_1, arg16_2, arg16_3, option->new_value);
+				tm_printf("The setting exists; with address %p, and current value %d\n", setting, setting->value);
+				update_setting(setting, value_i);
+				tm_printf("It has been updated to value %d.\n", setting->new_value);
+				response = create_te_msg(TE_MESSAGE_OPTION_VALUE, "ssss", arg16_1, arg16_2, arg16_3, setting->new_value);
 			}
 			else
 			{
-				tm_printf("But no such option exists!\n");
+				tm_printf("But no such setting exists!\n");
 				response = create_te_msg_nodata(TE_MESSAGE_BAD_REQUEST);
 			}
 			break;
@@ -314,8 +328,8 @@ void handle_esp32_message(et_msg msg)
 
 void i2c_receive_isr(int n)
 {
-	printf("i2c_receive_isr\n");
-	tm_AudioNoInterrupts();
+	FUNCTION_START();
+	tm_disable_software_interrupts();
 	
 	if (message_pending)
 	{
@@ -334,7 +348,7 @@ void i2c_receive_isr(int n)
 			for (i = 0; i < n; i++)
 			{
 				#ifndef TM_SIMULATED
-				Wire.read();
+				Wire1.read();
 				#else
 				
 				#endif
@@ -350,7 +364,7 @@ void i2c_receive_isr(int n)
 			received_length = n;
 			#ifndef TM_SIMULATED
 			for (i = 0; i < n; i++)
-				receive_buffer[i] = Wire.read();
+				receive_buffer[i] = Wire1.read();
 			#else
 			for (i = 0; i < n; i++)
 				receive_buffer[i] = simulated_i2c_send_buffer[i];
@@ -364,17 +378,18 @@ void i2c_receive_isr(int n)
 	//for (int i = 0; i < n; i++)
 	//	tm_printf("%d%s", receive_buffer[i], (i < n - 1) ? ", " : "\n");
 	
-	tm_AudioInterrupts();
+	tm_enable_software_interrupts();
 }
 
 void i2c_request_isr()
 {
-	tm_AudioNoInterrupts();
+	FUNCTION_START();
+	tm_disable_software_interrupts();
 	
 	if (response_ready)
 	{
 		#ifndef TM_SIMULATED
-		Wire.write(response_buffer, TE_MESSAGE_MAX_TRANSFER_LEN);
+		Wire1.write(response_buffer, TE_MESSAGE_MAX_TRANSFER_LEN);
 		#else
 		teensy_i2c_response = response;
 		#endif
@@ -390,31 +405,33 @@ void i2c_request_isr()
 	else
 	{
 		#ifndef TM_SIMULATED
-		Wire.write(wait_message, TE_MESSAGE_MAX_TRANSFER_LEN);
+		Wire1.write(wait_message, TE_MESSAGE_MAX_TRANSFER_LEN);
 		#else
 		teensy_i2c_response.type = TE_MESSAGE_WAIT;
 		#endif
 	}
-	tm_AudioInterrupts();
+	tm_enable_software_interrupts();
 }
 
 int init_esp32_link()
 {
+	FUNCTION_START();
 	#ifndef TM_SIMULATED
-	Wire.begin(TEENSY_I2C_SLAVE_ADDR);
-	Wire.onReceive(i2c_receive_isr);
-	Wire.onRequest(i2c_request_isr);
+	Wire1.begin(TEENSY_I2C_SLAVE_ADDR);
+	Wire1.onReceive(i2c_receive_isr);
+	Wire1.onRequest(i2c_request_isr);
 	#else
 	
 	#endif
 	
 	wait_message[0] = TE_MESSAGE_WAIT;
 	
-	return NO_ERROR;
+	RETURN_ERR_CODE(NO_ERROR);
 }
 
 void esp32_message_check_handle()
 {
+	FUNCTION_START();
 	if (message_pending)
 	{
 		handle_esp32_message(decode_et_msg(receive_buffer, received_length));

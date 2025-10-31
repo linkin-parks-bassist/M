@@ -31,7 +31,7 @@
 #include "imxrt_hw.h"
 
 FLASHMEM
-void set_audio_clock(int nfact, int32_t nmult, uint32_t ndiv, bool force) // sets PLL4
+void set_audio_clock(int nfact, int32_t nmult, uint32_t ndiv, int force) // sets PLL4
 {
 	if (!force && (CCM_ANALOG_PLL_AUDIO & CCM_ANALOG_PLL_AUDIO_ENABLE)) return;
 

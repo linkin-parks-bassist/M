@@ -4,6 +4,7 @@
 #define MAX_AUDIO_MEMORY 229376
 
 #define MEM_SIZE 48
+#define TM_BUFFER_POOL_SIZE 96
 
 extern tm_audio_block_int	int_block_pool[MEM_SIZE];
 extern uint16_t		 		int_block_pool_first_mask;
@@ -26,5 +27,7 @@ void init_mem_pools();
 
 extern float zero_buffer[AUDIO_BLOCK_SAMPLES];
 extern float sink_buffer[AUDIO_BLOCK_SAMPLES];
+
+void print_mempool_info();
 
 #endif

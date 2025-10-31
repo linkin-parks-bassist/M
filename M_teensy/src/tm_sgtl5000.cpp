@@ -1,5 +1,6 @@
 /* tm_Audio Library for Teensy 3.X
  *Copyright (c) 2014, Paul Stoffregen, paul@pjrc.com
+static const char *FNAME = "tm_sgtl5000.c";
  *
  *Development of this audio library was funded by PJRC.COM, LLC by sales of
  *Teensy and tm_Audio Adaptor boards.  Please support PJRC's efforts to develop
@@ -30,6 +31,8 @@
 #include "tm.h"
 #include "tm_sgtl5000_defs.h"
 
+static const char *FNAME = "tm_sgtl5000.cpp";
+
 static uint16_t ana_ctrl;
 static uint8_t i2c_addr = 0x0A;
 
@@ -44,6 +47,8 @@ int sgtl5000_unmute_line_out() 		{ return sgtl5000_write_reg(0x0024, ana_ctrl & 
 
 void sgtl5000_set_address(uint8_t level)
 {
+	FUNCTION_START();
+
 	if (level == LOW)
 		i2c_addr = SGTL5000_I2C_ADDR_CS_LOW;
 	else
@@ -53,11 +58,20 @@ void sgtl5000_set_address(uint8_t level)
 
 int sgtl5000_start()
 {
+	FUNCTION_START();
+
 	sgtl5000_enable();
+	
+	sgtl5000_line_in_level(3);
+	sgtl5000_line_out_level(31);
+	
+	return NO_ERROR;
 }
 
 int sgtl5000_enable()
 {
+	FUNCTION_START();
+
 	Wire.begin();
 	delay(5);
 	
@@ -105,12 +119,14 @@ int sgtl5000_enable()
 
 unsigned int sgtl5000_read_reg(unsigned int reg)
 {
+	FUNCTION_START();
+
 	unsigned int val;
 	Wire.beginTransmission(i2c_addr);
 	Wire.write(reg >> 8);
 	Wire.write(reg);
-	if (Wire.endTransmission(false) != 0) return 0;
-	if (Wire.requestFrom((int)i2c_addr, 2) < 2) return 0;
+	if (Wire.endTransmission(false) != 0) RETURN_INT(0);
+	if (Wire.requestFrom((int)i2c_addr, 2) < 2) RETURN_INT(0);
 	val = Wire.read() << 8;
 	val |= Wire.read();
 	return val;
@@ -118,6 +134,8 @@ unsigned int sgtl5000_read_reg(unsigned int reg)
 
 int sgtl5000_write_reg(unsigned int reg, unsigned int val)
 {
+	FUNCTION_START();
+
 	if (reg == CHIP_ANA_CTRL) ana_ctrl = val;
 	Wire.beginTransmission(i2c_addr);
 	Wire.write(reg >> 8);
@@ -130,16 +148,20 @@ int sgtl5000_write_reg(unsigned int reg, unsigned int val)
 
 unsigned int sgtl5000_modify_reg(unsigned int reg, unsigned int val, unsigned int i_mask)
 {
+	FUNCTION_START();
+
 	unsigned int val1 = (sgtl5000_read_reg(reg)&(~i_mask))|val;
 	
 	if (!sgtl5000_write_reg(reg,val1))
-		return 0;
+		RETURN_INT(0);
 	
 	return val1;
 }
 
 int sgtl5000_volume_integer(unsigned int n)
 {
+	FUNCTION_START();
+
 	if (n == 0)
 	{
 		muted = true;
@@ -165,55 +187,6 @@ int sgtl5000_volume_integer(unsigned int n)
 	return sgtl5000_write_reg(CHIP_ANA_HP_CTRL, n);  // set volume
 }
 
-int sgtl5000_volume(float left, float right)
-{
-	unsigned short m=((0x7F-calc_vol(right,0x7F))<<8)|(0x7F-calc_vol(left,0x7F));
-	return sgtl5000_write_reg(CHIP_ANA_HP_CTRL, m);
-}
-
-int sgtl5000_mic_gain(unsigned int dB)
-{
-	unsigned int preamp_gain, input_gain;
-
-	if (dB >= 40)
-	{
-		preamp_gain = 3;
-		dB -= 40;
-	}
-	else if (dB >= 30)
-	{
-		preamp_gain = 2;
-		dB -= 30;
-	}
-	else if (dB >= 20)
-	{
-		preamp_gain = 1;
-		dB -= 20;
-	}
-	else
-	{
-		preamp_gain = 0;
-	}
-	
-	input_gain = (dB *2) / 3;
-	
-	if (input_gain > 15)
-		input_gain = 15;
-
-	return sgtl5000_write_reg(CHIP_MIC_CTRL, 0x0170 | preamp_gain)
-		&& sgtl5000_write_reg(CHIP_ANA_ADC_CTRL, (input_gain << 4) | input_gain);
-}
-
-int sgtl5000_headphone_select(int n)
-{
-	if (n == AUDIO_HEADPHONE_DAC)
-		return sgtl5000_write_reg(0x0024, ana_ctrl | (1<<6)); // route DAC to headphones out
-	else if (n == AUDIO_HEADPHONE_LINEIN)
-		return sgtl5000_write_reg(0x0024, ana_ctrl & ~(1<<6)); // route linein to headphones out
-	else
-		return false;
-}
-
 // CHIP_ANA_ADC_CTRL
 // Actual measured full-scale peak-to-peak sine wave input for max signal
 //  0: 3.12 Volts p-p
@@ -235,14 +208,10 @@ int sgtl5000_headphone_select(int n)
 
 int sgtl5000_line_in_level(uint8_t n)
 {
-	return sgtl5000_line_in_level(n, n);
-}
+	FUNCTION_START();
 
-int sgtl5000_line_in_level(uint8_t left, uint8_t right)
-{
-	if (left > 15) left = 15;
-	if (right > 15) right = 15;
-	return sgtl5000_write_reg(CHIP_ANA_ADC_CTRL, (left << 4) | right);
+	if (n > 15) n = 15;
+	return sgtl5000_write_reg(CHIP_ANA_ADC_CTRL, (n << 4) | n);
 }
 
 // CHIP_LINE_OUT_VOL
@@ -270,250 +239,46 @@ int sgtl5000_line_in_level(uint8_t left, uint8_t right)
 
 unsigned short sgtl5000_line_out_level(uint8_t n)
 {
+	FUNCTION_START();
+
 	if (n > 31) n = 31;
 	else if (n < 13) n = 13;
 	return sgtl5000_modify_reg(CHIP_LINE_OUT_VOL,(n<<8)|n,(31<<8)|31);
 }
 
-unsigned short sgtl5000_line_out_level(uint8_t left, uint8_t right)
-{
-	left  = (left  > 31) ? 31 : left;
-	right = (right > 31) ? 31 : right;
-	
-	/*if (left > 31)
-		left = 31;
-	else if (left < 13)
-		left = 13;
-	
-	if (right > 31)
-		right = 31;
-	else if (right < 13)
-		right = 13;*/
-	
-	return sgtl5000_modify_reg(CHIP_LINE_OUT_VOL,(right<<8)|left,(31<<8)|31);
-}
-
-unsigned short sgtl5000_dac_volume(float n) // set both directly
-{
-	if ((sgtl5000_read_reg(CHIP_ADCDAC_CTRL)&(3<<2)) != ((n>0 ? 0:3)<<2)) {
-		sgtl5000_modify_reg(CHIP_ADCDAC_CTRL,(n>0 ? 0:3)<<2,3<<2);
-	}
-	unsigned char m=calc_vol(n,0xC0);
-	return sgtl5000_modify_reg(CHIP_DAC_VOL,((0xFC-m)<<8)|(0xFC-m),65535);
-}
-unsigned short sgtl5000_dac_volume(float left, float right)
-{
-	unsigned short adcdac=((right>0 ? 0:2)|(left>0 ? 0:1))<<2;
-	if ((sgtl5000_read_reg(CHIP_ADCDAC_CTRL)&(3<<2)) != adcdac) {
-		sgtl5000_modify_reg(CHIP_ADCDAC_CTRL,adcdac,1<<2);
-	}
-	unsigned short m=(0xFC-calc_vol(right,0xC0))<<8|(0xFC-calc_vol(left,0xC0));
-	return sgtl5000_modify_reg(CHIP_DAC_VOL,m,65535);
-}
-
-int sgtl5000_dac_volume_ramp()
-{
-	return sgtl5000_modify_reg(CHIP_ADCDAC_CTRL, 0x300, 0x300);
-}
-
-int sgtl5000_dac_volume_ramp_linear()
-{
-	return sgtl5000_modify_reg(CHIP_ADCDAC_CTRL, 0x200, 0x300);
-}
-
-int sgtl5000_dac_volume_ramp_disable()
-{
-	return sgtl5000_modify_reg(CHIP_ADCDAC_CTRL, 0, 0x300);
-}
-
 unsigned short sgtl5000_adc_high_pass_filter_enable()
 {
+	FUNCTION_START();
+
 	return sgtl5000_modify_reg(CHIP_ADCDAC_CTRL, 0, 3);
 }
 
 unsigned short sgtl5000_adc_high_pass_filter_freeze()
 {
+	FUNCTION_START();
+
 	return sgtl5000_modify_reg(CHIP_ADCDAC_CTRL, 2, 3);
 }
 
 unsigned short sgtl5000_adc_high_pass_filter_disable()
 {
+	FUNCTION_START();
+
 	return sgtl5000_modify_reg(CHIP_ADCDAC_CTRL, 1, 3);
-}
-
-
-// DAP_CONTROL
-
-unsigned short sgtl5000_audio_pre_processor_enable()
-{
-	// audio processor used to pre-process analog input before Teensy
-	return sgtl5000_write_reg(DAP_CONTROL, 1) && sgtl5000_write_reg(CHIP_SSS_CTRL, 0x0013);
-}
-
-unsigned short sgtl5000_audio_post_processor_enable()
-{
-	// audio processor used to post-process Teensy output before headphones/lineout
-	return sgtl5000_write_reg(DAP_CONTROL, 1) && sgtl5000_write_reg(CHIP_SSS_CTRL, 0x0070);
-}
-
-unsigned short sgtl5000_audioProcessor_disable()
-{
-	return sgtl5000_write_reg(CHIP_SSS_CTRL, 0x0010) && sgtl5000_write_reg(DAP_CONTROL, 0);
-}
-
-
-// DAP_PEQ
-unsigned short sgtl5000_eq_filter_count(uint8_t n) // valid to n&7, 0 thru 7 filters enabled.
-{
-	return sgtl5000_modify_reg(DAP_PEQ,(n&7),7);
-}
-
-// DAP_AUDIO_EQ
-unsigned short sgtl5000_eq_select(uint8_t n) // 0=NONE, 1=PEQ (7 IIR Biquad filters), 2=TONE (tone), 3=GEQ (5 band EQ)
-{
-	return sgtl5000_modify_reg(DAP_AUDIO_EQ,n&3,3);
-}
-
-unsigned short sgtl5000_eqBand(uint8_t band_num, float n)
-{
-	if (semi_automated)
-		sgtl5000_automate(1, 3);
-	return sgtl5000_dap_audio_eq_band(band_num, n);
-}
-void sgtl5000_eqBands(float bass, float mid_bass, float midrange, float mid_treble, float treble)
-{
-	if(semi_automated)
-		sgtl5000_automate(1,3);
-	
-	sgtl5000_dap_audio_eq_band(0,bass);
-	sgtl5000_dap_audio_eq_band(1,mid_bass);
-	sgtl5000_dap_audio_eq_band(2,midrange);
-	sgtl5000_dap_audio_eq_band(3,mid_treble);
-	sgtl5000_dap_audio_eq_band(4,treble);
-}
-void sgtl5000_eqBands(float bass, float treble) // dap_audio_eq(2);
-{
-	if(semi_automated) 
-		sgtl5000_automate(1,2);
-	
-	sgtl5000_dap_audio_eq_band(0,bass);
-	sgtl5000_dap_audio_eq_band(4,treble);
-}
-
-// SGTL5000 PEQ Coefficient loader
-void sgtl5000_eq_filter(uint8_t filterNum, int *filter_parameters)
-{
-	// TODO: add the part that selects 7 PEQ filters.
-	if(semi_automated)
-		sgtl5000_automate(1,1,filterNum+1);
-	
-	sgtl5000_modify_reg(DAP_FILTER_COEF_ACCESS,(uint16_t)filterNum,15);
-	sgtl5000_write_reg(DAP_COEF_WR_B0_MSB,(*filter_parameters>>4)&65535);
-	sgtl5000_write_reg(DAP_COEF_WR_B0_LSB,(*filter_parameters++)&15);
-	sgtl5000_write_reg(DAP_COEF_WR_B1_MSB,(*filter_parameters>>4)&65535);
-	sgtl5000_write_reg(DAP_COEF_WR_B1_LSB,(*filter_parameters++)&15);
-	sgtl5000_write_reg(DAP_COEF_WR_B2_MSB,(*filter_parameters>>4)&65535);
-	sgtl5000_write_reg(DAP_COEF_WR_B2_LSB,(*filter_parameters++)&15);
-	sgtl5000_write_reg(DAP_COEF_WR_A1_MSB,(*filter_parameters>>4)&65535);
-	sgtl5000_write_reg(DAP_COEF_WR_A1_LSB,(*filter_parameters++)&15);
-	sgtl5000_write_reg(DAP_COEF_WR_A2_MSB,(*filter_parameters>>4)&65535);
-	sgtl5000_write_reg(DAP_COEF_WR_A2_LSB,(*filter_parameters++)&15);
-	sgtl5000_write_reg(DAP_FILTER_COEF_ACCESS,(uint16_t)0x100|filterNum);
-}
-
-/* Valid values for dap_avc parameters
-
-	max_gain; Maximum gain that can be applied
-	0 - 0 dB
-	1 - 6.0 dB
-	2 - 12 dB
-
-	lbi_response; Integrator Response
-	0 - 0 mS
-	1 - 25 mS
-	2 - 50 mS
-	3 - 100 mS
-
-	hardLimit
-	0 - Hard limit disabled. AVC Compressor/Expander enabled.
-	1 - Hard limit enabled. The signal is limited to the programmed threshold (signal saturates at the threshold)
-
-	threshold
-	floating point in range 0 to -96 dB
-
-	attack
-	floating point figure is dB/s rate at which gain is increased
-
-	decay
-	floating point figure is dB/s rate at which gain is reduced
-*/
-unsigned short sgtl5000_auto_volumeControl(uint8_t max_gain, uint8_t lbi_response, uint8_t hardLimit, float threshold, float attack, float decay)
-{
-	if(max_gain>2) max_gain=2;
-	lbi_response&=3;
-	hardLimit&=1;
-	
-	uint8_t thresh=(pow(10,threshold/20)*0.636)*pow(2,15);
-	uint8_t att=(1-pow(10,-(attack/(20*44100))))*pow(2,19);
-	uint8_t dec=(1-pow(10,-(decay/(20*44100))))*pow(2,23);
-	
-	sgtl5000_write_reg(DAP_AVC_THRESHOLD,thresh);
-	sgtl5000_write_reg(DAP_AVC_ATTACK,att);
-	sgtl5000_write_reg(DAP_AVC_DECAY,dec);
-	
-	return sgtl5000_modify_reg(DAP_AVC_CTRL,max_gain<<12|lbi_response<<8|hardLimit<<5,3<<12|3<<8|1<<5);
-}
-unsigned short sgtl5000_auto_volume_enable()
-{
-	return sgtl5000_modify_reg(DAP_AVC_CTRL, 1, 1);
-}
-unsigned short sgtl5000_auto_volume_disable()
-{
-	return sgtl5000_modify_reg(DAP_AVC_CTRL, 0, 1);
-}
-
-unsigned short sgtl5000_enhance_bass(float lr_lev, float bass_lev)
-{
-	return sgtl5000_modify_reg(DAP_BASS_ENHANCE_CTRL,((0x3F-calc_vol(lr_lev,0x3F))<<8) | (0x7F-calc_vol(bass_lev,0x7F)), (0x3F<<8) | 0x7F);
-}
-unsigned short sgtl5000_enhance_bass(float lr_lev, float bass_lev, uint8_t hpf_bypass, uint8_t cutoff)
-{
-	sgtl5000_modify_reg(DAP_BASS_ENHANCE,(hpf_bypass&1)<<8|(cutoff&7)<<4,1<<8|7<<4);
-	return sgtl5000_enhance_bass(lr_lev,bass_lev);
-}
-unsigned short sgtl5000_enhance_bass_enable()
-{
-	return sgtl5000_modify_reg(DAP_BASS_ENHANCE, 1, 1);
-}
-unsigned short sgtl5000_enhance_bass_disable()
-{
-	return sgtl5000_modify_reg(DAP_BASS_ENHANCE, 0, 1);
-}
-unsigned short sgtl5000_surround_sound(uint8_t width)
-{
-	return sgtl5000_modify_reg(DAP_SGTL_SURROUND,(width&7)<<4,7<<4);
-}
-unsigned short sgtl5000_surround_sound(uint8_t width, uint8_t select)
-{
-	return sgtl5000_modify_reg(DAP_SGTL_SURROUND,((width&7)<<4)|(select&3), (7<<4)|3);
-}
-unsigned short sgtl5000_surround_sound_enable()
-{
-	return sgtl5000_modify_reg(DAP_SGTL_SURROUND, 3, 3);
-}
-unsigned short sgtl5000_surround_sound_disable()
-{
-	return sgtl5000_modify_reg(DAP_SGTL_SURROUND, 0, 3);
 }
 
 
 void sgtl5000_kill_automation()
 {
+	FUNCTION_START();
+
 	semi_automated=false;
 }
 
 unsigned char calc_vol(float n, unsigned char range)
 {
+	FUNCTION_START();
+
 	// n=(n*(((float)range)/100))+0.499;
 	n = (n * (float)range) + 0.499;
 	if ((unsigned char)n>range)
@@ -524,6 +289,8 @@ unsigned char calc_vol(float n, unsigned char range)
 // DAP_AUDIO_EQ_BASS_BAND0 & DAP_AUDIO_EQ_BAND1 & DAP_AUDIO_EQ_BAND2 etc etc
 unsigned short sgtl5000_dap_audio_eq_band(uint8_t band_num, float n) // by signed percentage -100/+100; dap_audio_eq(3);
 {
+	FUNCTION_START();
+	
 	n=(n*48)+0.499;
 	if(n<-47) n=-47;
 	if(n>48) n=48;
@@ -531,124 +298,17 @@ unsigned short sgtl5000_dap_audio_eq_band(uint8_t band_num, float n) // by signe
 	return sgtl5000_modify_reg(DAP_AUDIO_EQ_BASS_BAND0+(band_num*2),(unsigned int)n,127);
 }
 
+unsigned short sgtl5000_eq_select(uint8_t n) // 0=NONE, 1=PEQ (7 IIR Biquad filters), 2=TONE (tone), 3=GEQ (5 band EQ)
+{
+	FUNCTION_START();
+	
+	return sgtl5000_modify_reg(DAP_AUDIO_EQ,n&3,3);
+}
+
 void sgtl5000_automate(uint8_t dap, uint8_t eq)
 {
+	FUNCTION_START();
+
 	//if((dap!=0)&&(!(read(DAP_CONTROL)&1))) audioProcessor_enable();
 	if((sgtl5000_read_reg(DAP_AUDIO_EQ)&3) != eq) sgtl5000_eq_select(eq);
 }
-
-void sgtl5000_automate(uint8_t dap, uint8_t eq, uint8_t filter_count)
-{
-	sgtl5000_automate(dap,eq);
-	
-	if (filter_count > (sgtl5000_read_reg(DAP_PEQ)&7))
-		sgtl5000_eq_filter_count(filter_count);
-}
-
-
-// if(SGTL5000_PEQ) quantization_unit=524288; if(tm_AudioFilterBiquad) quantization_unit=2147483648;
-void sgtl5000_calc_biquad(uint8_t filtertype, float fC, float dB_Gain, float Q, uint32_t quantization_unit, uint32_t fS, int *coef)
-{
-
-// I used resources like http://www.musicdsp.org/files/tm_Audio-EQ-Cookbook.txt
-// to make this routine, I tested most of the filter types and they worked. Such filters have limits and
-// before calling this routine with varying values the end user should check that those values are limited
-// to valid results.
-
-	float A;
-	if (filtertype < FILTER_PARAEQ)
-		A = pow(10, dB_Gain/20);
-	else
-		A = pow(10, dB_Gain/40);
-	
-	float W0 = 2*3.14159265358979323846*fC/fS;
-	float cosw=cosf(W0);
-	float sinw=sinf(W0);
-	//float alpha = sinw*sinh((log(2)/2)*BW*W0/sinw);
-	//float beta = sqrt(2*A);
-	float alpha = sinw / (2 *Q);
-	float beta = sqrtf(A)/Q;
-	float b0,b1,b2,a0,a1,a2;
-
-	switch(filtertype)
-	{
-		case FILTER_LOPASS:
-			b0 = (1.0F - cosw) *0.5F; // =(1-COS($H$2))/2
-			b1 = 1.0F - cosw;
-			b2 = (1.0F - cosw) *0.5F;
-			a0 = 1.0F + alpha;
-			a1 = 2.0F *cosw;
-			a2 = alpha - 1.0F;
-		break;
-		case FILTER_HIPASS:
-			b0 = (1.0F + cosw) *0.5F;
-			b1 = -(cosw + 1.0F);
-			b2 = (1.0F + cosw) *0.5F;
-			a0 = 1.0F + alpha;
-			a1 = 2.0F *cosw;
-			a2 = alpha - 1.0F;
-		break;
-		case FILTER_BANDPASS:
-			b0 = alpha;
-			b1 = 0.0F;
-			b2 = -alpha;
-			a0 = 1.0F + alpha;
-			a1 = 2.0F *cosw;
-			a2 = alpha - 1.0F;
-	   break;
-		case FILTER_NOTCH:
-			b0=1;
-			b1=-2*cosw;
-			b2=1;
-			a0=1+alpha;
-			a1=2*cosw;
-			a2=-(1-alpha);
-		break;
-			case FILTER_PARAEQ:
-			b0 = 1 + (alpha*A);
-			b1 =-2 *cosw;
-			b2 = 1 - (alpha*A);
-			a0 = 1 + (alpha/A);
-			a1 = 2 *cosw;
-			a2 =-(1-(alpha/A));
-		break;
-		case FILTER_LOSHELF:
-			b0 = A *((A+1.0F) - ((A-1.0F)*cosw) + (beta*sinw));
-			b1 = 2.0F *A *((A-1.0F) - ((A+1.0F)*cosw));
-			b2 = A *((A+1.0F) - ((A-1.0F)*cosw) - (beta*sinw));
-			a0 = (A+1.0F) + ((A-1.0F)*cosw) + (beta*sinw);
-			a1 = 2.0F *((A-1.0F) + ((A+1.0F)*cosw));
-			a2 = -((A+1.0F) + ((A-1.0F)*cosw) - (beta*sinw));
-		break;
-		case FILTER_HISHELF:
-			b0 = A *((A+1.0F) + ((A-1.0F)*cosw) + (beta*sinw));
-			b1 = -2.0F *A *((A-1.0F) + ((A+1.0F)*cosw));
-			b2 = A *((A+1.0F) + ((A-1.0F)*cosw) - (beta*sinw));
-			a0 = (A+1.0F) - ((A-1.0F)*cosw) + (beta*sinw);
-			a1 = -2.0F *((A-1.0F) - ((A+1.0F)*cosw));
-			a2 = -((A+1.0F) - ((A-1.0F)*cosw) - (beta*sinw));
-		break;
-		default:
-			b0 = 0.5;
-			b1 = 0.0;
-			b2 = 0.0;
-			a0 = 1.0;
-			a1 = 0.0;
-			a2 = 0.0;
-		break;
-	}
-
-	a0=(a0*2)/(float)quantization_unit; // once here instead of five times there...
-	b0/=a0;
-	*coef++=(int)(b0+0.499);
-	b1/=a0;
-	*coef++=(int)(b1+0.499);
-	b2/=a0;
-	*coef++=(int)(b2+0.499);
-	a1/=a0;
-	*coef++=(int)(a1+0.499);
-	a2/=a0;
-	*coef++=(int)(a2+0.499);
-}
-
-

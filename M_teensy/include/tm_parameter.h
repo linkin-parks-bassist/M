@@ -47,7 +47,7 @@ typedef struct
 	
 	int update_policy;
 	int update_progress;
-} tm_option;
+} tm_setting;
 
 typedef struct
 {
@@ -56,18 +56,18 @@ typedef struct
 	uint16_t ppid;
 } m_ppid;
 
-int init_option_simple(tm_option *option, int initial);
-int init_option(tm_option *option, int initial, int update_policy);
+int init_setting_simple(tm_setting *setting, int initial);
+int init_setting(tm_setting *setting, int initial, int update_policy);
 
 int init_parameter_simple(tm_parameter *param, float initial);
 void init_parameter(tm_parameter *param, float initial, float min, float max, float max_jump, int scale);
 
 int update_parameter(tm_parameter *param, float new_value);
 int update_parameter_update(tm_parameter *param, float new_value);
-int update_option(tm_option *option, uint16_t new_value);
+int update_setting(tm_setting *setting, uint16_t new_value);
 
 int parameter_update_tick(tm_parameter *param);
 int parameter_update_finish(tm_parameter *param);
-int option_update_tick(tm_parameter *param);
+int setting_update_tick(tm_parameter *param);
 
 #endif

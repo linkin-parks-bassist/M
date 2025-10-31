@@ -1,5 +1,6 @@
 #include "tm.h"
 
+static const char *FNAME = "tm_printf.c";
 #define ALLOW_PRINTLINES
 
 void tm_printf(const char *fmt, ...)

@@ -37,7 +37,7 @@
 #include <Arduino.h>
 #include <imxrt.h>
 
-void set_audio_clock(int nfact, int32_t nmult, uint32_t ndiv,  bool force = false); // sets PLL4
+void set_audio_clock(int nfact, int32_t nmult, uint32_t ndiv,  int force); // sets PLL4
 
 #endif
 

@@ -1,5 +1,8 @@
 #include <DMAChannel.h>
+#include "utility/imxrt_hw.h"
 #include "tm.h"
+
+static const char *FNAME = "tm_i2s_dma.cpp";
 
 DMAMEM __attribute__((aligned(32))) static uint32_t i2s_rx_buffer[AUDIO_BLOCK_SAMPLES];
 DMAMEM __attribute__((aligned(32))) static uint32_t i2s_tx_buffer[AUDIO_BLOCK_SAMPLES];
@@ -24,7 +27,7 @@ DMAChannel i2s_out_dma(false);
 tm_audio_block_int	i2s_input_blocks [2];
 tm_audio_block_int	i2s_output_blocks[2];
 
-void configure_i2s()
+extern "C" void configure_i2s()
 {
 	CCM_CCGR5 |= CCM_CCGR5_SAI1(CCM_CCGR_ON);
 
@@ -33,7 +36,7 @@ void configure_i2s()
 	{
 		CORE_PIN23_CONFIG = 3;  //1:MCLK
 		CORE_PIN20_CONFIG = 3;  //1:RX_SYNC (LRCLK)
-		return;
+		RETURN_VOID();
 	}
 
 	//PLL:
@@ -46,7 +49,7 @@ void configure_i2s()
 	int c0 = C;
 	int c2 = 10000;
 	int c1 = C *c2 - (c0 *c2);
-	set_audio_clock(c0, c1, c2);
+	set_audio_clock(c0, c1, c2, 0);
 
 	// clear SAI1_CLK register locations
 	CCM_CSCMR1 = (CCM_CSCMR1 & ~(CCM_CSCMR1_SAI1_CLK_SEL_MASK))
@@ -88,7 +91,7 @@ void configure_i2s()
 	I2S1_RCR5 = I2S_RCR5_WNW((32-1)) | I2S_RCR5_W0W((32-1)) | I2S_RCR5_FBT((32-1));
 }
 
-void init_i2s()
+extern "C" void init_i2s()
 {
 	tm_printf("Allocating I2S input DMA channel... ");
 	/* First, init i2s input */
@@ -166,7 +169,7 @@ void init_i2s()
 	tm_printf("done.\n");
 }
 
-void tm_i2s_input_isr()
+extern "C" void tm_i2s_input_isr()
 {
 	uint32_t daddr, offset;
 	const int16_t *src, *end;
@@ -215,7 +218,7 @@ void tm_i2s_input_isr()
 	}
 }
 
-void tm_i2s_output_isr()
+extern "C" void tm_i2s_output_isr()
 {
 	int16_t *dest;
 	tm_audio_block_int *blockL, *blockR;
@@ -291,7 +294,7 @@ void tm_i2s_output_isr()
 	}
 }
 
-void i2s_in_transmit(tm_audio_block_int *block, unsigned char index)
+extern "C" void i2s_in_transmit(tm_audio_block_int *block, unsigned char index)
 {
 	#ifdef SKIP_EVERYTHING
 	#ifdef TRY_CONVERT
@@ -324,7 +327,7 @@ void i2s_in_transmit(tm_audio_block_int *block, unsigned char index)
 	}*/
 }
 
-void i2s_input_update()
+extern "C" void i2s_input_update()
 {
 	tm_audio_block_int *new_left=NULL, *new_right=NULL, *out_left=NULL, *out_right=NULL;
 
@@ -392,19 +395,21 @@ void i2s_input_update()
 
 // Receive block from an input.  The block's data
 // may be shared with other streams, so it must not be written
-tm_audio_block_int *i2s_out_receive_read_only(unsigned int index)
+extern "C" tm_audio_block_int *i2s_out_receive_read_only(unsigned int index)
 {
 	tm_audio_block_int *in;
 
 	if (index >= 2)
-		return NULL;
+	{
+		RETURN_PTR(NULL);
+	}
 	
 	in = &i2s_output_blocks[index];
 	
 	return in;
 }
 
-void i2s_output_update()
+extern "C" void i2s_output_update()
 {
 	tm_audio_block_int *block;
 	block = i2s_out_receive_read_only(0); // input 0 = left channel
@@ -454,7 +459,7 @@ void i2s_output_update()
 	}	
 }
 
-void i2s_output_transmit_mono_int(int16_t *block)
+extern "C" void i2s_output_transmit_mono_int(int16_t *block)
 {
 	if (!block)
 	{
@@ -474,7 +479,7 @@ void i2s_output_transmit_mono_int(int16_t *block)
 	}
 }
 
-void i2s_output_transmit_mono_float(float *block)
+extern "C" void i2s_output_transmit_mono_float(float *block)
 {
 	if (!block)
 	{

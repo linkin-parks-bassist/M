@@ -1,6 +1,8 @@
 #ifndef M_PROFILE_H_
 #define M_PROFILE_H_
 
+#include "tm_pipe_line.h"
+
 typedef struct
 {
 	//tm_pipeline pipeline;
@@ -32,5 +34,7 @@ int profile_update(tm_profile *profile);
 int profile_apply_pipeline_mod(tm_profile *profile, tm_pipe_line_mod mod);
 
 int profile_trigger_pipeline_swap(tm_profile *profile);
+
+int profile_scheduled_maintainance(tm_profile *profile);
 
 #endif
