@@ -3,43 +3,22 @@ parameters:
 - name: "Gain"
   default: 4.0
   min: 0.0
-  max: 5.0
-
+  max: 10
+  location: dist.coefficient
+  
 - name: "Wet Mix"
   default: 0.7
   type: mix
-
-- name: "High Mix"
-  default: 0.55
-  type: mix
-  group: 0
-  widget: vslider
-
-- name: "Mid Mix"
-  default: 0.8
-  type: mix
-  group: 0
-  widget: vslider
-
+  max: 1.0
+  
 - name: "Bass Mix"
-  default: 0.3
   type: mix
-  group: 0
-  widget: vslider
-
-- name: "Mid Cutoff"
-  default: 2000.0
-  min: 1000.0
-  type: freq
-
+  default: 0.4
+  max: 1.0
+  
 - name: "Bass Cutoff"
-  default: 200.0
-  min: 1.0
-  max: 1000.0
+  location: low_pass.cutoff_frequency
   type: freq
- 
-- name: "Ratio"
-  default: 0.1
-  min: 0.0
-  max: 0.5
-  widget: hslider
+  default: 125
+  min: 20
+  max: 250

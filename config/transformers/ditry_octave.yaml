@@ -5,3 +5,4 @@ parameters:
   default: 5
   min: 0
   max: 10
+  hidden: 1

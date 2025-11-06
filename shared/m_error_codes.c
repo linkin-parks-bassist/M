@@ -1,5 +1,7 @@
 #include "m_error_codes.h"
 
+static const char *FNAME = "m_error_codes.c";
+
 // Copy in #define's and regex replace
 //
 // #define ([^\s]*)\s*[0-9]*\n

@@ -1,3 +1,4 @@
+import operator
 import yaml
 import os
 
@@ -46,21 +47,27 @@ enum_source_initial = [
 	"",
 	"#include \"m_transformer_enum.h\"",
 	"",
+	"static const char *FNAME = \"m_transformer_enum.c\";",
+	""
 ]
 
-em_init_transformer_fname = "./M_esp32/main/em_transformer_init.c"
-em_init_transformer_initial = [
-	"#include \"em.h\"",
+m_eng_init_fname = "./M_engine/src/m_eng_transformer_init.c"
+m_eng_init_initial = ["#include \"m_eng.h\"", "", "static const char *FNAME = \"m_eng_transformer_init.c\";", ""]
+
+m_int_init_fname = "./M_interface/main/m_int_transformer_init.c"
+m_int_init_transformer_initial = [
+	"#include \"m_int.h\"",
 	"",
 	"static const char *unit_string_ = \"\";",
 	"static const char *unit_string_hz = \" Hz\";",
 	"static const char *unit_string_ms = \" ms\";",
 	"static const char *unit_string_db = \" dB\";",
-	""
+	"",
+	"static const char *FNAME = \"m_int_transformer_init.c\";"
 ]
 
-em_table_fname = "./M_esp32/main/em_transformer_table.c"
-em_table_initial = ["#include \"em.h\"", ""]
+m_int_table_fname = "./M_interface/main/m_int_transformer_table.c"
+m_int_table_initial = ["#include \"m_int.h\"", "", "static const char *FNAME = \"m_int_transformer_table.c\";", ""]
 
 def enum_sanitize(s):
 	return s.upper().replace(' ', '_')
@@ -82,6 +89,9 @@ def scale_rectify(scale):
 trans_null_ptr_guard =  ["	if (!trans)", "		return ERR_NULL_PTR;", ""]
 ret_val_guard = ["	if (ret_val != NO_ERROR)", "		return ret_val;", ""]
 
+m_eng_trans_null_ptr_guard =  ["	if (!trans)", "	{", "		RETURN_ERR_CODE(ERR_NULL_PTR);", "	}", ""]
+m_eng_ret_val_guard = ["	if (ret_val != NO_ERROR)", "	{", "		RETURN_ERR_CODE(ret_val);", "	}", ""]
+
 
 class parameter_desc:
 	name: 		str = ""
@@ -94,36 +104,47 @@ class parameter_desc:
 	scale:		str = ""
 	units:		str = ""
 	group:		int = 0
-	widget:		str
+	widget:		str = ""
 
 @dataclass
-class option_desc:
+class setting_desc:
 	name: 		str = ""
+	s_type:		str = ""
 	default: 	int = 0
 	location:	str = ""
 	options:	list = field(default_factory=list)
 	group:		int = 0
+	widget: 	str = ""
+	units:		str = ""
+	page:		str = ""
+
+@dataclass
+class setting_option:
+	name:		str = ""
+	value:		int = 0
 
 @dataclass
 class transformer_desc:
-    name:           str = ""
-    enum_name:      str = ""
-    code_name:      str = ""
-    init_fn:        str = ""
-    init_str_fn:    str = ""
-    reconfigure:    bool = False
-    reconfigure_fn: str = ""
-    struct_name:    str = ""
-    linear:         bool = True
-    has_struct:     bool = True
-    has_free:       bool = False
-    calc_fn:        str = ""
-    n_inputs:       int = 1
-    n_outputs:      int = 1
-    parameters:     list = field(default_factory=list)
-    n_options:      int = 0
-    options:        list = field(default_factory=list)
-    transition:     str = ""
+    name:           	str = ""
+    enum_name:      	str = ""
+    code_name:      	str = ""
+    init_fn:        	str = ""
+    init_str_fn:    	str = ""
+    reconfigure:		bool = False
+    reconfigure_fn:		str = ""
+    clone_str_fn:		str = ""
+    has_clone:			bool = False
+    struct_name:    	str = ""
+    linear:         	bool = True
+    has_struct:     	bool = True
+    has_free:       	bool = False
+    calc_fn:        	str = ""
+    n_inputs:       	int = 1
+    n_outputs:      	int = 1
+    parameters:     	list = field(default_factory=list)
+    n_settings:      	int = 0
+    settings:        	list = field(default_factory=list)
+    transition:     	str = ""
 
 
 def load_parameter(parameter):
@@ -132,33 +153,69 @@ def load_parameter(parameter):
 	param.name     = parameter['name']
 	param.location = parameter.get('location', normal_sanitize(param.name))
 
-	param.ptype = parameter.get('type', "")
+	param.p_type = parameter.get('type', "")
 	
-	if param.ptype == "mix":
+	if param.p_type == "mix":
 		param.min_val   = parameter.get('min', 0.0)
-		param.max_val  	= parameter.get('max', 1.0)
+		param.max_val  	= parameter.get('max', 2.0)
+		param.default   = parameter.get('default', 1.0)
 		param.scale 	= scale_rectify(parameter.get('scale', "linear"))
-		param.max_jump 	= parameter.get('max_jump', abs(param.max_val - param.min_val) * 0.001)
+		param.max_jump 	= parameter.get('max_jump', abs(param.max_val - param.min_val) * 0.0005)
 		param.units	   	= parameter.get('units', "")
-	elif param.ptype == "freq":
+	elif param.p_type == "freq":
 		param.min_val  	= parameter.get('min', 1.0)
 		param.max_val  	= parameter.get('max',  10000.0)
+		param.default  = parameter.get('default', 440.0)
 		param.scale 	= scale_rectify(parameter.get('scale', "log"))
-		param.max_jump 	= parameter.get('max_jump', abs(param.max_val - param.min_val) * 0.0001)
+		param.max_jump 	= parameter.get('max_jump', abs(param.max_val - param.min_val) * 0.00005)
 		param.units	   	= parameter.get('units', 'Hz')
+	elif param.p_type == "gain":
+		param.min_val  	= parameter.get('min', -12)
+		param.max_val  	= parameter.get('max',  12)
+		param.default  = parameter.get('default', 0)
+		param.scale 	= scale_rectify(parameter.get('scale', "linear"))
+		param.max_jump 	= parameter.get('max_jump', abs(param.max_val - param.min_val) * 0.0005)
+		param.units	   	= parameter.get('units', 'dB')
 	else:
 		param.min_val   = parameter.get('min', 0.0)
 		param.max_val  	= parameter.get('max', 100.0)
+		param.default  = parameter.get('default', param.min_val)
 		param.scale 	= scale_rectify(parameter.get('scale', "linear"))
-		param.max_jump 	= parameter.get('max_jump', abs(param.max_val - param.min_val) * 0.001)
+		param.max_jump 	= parameter.get('max_jump', abs(param.max_val - param.min_val) * 0.0005)
 		param.units	   	= parameter.get('units', "")
 	
-	param.default  = parameter.get('default', param.min_val)
+	# Floating point errors were giving me silly "0.______00000000003" kind of things. Round those off
+	param.max_jump = round(param.max_jump, 6)
 	
 	param.group = parameter.get('group', -1)
 	param.widget = "PARAM_WIDGET_" + enum_sanitize(parameter.get('widget', "virtual_pot"))
 	
 	return param
+
+def load_setting(setting):
+	s = setting_desc()
+	
+	s.name     = setting['name']
+	s.location = setting.get('location', normal_sanitize(s.name))
+
+	s.s_type = setting.get('type', "")
+	
+	s.default = setting.get("default", 0)
+	s.units   = setting.get("units", "")
+	s.page    = setting.get("page", "settings")
+	
+	s.group = setting.get('group', -1)
+	s.widget = "SETTING_WIDGET_" + enum_sanitize(setting.get('widget', "dropdown"))
+	
+	i = 0
+	for option in setting.get('options', []):
+		o = setting_option()
+		o.name = option.get('name', f"Option {i + 1}")
+		o.val = option.get('value', i)
+		s.options.append(o)
+		i = i + 1
+	
+	return s
 
 def load_transformer(transformer):
 	trans = transformer_desc()
@@ -173,7 +230,7 @@ def load_transformer(transformer):
 	trans.free_str_fn 		= f"free_{trans.code_name}_str"
 	trans.reconfigure_fn 	= f"reconfigure_{trans.code_name}"
 	
-	trans.struct_name = transformer.get('struct_name', "tm_" + trans.code_name + "_str")
+	trans.struct_name = transformer.get('struct_name', "m_eng_" + trans.code_name + "_str")
 	
 	trans.linear = transformer.get('non_linear', True)
 	
@@ -188,24 +245,32 @@ def load_transformer(transformer):
 	
 	trans.transition = enum_sanitize(transformer.get('transition_policy', 'monoblock linear'))
 	
-	trans.has_struct  = transformer.get('has_struct',  		True)
-	trans.has_free    = transformer.get('has_free',   		False)
-	trans.reconfigure = transformer.get("has_reconfigure", 	True)
+	trans.has_struct   = transformer.get('has_struct',  		True)
+	trans.has_free     = transformer.get('has_free',   			False)
+	trans.has_clone    = transformer.get('has_clone',   		False)
+	trans.reconfigure  = transformer.get("has_reconfigure", 	True)
+	trans.clone_str_fn = transformer.get('clone_str', 			'NULL')
 	
 	if not trans.reconfigure:
 		trans.reconfigure_fn = "NULL"
 	if not trans.has_free:
 		trans.free_str_fn = "NULL"
 	
+	if trans.has_clone and trans.clone_str_fn == 'NULL':
+		trans.clone_str_fn = f"clone_{trans.struct_name}"
+	
 	for param in transformer.get('parameters', []):
 		trans.parameters.append(load_parameter(param))
 	
+	for setting in transformer.get('settings', []):
+		trans.settings.append(load_setting(setting))
+	
 	return trans
 
-def tm_transformer_init_function(trans):
+def m_eng_transformer_init_function(trans):
 	output  = []
-	output += [f"int {trans.init_fn}(tm_transformer *trans)", "{"]
-	output += ["	if (!trans)", "		return ERR_NULL_PTR;", ""]
+	output += [f"int {trans.init_fn}(m_eng_transformer *trans)", "{"]
+	output += ["	if (!trans)", "	{", "		RETURN_ERR_CODE(ERR_NULL_PTR);", "	}", ""]
 	output += ["	int ret_val = NO_ERROR;", "", f"	trans->type = {trans.enum_name};", ""]
 	
 	if trans.linear:
@@ -218,29 +283,38 @@ def tm_transformer_init_function(trans):
 	output += [f"	trans->transition_policy = TRANSFORMER_TRANSITION_{trans.transition};", ""]
 	output += [f"	trans->n_inputs  = {trans.n_inputs};", f"	trans->n_inputs  = {trans.n_outputs};", ""]
 	output += [f"	ret_val = transformer_init_parameter_array(trans, {len(trans.parameters)});"]
-	output += [f"	ret_val = transformer_init_option_array(trans, {len(trans.options)});"]
-	output += ret_val_guard
+	output += ["	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }"]
+	output += [f"	ret_val = transformer_init_setting_array(trans, {len(trans.settings)});"]
+	output += ["	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }"]
 
 	if not trans.has_struct:
 		output += [f"	trans->data_struct = NULL;", f"	trans->reconfigure = NULL;", f"	trans->free_struct = NULL;"]
-		return output + ["", "	return NO_ERROR;", "}", ""]
+		output += [f"	trans->clone_struct = NULL;", f"	trans->struct_size = 0;"]
+		return output + ["", "	RETURN_ERR_CODE(NO_ERROR);", "}", ""]
 		
 	output += [f"	{trans.struct_name} *str = ({trans.struct_name}*)malloc(sizeof({trans.struct_name}));"]
-	output += [f"	trans->data_struct = (void*)str;", "", f"	if (!str)", f"		return ERR_ALLOC_FAIL;", ""]
+	output += [f"	trans->data_struct = (void*)str;", "", f"	if (!str)", "	{", f"		RETURN_ERR_CODE(ERR_ALLOC_FAIL);", "	}", ""]
 	output += [f"	trans->reconfigure = {trans.reconfigure_fn};"]
 	output += [f"	trans->free_struct = {trans.free_str_fn};", ""]
 
 	for param in trans.parameters:
 		output += [f"	init_parameter(&str->{param.location}, {param.default}, {param.min_val}, {param.max_val}, {param.max_jump}, {param.scale});"]
-		output += [f"	if ((ret_val = transformer_add_parameter(trans, &str->{param.location})) != NO_ERROR)", "		return ret_val;", ""]
+		output += [f"	if ((ret_val = transformer_add_parameter(trans, &str->{param.location})) != NO_ERROR)", "	{", "		RETURN_ERR_CODE(ret_val);", "	}", ""]
 
+	for setting in trans.settings:
+		output += [f"	init_setting(&str->{setting.location}, {setting.default});"]
+		output += [f"	if ((ret_val = transformer_add_setting(trans, &str->{setting.location})) != NO_ERROR)", "	{", "		RETURN_ERR_CODE(ret_val);", "	}", ""]
 	
+	output += [f"	trans->clone_struct = {trans.clone_str_fn};"]
+	output += [f"	trans->struct_size = sizeof({trans.struct_name});"]
 
-	return output + [f"	return {trans.init_str_fn}(str);", "}", ""]
+	output += [f"	ret_val = {trans.init_str_fn}(str);"]
 
-def tm_init_transformer_switch(transformers):
-	output = ["int init_transformer(tm_transformer *trans, uint16_t type)", "{"]
-	output += trans_null_ptr_guard
+	return output + [f"	RETURN_ERR_CODE(ret_val);", "}", ""]
+
+def m_eng_init_transformer_switch(transformers):
+	output = ["int init_transformer(m_eng_transformer *trans, uint16_t type)", "{"]
+	output += m_eng_trans_null_ptr_guard
 	output += ["	switch (type)", "	{"]
 
 	cases = []
@@ -256,10 +330,10 @@ def tm_init_transformer_switch(transformers):
 		padding = " " * (max_len - len(case_str))
 		output.append(f"{case_str}{padding}return {fn_name}(trans);")
 	
-	return output + ["		default: return ERR_BAD_ARGS;", "	}", "", "	return NO_ERROR;", "}"]
+	return output + ["		default: RETURN_ERR_CODE(ERR_BAD_ARGS);", "	}", "", "	RETURN_ERR_CODE(NO_ERROR);", "}"]
 
-def em_init_transformer_switch(transformers):
-	output = ["int init_transformer_of_type(em_transformer *trans, uint16_t type)", "{"]
+def m_int_init_transformer_switch(transformers):
+	output = ["int init_transformer_of_type(m_int_transformer *trans, uint16_t type)", "{"]
 	output += trans_null_ptr_guard
 	
 	output += ["	int ret_val = init_transformer(trans);", "	", "	if (ret_val != NO_ERROR)", "		return ret_val;"]
@@ -284,18 +358,18 @@ def em_init_transformer_switch(transformers):
 
 	return output + ["		default: return ERR_BAD_ARGS;", "	}", "", "	return NO_ERROR;", "}"]
 
-def em_transformer_init_function(trans):
-	output = [f"int {trans.init_fn}(em_transformer *trans)", "{"]
+def m_int_transformer_init_function(trans):
+	output = [f"int {trans.init_fn}(m_int_transformer *trans)", "{"]
 	output += trans_null_ptr_guard
 	output.append(f"	trans->type = {trans.enum_name};")
 	output.append(f"	trans->view_page = NULL;")
 
 	if len(trans.parameters) > 0:
-		output += ["", "	em_parameter *param;", ""]
+		output += ["", "	m_int_parameter *param;", ""]
 
 	i = 0
 	for param in trans.parameters:
-		output.append("	param = transformer_add_parameter_rp(trans);")
+		output.append("	param = transformer_add_parameter(trans);")
 		output.append("")
 		output.append("	if (!param)")
 		output.append("		return ERR_ALLOC_FAIL;")
@@ -316,7 +390,7 @@ def em_transformer_init_function(trans):
 	
 	return output + ["	return NO_ERROR;", "}", "\n"]
 
-def em_generate_transformer_table(transformers):
+def m_int_generate_transformer_table(transformers):
 	output = []
 	
 	pstrings = []
@@ -332,11 +406,11 @@ def em_generate_transformer_table(transformers):
 	
 	output.append(f"const int N_TRANSFORMER_TYPES = {n_transformers};")
 	output.append("")
-	output.append("em_trans_desc transformer_table[] = {")
+	output.append("m_int_trans_desc transformer_table[] = {")
 	
 	for trans in transformers:
 		if trans.linear:
-			instring = f"	(em_trans_desc){{\"{trans.name}\", "
+			instring = f"	(m_int_trans_desc){{\"{trans.name}\", "
 			if len(instring) > max_len:
 				max_len = len(instring)
 			
@@ -373,38 +447,40 @@ def main():
 	for transformer in transformer_config:
 		transformers.append(load_transformer(transformer))
 	
-	tm_init = generated_initial + ["#include \"tm.h\"", ""]
+	transformers.sort(key=operator.attrgetter('name'))
+	
+	m_eng_init = generated_initial + m_eng_init_initial
 	
 	for trans in transformers:
-		tm_init = tm_init + tm_transformer_init_function(trans)
+		m_eng_init = m_eng_init + m_eng_transformer_init_function(trans)
 	
-	tm_init = tm_init + tm_init_transformer_switch(transformers)
+	m_eng_init = m_eng_init + m_eng_init_transformer_switch(transformers)
 	
-	with open("./M_teensy/src/tm_transformer_init.cpp", "w") as f:
-		f.writelines('\n'.join(tm_init) + '\n')
+	with open(m_eng_init_fname, "w") as f:
+		f.writelines('\n'.join(m_eng_init) + '\n')
 		f.close()
 	
-	em_init = em_init_transformer_initial
+	m_int_init = m_int_init_transformer_initial
 	
 	for trans in transformers:
-		em_init = em_init + em_transformer_init_function(trans)
+		m_int_init = m_int_init + m_int_transformer_init_function(trans)
 	
-	em_init += em_init_transformer_switch(transformers)
+	m_int_init += m_int_init_transformer_switch(transformers)
 	
-	with open("./M_esp32/main/em_transformer_init.c", "w") as f:
-		f.writelines('\n'.join(em_init) + '\n')
+	with open(m_int_init_fname, "w") as f:
+		f.writelines('\n'.join(m_int_init) + '\n')
 		f.close()
 	
-	em_table = em_table_initial + em_generate_transformer_table(transformers)
+	m_int_table = m_int_table_initial + m_int_generate_transformer_table(transformers)
 	
-	with open("./M_esp32/main/em_transformer_table.c", "w") as f:
-		f.writelines('\n'.join(em_table) + '\n')
+	with open("./M_interface/main/m_int_transformer_table.c", "w") as f:
+		f.writelines('\n'.join(m_int_table) + '\n')
 		f.close()
 	
 	enum_header_output = generated_initial + enum_header_initial
 	
 	enum_source_output = generated_initial + enum_source_initial
-	enum_name_function = ["const char *transformer_type_to_string(uint16_t type)", "{", "\t switch(type)", "\t{"]
+	enum_nam_eng_function = ["const char *transformer_type_to_string(uint16_t type)", "{", "\t switch(type)", "\t{"]
 	enum_typecheck_function = ["int transformer_type_valid(uint16_t type)", "{", "\t switch(type)", "\t{"]
 	
 	def_strings = []
@@ -431,14 +507,14 @@ def main():
 	
 	for case_string, name in case_strings:
 		case_padding = " " * (max_case_len - len(case_string))
-		enum_name_function.append(f"\t\t{case_string}{case_padding}return \"{name}\";")
+		enum_nam_eng_function.append(f"\t\t{case_string}{case_padding}return \"{name}\";")
 		enum_typecheck_function.append(f"\t\t{case_string}")
 	
-	enum_name_function += ["\t\tdefault: return \"UNKNOWN\";", "\t}", "}"]
+	enum_nam_eng_function += ["\t\tdefault: return \"UNKNOWN\";", "\t}", "}"]
 	enum_typecheck_function += ["\t\t\treturn 1;", "\t\tdefault:", "\t\t\treturn 0;", "\t}", "}"]
 	
 	enum_header_output += enum_header_final
-	enum_source_output += enum_name_function + [""] + enum_typecheck_function
+	enum_source_output += enum_nam_eng_function + [""] + enum_typecheck_function
 	
 	with open(enum_header_fname, "w") as f:
 		f.writelines('\n'.join(enum_header_output) + '\n')

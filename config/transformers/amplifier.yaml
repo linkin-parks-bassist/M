@@ -1,8 +1,15 @@
 name: "Amplifier"
-has_reconfigure: false
 parameters:
 - name: "Gain"
   location: "gain"
-  min: 0.0
-  max: 2.0
-  default: 1.0
+  type: gain
+settings:
+- name: "Mode"
+  default: 1
+  
+  options:
+  - name: "Linear"
+    value: 0
+  
+  - name: "dB"
+    value: 1

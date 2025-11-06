@@ -1,6 +1,14 @@
 #ifndef LINKED_LIST_H
 #define LINKED_LIST_H
 
+#ifndef LL_FREE
+#define LL_FREE free
+#endif
+
+#ifndef LL_MALLOC
+#define LL_MALLOC malloc
+#endif
+
 #define DECLARE_LINKED_LIST(X) struct X##_linked_list;																									\
 typedef struct X##_linked_list {																														\
 	X data;																																				\
@@ -21,7 +29,7 @@ X##_linked_list *X##_linked_list_destructor_free_and_remove_matching(X##_linked_
 #define IMPLEMENT_LINKED_LIST(X)																														\
 X##_linked_list *X##_linked_list_new(X x)																												\
 {																																						\
-	X##_linked_list *result = (X##_linked_list*)malloc(sizeof(X##_linked_list));																		\
+	X##_linked_list *result = (X##_linked_list*)LL_MALLOC(sizeof(X##_linked_list));																		\
 																																						\
 	if (result == NULL)																																	\
 		return NULL;																																	\
@@ -53,7 +61,7 @@ void free_##X##_linked_list(X##_linked_list *list)																										\
 	X##_linked_list *next = NULL;																														\
 	while (current != NULL) {																															\
 		next = current->next;																															\
-		free(current);																																	\
+		LL_FREE(current);																																	\
 		current = next;																																	\
 	}																																					\
 }																																						\
@@ -69,7 +77,7 @@ void destructor_free_##X##_linked_list(X##_linked_list *list, void (*destructor)
 	while (current != NULL) {																															\
 		next = current->next;																															\
 		destructor(current->data);																														\
-		free(current);																																	\
+		LL_FREE(current);																																	\
 		current = next;																																	\
 	}																																					\
 }																																						\
@@ -166,7 +174,7 @@ X##_linked_list *X##_linked_list_destructor_free_and_remove_matching(X##_linked_
 			if (current == list)																														\
 				list = next;																															\
 			destructor(current->data);																													\
-			free(current);																																\
+			LL_FREE(current);																																\
 			if (prev)																																	\
 				prev->next = next;																														\
 		} else {																																		\
@@ -199,7 +207,7 @@ X##_ptr_linked_list *X##_ptr_linked_list_destructor_free_and_remove_matching(X##
 																																						\
 X##_ptr_linked_list *X##_ptr_linked_list_new(X *value)																									\
 {																																						\
-	X##_ptr_linked_list *result = (X##_ptr_linked_list*)malloc(sizeof(X##_ptr_linked_list));															\
+	X##_ptr_linked_list *result = (X##_ptr_linked_list*)LL_MALLOC(sizeof(X##_ptr_linked_list));															\
 																																						\
 	if (result == NULL)																																	\
 		return NULL;																																	\
@@ -268,8 +276,8 @@ void free_##X##_ptr_linked_list(X##_ptr_linked_list *list)																						
 	X##_ptr_linked_list *next = NULL;																													\
 	while (current != NULL) {																															\
 		next = current->next;																															\
-		free(current->data);																															\
-		free(current);																																	\
+		LL_FREE(current->data);																															\
+		LL_FREE(current);																																	\
 		current = next;																																	\
 	}																																					\
 }																																						\
@@ -284,7 +292,7 @@ void destructor_free_##X##_ptr_linked_list(X##_ptr_linked_list *list, void (*des
 	while (current != NULL) {																															\
 		next = current->next;																															\
 		destructor(current->data);																														\
-		free(current);																																	\
+		LL_FREE(current);																																	\
 		current = next;																																	\
 	}																																					\
 }																																						\
@@ -346,7 +354,7 @@ X##_ptr_linked_list *X##_ptr_linked_list_destructor_free_and_remove_matching(X##
 			if (current == list)																														\
 				list = next;																															\
 			destructor(current->data);																													\
-			free(current);																																\
+			LL_FREE(current);																																\
 			if (prev)																																	\
 				prev->next = next;																														\
 		} else {																																		\

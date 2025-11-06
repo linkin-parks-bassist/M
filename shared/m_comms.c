@@ -1,10 +1,12 @@
-#ifdef M_ESP32
-#include "em.h"
+#ifdef M_INTERFACE
+#include "m_int.h"
 #else
-#include "tm.h"
+#include "m_eng.h"
 #endif
 #include "m_comms.h"
 #include "m_error_codes.h"
+
+static const char *FNAME = "m_comms.c";
 
 // 8-bit cyclic redundancy check with generator
 // polynomial x^8 + x^2 + x + 1
@@ -88,6 +90,12 @@ int et_message_data_length(et_msg msg)
 		case ET_MESSAGE_REPEAT_MESSAGE:
 			return 0;
 		
+		case ET_MESSAGE_ENTER_TUNER_MODE:
+			return 0;
+		
+		case ET_MESSAGE_EXIT_TUNER_MODE:
+			return 0;
+		
 		default:
 			return -1;
 	}
@@ -102,7 +110,9 @@ int et_message_default_retries(uint16_t type)
 int encode_et_msg(uint8_t *buf, et_msg msg)
 {
 	if (!buf)
+	{
 		return -1;
+	}
 	
 	buf[0] = msg.type;
 	
@@ -129,15 +139,6 @@ int encode_et_msg(uint8_t *buf, et_msg msg)
 	while (i < ET_MESSAGE_MAX_TRANSFER_LEN)
 		buf[i++] = 0xFF;
 	
-	#ifdef M_ESP32 
-	printf("Encoded message as ");
-	
-	for (int j = 0; j < ET_MESSAGE_MAX_TRANSFER_LEN; j++)
-		printf("0x%02x ", buf[j]);
-	
-	printf("\n");
-	#endif
-	
 	return len + 2;
 }
 
@@ -150,10 +151,14 @@ et_msg decode_et_msg(uint8_t *bytes, unsigned int len)
 	// include at least a type and crc byte, so len < 2
 	// means nonsense
 	if (!bytes || len < 2 || len > ET_MESSAGE_MAX_TRANSFER_LEN)
+	{
 		return msg;
+	}
 	
 	if (!valid_et_msg_type(bytes[0]))
+	{
 		return msg;
+	}
 	
 	uint8_t received_crc = bytes[len - 1];
 	uint8_t computed_crc = crc_8(bytes, len - 1);
@@ -448,7 +453,9 @@ int te_message_data_length(te_msg msg)
 int encode_te_msg(uint8_t *buf, te_msg msg)
 {
 	if (!buf)
+	{
 		return -1;
+	}
 	
 	buf[0] = msg.type;
 	
@@ -486,22 +493,12 @@ te_msg decode_te_msg(uint8_t *bytes, unsigned int len)
 	// include at least a type and crc byte, so len < 2
 	// means nonsense
 	if (!bytes || len < 2 || len > TE_MESSAGE_MAX_TRANSFER_LEN)
+	{
 		return msg;
-	
-	#ifdef M_ESP32 
-	printf("Decoding TE message. Bytes: ");
-	
-	for (int j = 0; j < TE_MESSAGE_MAX_TRANSFER_LEN; j++)
-		printf("0x%02x ", bytes[j]);
-	
-	printf("\n");
-	#endif
+	}
 	
 	if (!valid_te_msg_type(bytes[0]))
 	{
-		#ifdef M_ESP32 
-		printf("Invalid message type!\n");
-		#endif
 		return msg;
 	}
 	
@@ -510,27 +507,16 @@ te_msg decode_te_msg(uint8_t *bytes, unsigned int len)
 	
 	if (received_crc != computed_crc)
 	{
-		#ifdef M_ESP32 
-		printf("CRC check failed! Given crc is 0x%02x, expected 0x%02x\n", received_crc, computed_crc);
-		#endif
 		msg.type = TE_MESSAGE_CRC_FAIL;
 		return msg;
 	}
 	
 	msg.type = bytes[0];
 	
-	#ifdef M_ESP32 
-	printf("Message type is %d = %s\n", msg.type, et_msg_code_to_string(msg.type));
-	#endif
-	
 	// Length of the transmitted body is 2 less than
 	// the total transmitted length, due to type byte
 	// and crc byte
 	int data_len = len - 2;
-	
-	#ifdef M_ESP32 
-	printf("data_len = %d\n", data_len);
-	#endif
 	
 	int i;
 	for (i = 0; i < data_len && i < TE_MESSAGE_MAX_DATA_LEN; i++)

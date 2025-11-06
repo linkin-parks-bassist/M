@@ -1,0 +1,4 @@
+#ifndef M_INT_TRANSFORMER_SETTINGS_H_
+#define M_INT_TRANSFORMER_SETTINGS_H_
+
+#endif
