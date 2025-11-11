@@ -73,6 +73,7 @@ extern const lv_font_t manrope_24;
 #include "m_int_i2c.h"
 #include "m_int_display.h"
 #include "m_int_sd.h"
+#include "m_int_footswitch.h"
 
 #include "m_int_parameter.h"
 #include "m_int_parameter_widget.h"
@@ -80,24 +81,30 @@ extern const lv_font_t manrope_24;
 #include "m_int_comms.h"
 
 #include "m_int_ui.h"
+#include "m_int_glide_button.h"
 
 #include "m_int_transformer.h"
 #include "m_int_transformer_init.h"
 #include "m_int_transformer_table.h"
 #include "m_int_transformer_view.h"
 #include "m_int_transformer_widget.h"
+#include "m_int_transformer_settings.h"
 
 #include "m_int_pipeline.h"
 #include "m_int_profile.h"
+#include "m_int_sequence.h"
 #include "m_int_transformer_select.h"
 #include "m_int_profile_settings.h"
 #include "m_int_profile_view.h"
+#include "m_int_sequence_view.h"
 #include "m_int_settings.h"
 #include "m_int_context.h"
 
 #include "m_int_files.h"
 #include "m_int_profile_send.h"
 
+#include "m_int_profile_list.h"
+#include "m_int_sequence_list.h"
 #include "m_int_menu.h"
 
 #include "m_int_logging.h"

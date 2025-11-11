@@ -3,7 +3,7 @@
 IMPLEMENT_LINKED_PTR_LIST(m_int_parameter);
 IMPLEMENT_LINKED_PTR_LIST(m_int_setting);
 
-int init_m_int_parameter(m_int_parameter *param)
+int init_parameter_str(m_int_parameter *param)
 {
 	if (!param)
 		return ERR_NULL_PTR;
@@ -25,7 +25,7 @@ int init_m_int_parameter(m_int_parameter *param)
 	return NO_ERROR;
 }
 
-int init_parameter(m_int_parameter *param, char *name, float level, float min, float max)
+int init_parameter(m_int_parameter *param, const char *name, float level, float min, float max)
 {
 	if (!param)
 		return ERR_NULL_PTR;
@@ -45,7 +45,7 @@ int init_parameter(m_int_parameter *param, char *name, float level, float min, f
 	return NO_ERROR;
 }
 
-int init_m_int_setting(m_int_setting *setting)
+int init_setting_str(m_int_setting *setting)
 {
 	if (!setting)
 		return ERR_NULL_PTR;
@@ -53,15 +53,17 @@ int init_m_int_setting(m_int_setting *setting)
 	setting->name = NULL;
 	setting->val = 0;
 	
-	setting->n_settings = 0;
-	setting->settings = NULL;
+	setting->n_options = 0;
+	setting->options = NULL;
 	
-	setting->widget_type = OPTION_WIDGET_DROPDOWN;
+	setting->widget_type = SETTING_WIDGET_DROPDOWN;
+	
+	setting->group = -1;
 	
 	return NO_ERROR;
 }
 
-int init_setting(m_int_setting *setting, char *name, uint16_t level)
+int init_setting(m_int_setting *setting, const char *name, uint16_t level)
 {
 	if (!setting)
 		return ERR_NULL_PTR;
@@ -69,10 +71,12 @@ int init_setting(m_int_setting *setting, char *name, uint16_t level)
 	setting->name = name;
 	setting->val = level;
 	
-	setting->n_settings = 0;
-	setting->settings = NULL;
+	setting->n_options = 0;
+	setting->options = NULL;
 	
-	setting->widget_type = OPTION_WIDGET_DROPDOWN;
+	setting->widget_type = SETTING_WIDGET_DROPDOWN;
+	
+	setting->group = -1;
 	
 	return NO_ERROR;
 }
@@ -89,7 +93,6 @@ int parameter_set_id(m_int_parameter *param, uint16_t pid, uint16_t tid, uint16_
 	return NO_ERROR;
 }
 
-
 void clone_parameter(m_int_parameter *dest, m_int_parameter *src)
 {
 	if (!dest || !src)
@@ -104,7 +107,7 @@ void clone_parameter(m_int_parameter *dest, m_int_parameter *src)
 	dest->factor = src->factor;
 	
 	dest->widget_type = src->widget_type;
-	dest->name = src->name;
+	dest->name 	= src->name;
 	dest->units = src->units;
 	
 	dest->scale = src->scale;
@@ -112,18 +115,59 @@ void clone_parameter(m_int_parameter *dest, m_int_parameter *src)
 	dest->group = src->group;
 }
 
-void clone_setting(m_int_setting *dest, m_int_setting *src)
+int clone_setting(m_int_setting *dest, m_int_setting *src)
 {
 	if (!dest || !src)
-		return;
+		return ERR_NULL_PTR;
 	
 	dest->id = src->id;
 	
 	dest->val = src->val;
+	dest->min = src->min;
+	dest->max = src->max;
 	
-	dest->n_settings = src->n_settings;
-	dest->settings = src->settings;
+	dest->n_options = src->n_options;
+	
+	if (dest->n_options)
+	{
+		dest->options = malloc(sizeof(m_int_setting_option) * dest->n_options);
+		
+		if (!dest->options)
+		{
+			return ERR_ALLOC_FAIL;
+		}
+		
+		for (int i = 0; i < dest->n_options; i++)
+		{
+			if (src->options)
+			{
+				memcpy(&dest->options[i], &src->options[i], sizeof(m_int_setting_option));
+			}
+			else
+			{
+				dest->options[i].value = i;
+				dest->options[i].name = "";
+			}
+		}
+	}
 	
 	dest->widget_type = src->widget_type;
 	dest->name = src->name;
+	
+	dest->group = src->group;
+	
+	dest->units = src->units;
+	
+	return NO_ERROR;
+}
+
+void gut_setting(m_int_setting *setting)
+{
+	if (!setting)
+		return;
+	
+	if (!setting->n_options || !setting->options)
+		return;
+	
+	m_int_free(setting->options);
 }

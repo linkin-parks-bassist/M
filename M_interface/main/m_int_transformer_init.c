@@ -94,6 +94,33 @@ int init_amplifier(m_int_transformer *trans)
 	param->group = -1;
 	param->widget_type = PARAM_WIDGET_VIRTUAL_POT;
 
+
+	m_int_setting *setting;
+
+	setting = transformer_add_setting(trans);
+
+	if (!setting)
+		return ERR_ALLOC_FAIL;
+
+	setting->id.parameter_id = 1;
+
+	setting->val   = 1;
+	setting->max   = 0;
+	setting->min   = 0;
+	setting->name  = "Mode";
+	setting->units = unit_string_;
+	setting->group = -1;
+	setting->widget_type = SETTING_WIDGET_DROPDOWN;
+	setting->n_options = 2;
+	setting->options = malloc(sizeof(m_int_setting) * 2);
+	if (!setting->options) return ERR_ALLOC_FAIL;
+
+	setting->options[0].value = 0;
+	setting->options[0].name = "Linear";
+
+	setting->options[1].value = 0;
+	setting->options[1].name = "dB";
+
 	return NO_ERROR;
 }
 

@@ -28,7 +28,7 @@ int pipe_line_prepend_transformer(m_eng_pipe_line *pipeline, m_eng_transformer *
 int pipe_line_append_transformer_type(m_eng_pipe_line *pipeline, uint16_t type);
 int pipe_line_insert_transformer_type(m_eng_pipe_line *pipeline, uint16_t type, uint16_t pos);
 int pipe_line_prepend_transformer_type(m_eng_pipe_line *pipeline, uint16_t type);
-int pipe_line_change_transformer_setting(m_eng_pipe_line *pipeline, uint16_t tid, uint16_t sid, int new_val);
+int pipe_line_change_transformer_setting(m_eng_pipe_line *pipeline, uint16_t tid, uint16_t sid, int16_t new_val);
 
 int pipe_line_get_transformer_position(m_eng_pipe_line *pipeline, uint16_t id);
 m_eng_transformer *pipe_line_get_transformer_by_id(m_eng_pipe_line *pipeline, uint16_t id);

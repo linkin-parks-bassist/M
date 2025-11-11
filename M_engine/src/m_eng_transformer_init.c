@@ -10,7 +10,11 @@ int init_3_band_eq(m_eng_transformer *trans)
 		RETURN_ERR_CODE(ERR_NULL_PTR);
 	}
 
-	int ret_val = NO_ERROR;
+	int ret_val = transformer_init_controls(trans);
+	if (ret_val != NO_ERROR)
+	{
+		RETURN_ERR_CODE(ret_val);
+	}
 
 	trans->type = TRANSFORMER_3_BAND_EQ;
 
@@ -68,7 +72,11 @@ int init_amplifier(m_eng_transformer *trans)
 		RETURN_ERR_CODE(ERR_NULL_PTR);
 	}
 
-	int ret_val = NO_ERROR;
+	int ret_val = transformer_init_controls(trans);
+	if (ret_val != NO_ERROR)
+	{
+		RETURN_ERR_CODE(ret_val);
+	}
 
 	trans->type = TRANSFORMER_AMPLIFIER;
 
@@ -120,7 +128,11 @@ int init_band_pass_filter(m_eng_transformer *trans)
 		RETURN_ERR_CODE(ERR_NULL_PTR);
 	}
 
-	int ret_val = NO_ERROR;
+	int ret_val = transformer_init_controls(trans);
+	if (ret_val != NO_ERROR)
+	{
+		RETURN_ERR_CODE(ret_val);
+	}
 
 	trans->type = TRANSFORMER_BAND_PASS_FILTER;
 
@@ -172,7 +184,11 @@ int init_compressor(m_eng_transformer *trans)
 		RETURN_ERR_CODE(ERR_NULL_PTR);
 	}
 
-	int ret_val = NO_ERROR;
+	int ret_val = transformer_init_controls(trans);
+	if (ret_val != NO_ERROR)
+	{
+		RETURN_ERR_CODE(ret_val);
+	}
 
 	trans->type = TRANSFORMER_COMPRESSOR;
 
@@ -236,7 +252,11 @@ int init_dirty_octave(m_eng_transformer *trans)
 		RETURN_ERR_CODE(ERR_NULL_PTR);
 	}
 
-	int ret_val = NO_ERROR;
+	int ret_val = transformer_init_controls(trans);
+	if (ret_val != NO_ERROR)
+	{
+		RETURN_ERR_CODE(ret_val);
+	}
 
 	trans->type = TRANSFORMER_DIRTY_OCTAVE;
 
@@ -282,7 +302,11 @@ int init_distortion(m_eng_transformer *trans)
 		RETURN_ERR_CODE(ERR_NULL_PTR);
 	}
 
-	int ret_val = NO_ERROR;
+	int ret_val = transformer_init_controls(trans);
+	if (ret_val != NO_ERROR)
+	{
+		RETURN_ERR_CODE(ret_val);
+	}
 
 	trans->type = TRANSFORMER_DISTORTION;
 
@@ -346,7 +370,11 @@ int init_envelope(m_eng_transformer *trans)
 		RETURN_ERR_CODE(ERR_NULL_PTR);
 	}
 
-	int ret_val = NO_ERROR;
+	int ret_val = transformer_init_controls(trans);
+	if (ret_val != NO_ERROR)
+	{
+		RETURN_ERR_CODE(ret_val);
+	}
 
 	trans->type = TRANSFORMER_ENVELOPE;
 
@@ -422,7 +450,11 @@ int init_high_pass_filter(m_eng_transformer *trans)
 		RETURN_ERR_CODE(ERR_NULL_PTR);
 	}
 
-	int ret_val = NO_ERROR;
+	int ret_val = transformer_init_controls(trans);
+	if (ret_val != NO_ERROR)
+	{
+		RETURN_ERR_CODE(ret_val);
+	}
 
 	trans->type = TRANSFORMER_HIGH_PASS_FILTER;
 
@@ -468,7 +500,11 @@ int init_low_end_compressor(m_eng_transformer *trans)
 		RETURN_ERR_CODE(ERR_NULL_PTR);
 	}
 
-	int ret_val = NO_ERROR;
+	int ret_val = transformer_init_controls(trans);
+	if (ret_val != NO_ERROR)
+	{
+		RETURN_ERR_CODE(ret_val);
+	}
 
 	trans->type = TRANSFORMER_LOW_END_COMPRESSOR;
 
@@ -556,7 +592,11 @@ int init_low_pass_filter(m_eng_transformer *trans)
 		RETURN_ERR_CODE(ERR_NULL_PTR);
 	}
 
-	int ret_val = NO_ERROR;
+	int ret_val = transformer_init_controls(trans);
+	if (ret_val != NO_ERROR)
+	{
+		RETURN_ERR_CODE(ret_val);
+	}
 
 	trans->type = TRANSFORMER_LOW_PASS_FILTER;
 
@@ -602,7 +642,11 @@ int init_noise_suppressor(m_eng_transformer *trans)
 		RETURN_ERR_CODE(ERR_NULL_PTR);
 	}
 
-	int ret_val = NO_ERROR;
+	int ret_val = transformer_init_controls(trans);
+	if (ret_val != NO_ERROR)
+	{
+		RETURN_ERR_CODE(ret_val);
+	}
 
 	trans->type = TRANSFORMER_NOISE_SUPPRESSOR;
 
@@ -660,7 +704,11 @@ int init_percussifier(m_eng_transformer *trans)
 		RETURN_ERR_CODE(ERR_NULL_PTR);
 	}
 
-	int ret_val = NO_ERROR;
+	int ret_val = transformer_init_controls(trans);
+	if (ret_val != NO_ERROR)
+	{
+		RETURN_ERR_CODE(ret_val);
+	}
 
 	trans->type = TRANSFORMER_PERCUSSIFIER;
 

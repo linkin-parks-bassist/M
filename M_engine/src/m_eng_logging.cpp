@@ -257,7 +257,8 @@ find_max_indent:
 	while (index < break_index)
 	{
 		if (log_entries[index].trace_depth > max_depth)
-			max_depth = log_entries[index++].trace_depth;
+			max_depth = log_entries[index].trace_depth;
+		index++;
 	}
 	
 	if (wrap)
@@ -271,7 +272,6 @@ find_max_indent:
 	break_index = wrap ? M_ENG_LOG_ENTRIES_N : log_entries_index;
 	index = wrap ? log_entries_index : 0;
 
-	
 log_bufferize:
 	
 	while (i < LOG_ENTRIES_PRINT_BUF_LEN && index < break_index)
@@ -286,7 +286,6 @@ log_bufferize:
 		wrap = 0;
 		goto log_bufferize;
 	}
-	
 	if (i < LOG_ENTRIES_PRINT_BUF_LEN)
 	{
 		buf[i++] = 0;

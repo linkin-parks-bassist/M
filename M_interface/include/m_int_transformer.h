@@ -10,29 +10,24 @@ typedef struct
 	int position;
 	
 	parameter_ll *parameters;
-	
-	int n_settings;
-	int setting_array_length;
-	m_int_setting *settings;
+	setting_ll *settings;
 	
 	m_int_ui_page *view_page;
 	struct m_int_profile *profile;
+	
+	m_int_parameter wet_mix;
+	
+	m_int_setting band_mode;
+	m_int_parameter lp_cutoff_freq;
+	m_int_parameter hp_cutoff_freq;
 } m_int_transformer;
 
 int init_transformer(m_int_transformer *trans);
 
 int transformer_set_id(m_int_transformer *trans, uint16_t profile_id, uint16_t transformer_id);
 
-int init_transformer_setting_array(m_int_transformer *trans);
-
-int m_int_transformer_enlarge_setting_array(m_int_transformer *trans);
-
-int m_int_transformer_set_n_settings(m_int_transformer *trans, int n);
-
 m_int_parameter *transformer_add_parameter(m_int_transformer *trans);
-
-int transformer_add_setting(m_int_transformer *trans, m_int_setting *setting);
-m_int_setting *transformer_add_setting_rp(m_int_transformer *trans);
+m_int_setting *transformer_add_setting(m_int_transformer *trans);
 
 int init_default_transformer_by_type(m_int_transformer *trans, uint16_t type, uint16_t profile_id, uint16_t transformer_id);
 
@@ -43,7 +38,6 @@ void add_transformer_from_menu(lv_event_t *e);
 int request_append_transformer(uint16_t type, m_int_transformer *local);
 void transformer_receive_id(et_msg message, te_msg response);
 
-
 int clone_transformer(m_int_transformer *dest, m_int_transformer *src);
 void free_transformer(m_int_transformer *trans);
 
@@ -52,5 +46,6 @@ DECLARE_LINKED_PTR_LIST(m_int_transformer);
 typedef m_int_transformer_ptr_linked_list transformer_ll;
 
 m_int_parameter *transformer_get_parameter(m_int_transformer *trans, int n);
+m_int_setting *transformer_get_setting(m_int_transformer *trans, int n);
 
 #endif

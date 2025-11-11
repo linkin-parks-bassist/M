@@ -39,6 +39,10 @@ int init_transformer_view(m_int_ui_page *page)
 	if (!page)
 		return ERR_NULL_PTR;
 	
+	page->panel = new_panel();
+	if (!page->panel)
+		return ERR_ALLOC_FAIL;
+	
 	m_int_transformer_view_str *str = m_int_malloc(sizeof(m_int_transformer_view_str));
 	
 	page->data_struct = str;
@@ -60,8 +64,29 @@ int init_transformer_view(m_int_ui_page *page)
 	for (int i = 0; i < TRANSFORMER_VIEW_MAX_GROUPS; i++)
 		str->group_containers[i] = NULL;
 	
-	//printf("Done\n");
+	str->settings_page = malloc(sizeof(m_int_ui_page));
+	
+	if (!str->settings_page)
+		return ERR_ALLOC_FAIL;
+	
+	init_transformer_settings_page(str->settings_page);
+	
 	return NO_ERROR;
+}
+
+void transformer_view_enter_settings_cb(lv_event_t *e)
+{
+	m_int_ui_page *page = lv_event_get_user_data(e);
+	
+	if (!page)
+		return;
+	
+	m_int_transformer_view_str *str = (m_int_transformer_view_str*)page->data_struct;
+	
+	if (!str)
+		return;
+	
+	enter_ui_page(str->settings_page);
 }
 
 int configure_transformer_view(m_int_ui_page *page, void *data)
@@ -77,11 +102,14 @@ int configure_transformer_view(m_int_ui_page *page, void *data)
 	if (page->configured)
 		return NO_ERROR;
 	
+	ui_page_add_back_button(page);
+	ui_page_add_right_panel_button(page, LV_SYMBOL_SETTINGS, transformer_view_enter_settings_cb);
+	
 	m_int_transformer *trans = (m_int_transformer*)data;
 	m_int_transformer_view_str *str = page->data_struct;
 	
 	if (!str)
-		return ERR_ALLOC_FAIL;
+		return ERR_BAD_ARGS;
 	
 	str->trans = trans;
 	
@@ -108,6 +136,8 @@ int configure_transformer_view(m_int_ui_page *page, void *data)
 		current = current->next;
 	}
 	
+	configure_transformer_settings_page(str->settings_page, trans);
+	
 	page->configured = 1;
 	
 	//printf("Done.\n");
@@ -123,7 +153,9 @@ int create_transformer_view_ui(m_int_ui_page *page)
 	if (page->ui_created)
 		return NO_ERROR;
 	
-	page->screen = lv_obj_create(NULL);
+	ui_page_create_base_ui(page);
+	
+	printf("page->container = %p\n", page->container);
 	
 	m_int_transformer_view_str *str = (m_int_transformer_view_str*)page->data_struct;
 	
@@ -133,15 +165,11 @@ int create_transformer_view_ui(m_int_ui_page *page)
 	if (!str->trans)
 		return ERR_BAD_ARGS;
 	
-	printf("Create top panel...\n");
-	create_panel_with_back_button(page);
-	set_panel_text(page, transformer_type_name(str->trans->type));
-	
-	create_standard_container_tall(&str->container, page->screen);
+	page->panel->text = transformer_type_name(str->trans->type);
     
-    lv_obj_set_layout(str->container, LV_LAYOUT_FLEX);
-    lv_obj_set_flex_flow(str->container, LV_FLEX_FLOW_ROW_WRAP);
-    lv_obj_set_flex_align(str->container, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_SPACE_EVENLY);
+    lv_obj_set_layout(page->container, LV_LAYOUT_FLEX);
+    lv_obj_set_flex_flow(page->container, LV_FLEX_FLOW_ROW_WRAP);
+    lv_obj_set_flex_align(page->container, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_SPACE_EVENLY);
 	
 	int i = 0;
 	int group;
@@ -160,7 +188,7 @@ int create_transformer_view_ui(m_int_ui_page *page)
 					printf("Parameter widget lives in group %d...\n", group);
 					if (!str->group_containers[group])
 					{
-						str->group_containers[group] = lv_obj_create(str->container);
+						str->group_containers[group] = lv_obj_create(page->container);
 						lv_obj_remove_style_all(str->group_containers[group]);
 						lv_obj_set_flex_flow (str->group_containers[group], LV_FLEX_FLOW_ROW_WRAP);
 						lv_obj_set_flex_align(str->group_containers[group], LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_SPACE_EVENLY);
@@ -174,7 +202,7 @@ int create_transformer_view_ui(m_int_ui_page *page)
 				else
 				{
 					printf("Parameter widget is free...\n");
-					parameter_widget_create_ui(current->data, str->container);
+					parameter_widget_create_ui(current->data, page->container);
 				}
 			}
 		}
@@ -192,6 +220,8 @@ int create_transformer_view_ui(m_int_ui_page *page)
 			lv_obj_set_height(str->group_containers[i], LV_SIZE_CONTENT);
 		}
 	}
+	
+	create_transformer_settings_page_ui(str->settings_page);
 	
 	//printf("Done\n");
 	return NO_ERROR;

@@ -19,7 +19,7 @@ typedef struct
 	uint16_t parameter_id;
 } m_int_parameter_id;
 
-typedef m_int_parameter_id m_int_setting_id;
+typedef m_int_parameter_id m_int_parameter_id;
 
 typedef struct
 {
@@ -32,8 +32,8 @@ typedef struct
 	float factor;
 	
 	int widget_type;
-	char *name;
-	char *units;
+	const char *name;
+	const char *units;
 	
 	int scale;
 	
@@ -47,33 +47,45 @@ typedef m_int_parameter_ptr_linked_list parameter_ll;
 typedef struct
 {
 	uint16_t value;
-	char *name;
-} m_int_setting_setting;
+	const char *name;
+} m_int_setting_option;
+
+#define TRANSFORMER_SETTING_ENUM 	0
+#define TRANSFORMER_SETTING_BOOL 	1
+#define TRANSFORMER_SETTING_INT 	2
 
 typedef struct
 {
-	m_int_setting_id id;
+	int type;
+	
+	m_int_parameter_id id;
 	
 	uint16_t val;
+	uint16_t min;
+	uint16_t max;
 	
-	int n_settings;
-	m_int_setting_setting **settings;
+	int n_options;
+	m_int_setting_option *options;
 	
 	int widget_type;
-	char *name;
+	const char *name;
+	const char *units;
+	
+	int group;
 } m_int_setting;
 
 DECLARE_LINKED_PTR_LIST(m_int_setting);
 
 typedef m_int_setting_ptr_linked_list setting_ll;
 
-int init_m_int_parameter(m_int_parameter *param);
-int init_parameter(m_int_parameter *param, char *name, float level, float min, float max);
+int init_parameter_str(m_int_parameter *param);
+int init_parameter(m_int_parameter *param, const char *name, float level, float min, float max);
 
-int init_m_int_setting(m_int_setting *setting);
-int init_setting(m_int_setting *setting, char *name, uint16_t level);
+int init_setting_str(m_int_setting *setting);
+int init_setting(m_int_setting *setting, const char *name, uint16_t level);
 
 void clone_parameter(m_int_parameter *dest, m_int_parameter *src);
-void clone_setting(m_int_setting *dest, m_int_setting *src);
+int clone_setting(m_int_setting *dest, m_int_setting *src);
+void gut_setting(m_int_setting *setting);
 
 #endif

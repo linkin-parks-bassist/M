@@ -64,6 +64,7 @@ int init_profile_view(m_int_ui_page *page)
 	page->data_struct = (void*)str;
 	
 	str->n_transformer_widgets = 0;
+	str->left_button_mode = LEFT_BUTTON_MENU;
 	
 	str->profile 			= NULL;
 	page->container 		= NULL;
@@ -284,7 +285,7 @@ int configure_profile_view(m_int_ui_page *page, void *data)
 	
 	ui_page_set_title_rw(page, profile_view_set_name, profile_view_revert_name);
 	
-	ui_page_add_left_panel_button(page, LV_SYMBOL_LIST, profile_view_enter_main_menu_cb);
+	ui_page_add_left_panel_button(page, LV_SYMBOL_LIST, enter_prev_page_cb);
 	ui_page_add_right_panel_button(page, LV_SYMBOL_SETTINGS, profile_view_enter_settings_page_cb);
 	
 	page->configured = 1;
@@ -298,6 +299,8 @@ int create_profile_view_ui(m_int_ui_page *page)
 	
 	if (page->ui_created)
 		return NO_ERROR;
+	
+	page->parent = global_cxt.ui_cxt.main_menu;
 	
 	m_int_profile_view_str *str = (m_int_profile_view_str*)page->data_struct;
 	
@@ -718,6 +721,42 @@ int profile_view_change_name(m_int_ui_page *page, char *name)
 	if (page->ui_created && page->panel->title)
 	{
 		lv_textarea_set_text(page->panel->title, name);
+	}
+	
+	return NO_ERROR;
+}
+
+int profile_view_set_left_button_mode(m_int_ui_page *page, int mode)
+{
+	if (!page)
+		return ERR_NULL_PTR;
+	
+	m_int_profile_view_str *str = (m_int_profile_view_str*)page->data_struct;
+	
+	if (str)
+	{
+		str->left_button_mode = mode;
+	}
+	
+	if (page->panel && page->panel->lb)
+	{
+		lv_obj_remove_event_cb(page->panel->lb->obj, page->panel->lb->clicked_cb);
+		if (mode == LEFT_BUTTON_MENU)
+		{
+			page->panel->lb->label_text = LV_SYMBOL_LEFT;
+			page->panel->lb->clicked_cb = enter_main_menu_cb;
+		}
+		else
+		{
+			page->panel->lb->label_text = LV_SYMBOL_LEFT;
+			page->panel->lb->clicked_cb = enter_parent_page_cb;
+		}
+		
+		if (page->panel->lb->obj && page->panel->lb->label)
+		{
+			lv_label_set_text(page->panel->lb->label, page->panel->lb->label_text);
+			lv_obj_add_event_cb(page->panel->lb->obj, page->panel->lb->clicked_cb, LV_EVENT_CLICKED, page);
+		}
 	}
 	
 	return NO_ERROR;

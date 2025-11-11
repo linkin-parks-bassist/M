@@ -19,6 +19,15 @@ int i2c_receive(uint8_t addr, uint8_t *buf, int n);
 
 extern SemaphoreHandle_t i2c_mutex;
 
+// CH422G I2C device addresses
+#define CH422G_ADDR_WR_SET 0x24 
+#define CH422G_ADDR_WR_IO  0x38
+#define CH422G_ADDR_RD_IO  0x26
+#define CH422G_ADDR_WR_OC  0x23
+
+int m_ch422g_init_pull(uint8_t pull_mask);
+
+uint8_t m_ch422g_read();
 
 #endif
 

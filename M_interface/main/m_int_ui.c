@@ -39,21 +39,24 @@ int init_ui_context(m_int_ui_context *cxt)
 	cxt->transformer_selector.enter_page = enter_transformer_selector;
 	
 	init_transformer_selector(&cxt->transformer_selector);
-	configure_transformer_selector(&cxt->transformer_selector, global_cxt.active_profile);
-	cxt->transformer_selector.create_ui(&cxt->transformer_selector);
-	
-	create_profile_view_for(global_cxt.active_profile);
-	
-	if (global_cxt.active_profile)
-		create_profile_view_ui(global_cxt.active_profile->view_page);
 	
 	cxt->main_menu = m_int_malloc(sizeof(m_int_ui_page));
 	
 	init_main_menu(cxt->main_menu);
-	configure_ui_page(cxt->main_menu, global_cxt.active_profile->view_page);
-	create_page_ui(cxt->main_menu);
 	
 	cxt->prev_page = NULL;
+	
+	cxt->profile_list  = NULL;
+	cxt->sequence_list = NULL;
+	
+	cxt->page_history_index = 0;
+	
+	cxt->page_history[0] = cxt->main_menu;
+	
+	for (int i = 1; i < PAGE_HISTORY_LEN; i++)
+		cxt->page_history[i] = NULL;
+	
+	cxt->backstage = NULL;
 	
 	return NO_ERROR;
 }
@@ -74,6 +77,8 @@ int m_int_ui_page_set_background_default(m_int_ui_page *page)
 
 void create_ui(lv_disp_t *disp)
 {
+	global_cxt.ui_cxt.backstage = lv_obj_create(NULL);
+	
 	//printf("Setting up UI...\n");
 	
 	//lv_disp_set_antialiasing(disp, false);
@@ -84,7 +89,11 @@ void create_ui(lv_disp_t *disp)
                       LV_FONT_DEFAULT);
 	lv_disp_set_theme(disp, lv_theme_default_get());
 	
-	init_ui_context(&global_cxt.ui_cxt);
+	configure_ui_page(global_cxt.ui_cxt.main_menu, global_cxt.active_profile->view_page);
+	configure_transformer_selector(&global_cxt.ui_cxt.transformer_selector, global_cxt.active_profile);
+	//create_page_ui(global_cxt.ui_cxt.main_menu);
+	
+	//create_page_uicxt->transformer_selector.create_ui(&cxt->transformer_selector);
 	m_int_profile_set_active(global_cxt.active_profile);
 	
 	init_test_page();
@@ -249,7 +258,10 @@ int enter_ui_page(m_int_ui_page *page)
 			printf("Error! Page has no UI, and no create_ui function pointer!\n");
 			return ERR_BAD_ARGS;
 		}
-		
+	}
+	
+	if (!page->ui_created)
+	{
 		printf("Page has not created its UI yet. Creating now...\n");
 		page->create_ui(page);
 	}
@@ -264,7 +276,7 @@ int enter_ui_page(m_int_ui_page *page)
 		page->enter_page(page);
 	}
 	else
-	{
+	{	
 		if (!page->screen)
 		{
 			printf("Error! Page has no screen!\n");
@@ -273,7 +285,45 @@ int enter_ui_page(m_int_ui_page *page)
 		lv_scr_load(page->screen);
 	}
 	
+	global_cxt.ui_cxt.page_history_index = (global_cxt.ui_cxt.page_history_index + 1) % PAGE_HISTORY_LEN;
+	global_cxt.ui_cxt.page_history[global_cxt.ui_cxt.page_history_index] = page;
+	
 	return NO_ERROR;
+}
+
+int enter_prev_page(m_int_ui_page *current_page)
+{
+	int index = global_cxt.ui_cxt.page_history_index;
+	int new_index = (index - 1) % PAGE_HISTORY_LEN;
+	
+	printf("enter_prev_page. history index = %d. prev_page = %p\n", index, global_cxt.ui_cxt.page_history[new_index]);
+	if (global_cxt.ui_cxt.page_history[new_index])
+	{
+		if (enter_ui_page(global_cxt.ui_cxt.page_history[new_index]) == NO_ERROR)
+		{
+			global_cxt.ui_cxt.page_history_index = new_index;
+			printf("entering prev page...\n");
+		}
+	}
+	else if (current_page && current_page->parent)
+	{
+		printf("enter current page's parent...\n");
+		global_cxt.ui_cxt.page_history_index = new_index;
+		enter_ui_page(current_page->parent);
+	}
+	else
+	{
+		printf("error! current_page = %p, current_page->parent = %p\n", current_page, current_page ? current_page->parent : NULL);
+		return ERR_BAD_ARGS;
+	}
+	
+	return NO_ERROR;
+}
+
+void enter_prev_page_cb(lv_event_t *e)
+{
+	m_int_ui_page *page = lv_event_get_user_data(e);
+	enter_prev_page(page);
 }
 
 int enter_ui_page_back(m_int_ui_page *page)
@@ -898,10 +948,13 @@ int init_button(m_int_button *button)
 	button->draggable_x = 0;
 	button->draggable_y = 0;
 	
+	button->n_sub_buttoms = 0;
 	button->sub_buttons = NULL;
 	
 	button->width  = LV_PCT(100);
 	button->height = STANDARD_BUTTON_HEIGHT;
+	
+	button->alignment = LV_ALIGN_CENTER;
 	
 	return NO_ERROR;
 }
@@ -955,6 +1008,15 @@ int create_button_ui(m_int_button *button, lv_obj_t *parent)
 	
 	if (button->released_cb)
 		lv_obj_add_event_cb(button->obj, button->released_cb, LV_EVENT_RELEASED, button->released_cb_arg);
+	
+	if (button->sub_buttons)
+	{
+		for (int i = 0; i < button->n_sub_buttoms; i++)
+		{
+			if (button->sub_buttons[i])
+				create_button_ui(button->sub_buttons[i], button->obj);
+		}
+	}
 	
 	return NO_ERROR;
 }
@@ -1128,7 +1190,7 @@ int ui_page_add_back_button(m_int_ui_page *page)
 	page->panel->lb->width  = STANDARD_TOP_PANEL_BUTTON_WIDTH;
 	page->panel->lb->height = STANDARD_TOP_PANEL_BUTTON_HEIGHT;
 	
-	button_set_clicked_cb(page->panel->lb, enter_parent_page_cb, page);
+	button_set_clicked_cb(page->panel->lb, enter_prev_page_cb, page);
 	
 	return NO_ERROR;
 }

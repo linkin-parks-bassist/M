@@ -130,3 +130,52 @@ int i2c_receive(uint8_t addr, uint8_t *buf, int n)
 	
 	return NO_ERROR;
 }
+
+int m_ch422g_init_pull(uint8_t pull_mask)
+{
+	return NO_ERROR;
+}
+
+uint8_t m_ch422g_read()
+{
+	#ifndef M_SIMULATED
+	
+	if (xSemaphoreTake(i2c_mutex, portMAX_DELAY) != pdTRUE)
+	{
+		ESP_LOGE(TAG, "Failed to obtain I2C mutex\n");
+		return 0xFF;
+	}
+	
+	uint8_t write_byte = 0b00000010;
+	esp_err_t ret_val = i2c_master_write_to_device(I2C_MASTER_NUM, CH422G_ADDR_WR_SET, &write_byte, 1, portMAX_DELAY);
+	
+	if (ret_val != ESP_OK)
+	{
+		ESP_LOGE(TAG, "I2C write failed: %s", esp_err_to_name(ret_val));
+		xSemaphoreGive(i2c_mutex);
+		return 0xFF;
+	}
+	
+	uint8_t result;
+	ret_val = i2c_master_read_from_device(I2C_MASTER_NUM, CH422G_ADDR_RD_IO, &result, 1, portMAX_DELAY);
+	
+	write_byte = 0b00000001;
+	if (i2c_master_write_to_device(I2C_MASTER_NUM, CH422G_ADDR_WR_SET, &write_byte, 1, portMAX_DELAY) != ESP_OK)
+	{
+		ESP_LOGE(TAG, "I2C write failed: %s", esp_err_to_name(ret_val));
+		xSemaphoreGive(i2c_mutex);
+		return 0xFF;
+	}
+	
+	if (ret_val != ESP_OK)
+	{
+		ESP_LOGE(TAG, "CH422G read failed: %s", esp_err_to_name(ret_val));
+		xSemaphoreGive(i2c_mutex);
+		return 0xFF;
+	}
+	
+	xSemaphoreGive(i2c_mutex);
+	
+	#endif
+	return result;
+}

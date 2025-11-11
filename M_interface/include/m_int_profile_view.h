@@ -16,6 +16,9 @@
 #define PROFILE_VIEW_TW_MIN_Y PROFILE_VIEW_BUTTON_V_PAD
 #define PROFILE_VIEW_TW_MAX_Y (PROFILE_VIEW_TRANSFORMER_LIST_HEIGHT - PROFILE_VIEW_BUTTON_DISTANCE)
 
+#define LEFT_BUTTON_MENU 0
+#define LEFT_BUTTON_BACK 1
+
 typedef m_int_transformer_widget_ptr_linked_list transformer_widget_ll;
 
 typedef m_int_transformer_widget_ptr_linked_list tw_ll;
@@ -39,6 +42,8 @@ typedef struct m_int_profile_view_str
 	char *name_saved;
 	int n_transformer_widgets;
 	m_int_transformer_widget_ptr_linked_list *tws;
+	
+	int left_button_mode;
 	
 	m_int_ui_page *settings_page;
 } m_int_profile_view_str;
@@ -68,5 +73,7 @@ int profile_view_refresh_play_button(m_int_ui_page *page);
 int profile_view_refresh_save_button(m_int_ui_page *page);
 
 int profile_view_change_name(m_int_ui_page *page, char *name);
+
+int profile_view_set_left_button_mode(m_int_ui_page *page, int mode);
 
 #endif

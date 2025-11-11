@@ -64,6 +64,9 @@ typedef struct m_int_button
 	int width;
 	int height;
 	
+	int n_sub_buttoms;
+	
+	lv_align_t alignment;
 	struct m_int_button **sub_buttons;
 } m_int_button;
 
@@ -147,6 +150,9 @@ int create_page_ui(m_int_ui_page *page);
 int enter_ui_page(m_int_ui_page *page);
 int enter_ui_page_forward(m_int_ui_page *page);
 
+int enter_prev_page();
+void enter_prev_page_cb(lv_event_t *e);
+
 void enter_ui_page_cb(lv_event_t *e);
 int enter_ui_page_indirect(m_int_ui_page **_page);
 void m_int_ui_page_return_to_parent(m_int_ui_page *page);
@@ -204,16 +210,29 @@ void spawn_keyboard(lv_obj_t *parent, lv_obj_t *text_area, void (*ok_cb)(lv_even
 void hide_keyboard_cb(lv_event_t *e);
 void hide_keyboard();
 
+#define PAGE_HISTORY_LEN 64
+
 typedef struct
 {
 	m_int_ui_page transformer_selector;
 	
+	lv_obj_t *backstage;
+	
 	lv_obj_t *keyboard;
+	
+	int page_history_index;
+	m_int_ui_page *page_history[PAGE_HISTORY_LEN];
 	
 	m_int_ui_page *main_menu;
 	m_int_ui_page *prev_page;
+	m_int_ui_page *profile_list;
+	m_int_ui_page *sequence_list;
 } m_int_ui_context;
 
 typedef lv_obj_t_ptr_linked_list lv_obj_ll;
+
+int init_ui_context(m_int_ui_context *cxt);
+
+void enter_parent_page_cb(lv_event_t *e);
 
 #endif

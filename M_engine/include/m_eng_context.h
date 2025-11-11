@@ -67,8 +67,8 @@ int cxt_parameter_id_valid	(m_eng_context *cxt, uint16_t pid, uint16_t tid, uint
 m_eng_parameter *cxt_get_parameter_by_id(m_eng_context *cxt, uint16_t pid, uint16_t tid, uint16_t ppid);
 int      	  cxt_update_parameter_value_by_id(m_eng_context *cxt, uint16_t pid, uint16_t tid, uint16_t ppid, float new_value);
 
-m_eng_setting *cxt_get_setting_by_id(m_eng_context *cxt, uint16_t pid, uint16_t tid, uint16_t oid);
-int        cxt_update_setting_value_by_id(m_eng_context *cxt, uint16_t pid, uint16_t tid, uint16_t oid, uint16_t new_value);
+m_eng_setting *cxt_get_setting_by_id(m_eng_context *cxt, uint16_t pid, uint16_t tid, uint16_t sid);
+int        cxt_update_setting_value_by_id(m_eng_context *cxt, uint16_t pid, uint16_t tid, uint16_t sid, uint16_t new_value);
 
 int cxt_append_transformer_to_profile (m_eng_context *cxt, uint16_t pid, uint16_t type);
 int cxt_remove_transformer_from_profile(m_eng_context *cxt, uint16_t pid, uint16_t tid);

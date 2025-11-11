@@ -11,13 +11,15 @@ typedef struct
 	int type;
 	uint16_t tid;
 	uint16_t data;
+	int16_t sdata;
 } m_eng_pipe_line_mod;
 
 int init_pipe_line_mod(m_eng_pipe_line_mod *mod);
 
-m_eng_pipe_line_mod create_pipe_line_mod_append_transformer(uint16_t type);
-m_eng_pipe_line_mod create_pipe_line_mod_move_transformer	(uint16_t tid, uint16_t position);
-m_eng_pipe_line_mod create_pipe_line_mod_remove_transformer(uint16_t tid);
+m_eng_pipe_line_mod create_pipe_line_mod_append_transformer			(uint16_t type);
+m_eng_pipe_line_mod create_pipe_line_mod_move_transformer			(uint16_t tid, uint16_t position);
+m_eng_pipe_line_mod create_pipe_line_mod_remove_transformer			(uint16_t tid);
+m_eng_pipe_line_mod create_pipe_line_mod_change_transformer_setting (uint16_t tid, uint16_t setting_id, int16_t new_value);
 
 int apply_pipe_line_mod(m_eng_pipe_line *pipeline, m_eng_pipe_line_mod mod);
 

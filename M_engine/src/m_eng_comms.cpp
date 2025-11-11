@@ -69,6 +69,8 @@ void handle_esp32_message(et_msg msg)
 {
 	FUNCTION_START();
 	
+	m_eng_printf("Recieved message of type %s\n", et_msg_code_to_string(msg.type));
+	
 	int ret_val;
 	int string_received = 0;
 	
@@ -83,7 +85,7 @@ void handle_esp32_message(et_msg msg)
 	m_eng_parameter *param;
 	m_eng_setting *setting;
 	float value_f;
-	uint16_t value_i;
+	int16_t value_i;
 	
 	int len;
 	
@@ -226,13 +228,13 @@ void handle_esp32_message(et_msg msg)
 			
 			break;
 		
-		case ET_MESSAGE_GET_N_OPTIONS:
+		case ET_MESSAGE_GET_N_SETTINGS:
 			m_eng_printf("esp32 asks: what is the n_settings of transformer %d.%d? answer: %d\n", arg16_1, arg16_2, cxt_get_n_transformer_settings(&global_cxt, arg16_1, arg16_2));
-			response = create_te_msg(TE_MESSAGE_N_OPTIONS, "sss", arg16_1, arg16_2,
+			response = create_te_msg(TE_MESSAGE_N_SETTINGS, "sss", arg16_1, arg16_2,
 									 cxt_get_n_transformer_settings(&global_cxt, arg16_1, arg16_2));
 			break;
 		
-		case ET_MESSAGE_GET_OPTION_VALUE:
+		case ET_MESSAGE_GET_SETTING_VALUE:
 			m_eng_printf("Request for value of setting %d.%d.%d...\n", arg16_1, arg16_2, arg16_3);
 			
 			setting = cxt_get_setting_by_id(&global_cxt, arg16_1, arg16_2, arg16_3);
@@ -240,7 +242,7 @@ void handle_esp32_message(et_msg msg)
 			if (setting)
 			{
 				m_eng_printf("Request valid. Parameter ptr: 0x%08x, value %d\n", setting, setting->value);
-				response = create_te_msg(TE_MESSAGE_OPTION_VALUE, "sss", arg16_1, arg16_2, arg16_3);
+				response = create_te_msg(TE_MESSAGE_SETTING_VALUE, "sss", arg16_1, arg16_2, arg16_3);
 				memcpy(&response.data[6], &setting->value, sizeof(uint16_t));
 			}
 			else
@@ -250,24 +252,13 @@ void handle_esp32_message(et_msg msg)
 			}
 			break;
 		
-		case ET_MESSAGE_SET_OPTION_VALUE:
-			memcpy(&value_i, &msg.data[6], sizeof(uint16_t));
+		case ET_MESSAGE_SET_SETTING_VALUE:
+			memcpy(&value_i, &msg.data[6], sizeof(int16_t));
 			
 			m_eng_printf("Request to set setting %d.%d.%d to value %d\n", arg16_1, arg16_2, arg16_3, value_i);
-			setting = cxt_get_setting_by_id(&global_cxt, arg16_1, arg16_2, arg16_3);
+			ret_val = cxt_update_setting_value_by_id(&global_cxt, arg16_1, arg16_2, arg16_3, value_i);
 			
-			if (setting)
-			{
-				m_eng_printf("The setting exists; with address %p, and current value %d\n", setting, setting->value);
-				update_setting(setting, value_i);
-				m_eng_printf("It has been updated to value %d.\n", setting->new_value);
-				response = create_te_msg(TE_MESSAGE_OPTION_VALUE, "ssss", arg16_1, arg16_2, arg16_3, setting->new_value);
-			}
-			else
-			{
-				m_eng_printf("But no such setting exists!\n");
-				response = create_te_msg_nodata(TE_MESSAGE_BAD_REQUEST);
-			}
+			response = create_te_msg_error(ret_val);
 			break;
 		
 		case ET_MESSAGE_SWITCH_PROFILE:
@@ -328,6 +319,7 @@ void handle_esp32_message(et_msg msg)
 
 void i2c_receive_isr(int n)
 {
+	m_eng_printf("i2c_receive_isr\n");
 	FUNCTION_START();
 	m_eng_disable_software_interrupts();
 	

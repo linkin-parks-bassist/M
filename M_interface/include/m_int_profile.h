@@ -13,6 +13,7 @@ typedef struct m_int_profile
 	
 	m_int_ui_page *view_page;
 	struct m_int_menu_item_ptr_linked_list *listings;
+	glide_button_ll *gbs;
 	
 	m_int_parameter volume;
 	
@@ -48,5 +49,9 @@ void new_profile_receive_id(et_msg msg, te_msg response);
 struct m_int_menu_item;
 
 int m_int_profile_add_menu_listing(m_int_profile *profile, struct m_int_menu_item *listing);
+
+m_int_profile *create_new_profile_with_teensy();
+
+int profile_add_gb_reference(m_int_profile *profile, m_int_glide_button *gb);
 
 #endif

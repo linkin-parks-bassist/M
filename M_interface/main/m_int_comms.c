@@ -44,7 +44,7 @@ int queue_message_retry(et_msg *msg)
 
 int queue_msg_to_teensy(et_msg msg)
 {
-	//printf("Queueing message of type %s\n", et_msg_code_to_string(msg.type));
+	printf("Queueing message of type %s\n", et_msg_code_to_string(msg.type));
 	
 	et_msg *msg_copy = m_int_malloc(sizeof(et_msg));
 	
@@ -89,6 +89,7 @@ int begin_m_int_comms()
 #define ET_MESSAGE_SEND_TRIES 		3
 #define ET_MESSAGE_RESPONSE_TRIES 	5
 #define ET_MESSAGE_I2C_SEND_TRIES 	5
+#define REPORT_I2C
 
 static int send_msg_to_teensy(et_msg *msg, te_msg *response_ptr)
 {
@@ -105,7 +106,10 @@ static int send_msg_to_teensy(et_msg *msg, te_msg *response_ptr)
 	
 	int len = encode_et_msg(buf, *msg);
 	if (len < 2)
+	{
+		printf("Nonsense message\n");
 		return ERR_ET_MSG_INVALID;
+	}
 	
 	int succeeded = 0;
 	int response_obtained;

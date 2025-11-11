@@ -10,17 +10,14 @@
 #define PARAM_WIDGET_VSLIDER 	  2
 #define PARAM_WIDGET_VSLIDER_TALL 3
 
-#define OPTION_WIDGET_DROPDOWN	 1
-#define OPTION_WIDGET_SWITCH 	 2
-
 #define PARAM_WIDGET_SIZE_H 170
 #define PARAM_WIDGET_SIZE_W 170
 
-#define VIRTUAL_POT_SIZE_H 150
-#define VIRTUAL_POT_SIZE_W 150
+#define VIRTUAL_POT_SIZE_H 125
+#define VIRTUAL_POT_SIZE_W 125
 
 #define VPOT_PAD_H 45
-#define VPOT_PAD_W 30
+#define VPOT_PAD_W 70
 
 #define HSLIDER_SIZE_H 15
 #define HSLIDER_SIZE_W 165
@@ -40,16 +37,11 @@
 #define VSLIDER_TALL_PAD_H 120
 #define VSLIDER_TALL_PAD_W 80
 
-typedef enum
-{
-	VIRTUAL_POT
-} param_widget_type;
-
 struct m_int_profile;
 
 typedef struct
 {
-	param_widget_type type;
+	int type;
 	m_int_parameter_id id;
 	
 	m_int_parameter *param;
@@ -78,5 +70,52 @@ void parameter_widget_refresh_cb(lv_event_t *event);
 void free_parameter_widget(m_int_parameter_widget *pw);
 
 DECLARE_LINKED_PTR_LIST(m_int_parameter_widget);
+
+
+//
+//
+//
+// === setting widget ===
+//
+//
+//
+
+
+#define SETTING_WIDGET_DROPDOWN	 0
+#define SETTING_WIDGET_SWITCH 	 1
+#define SETTING_WIDGET_FIELD 	 2
+
+typedef struct
+{
+	int type;
+	m_int_parameter_id id;
+	
+	m_int_setting *setting;
+	struct m_int_profile *profile;
+	
+	lv_obj_t *container;
+	lv_obj_t *obj;
+	lv_obj_t *label;
+	lv_obj_t *pad;
+	
+	const char *name;
+} m_int_setting_widget;
+
+int nullify_setting_widget(m_int_setting_widget *pw);
+int configure_setting_widget(m_int_setting_widget *pw, m_int_setting *setting, struct m_int_profile *profile);
+
+int setting_widget_create_ui(m_int_setting_widget *pw, lv_obj_t *parent);
+int setting_widget_create_ui_no_callback(m_int_setting_widget *pw, lv_obj_t *parent);
+
+int setting_widget_request_value(m_int_setting_widget *pw);
+
+void setting_widget_update_value_label(m_int_setting_widget *pot);
+
+void setting_widget_change_cb_inner(m_int_setting_widget *pw);
+void setting_widget_refresh_cb(lv_event_t *event);
+
+void free_setting_widget(m_int_setting_widget *pw);
+
+DECLARE_LINKED_PTR_LIST(m_int_setting_widget);
 
 #endif

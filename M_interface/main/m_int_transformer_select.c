@@ -103,7 +103,7 @@ void add_transformer_from_menu(lv_event_t *e)
 	transformer_init_ui_page(trans, pv);
 	create_transformer_view_ui(trans->view_page);
 	
-	enter_ui_page(profile->view_page);
+	enter_prev_page(NULL);
 }
 
 int init_transformer_selector_button(m_int_trans_selector_button *button, int index)

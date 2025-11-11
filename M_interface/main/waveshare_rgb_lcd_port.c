@@ -59,9 +59,7 @@ void waveshare_esp32_s3_touch_reset()
 // Initialize RGB LCD
 esp_err_t waveshare_esp32_s3_rgb_lcd_init(lv_disp_t **disp)
 {
-	#ifndef M_SIMULATED
 	ESP_LOGI(TAG, "Install RGB LCD panel driver"); // Log the start of the RGB LCD panel driver installation
-	#endif
 	esp_lcd_panel_handle_t panel_handle = NULL;	// Declare a handle for the LCD panel
 	esp_lcd_rgb_panel_config_t panel_config = {
 		.clk_src = LCD_CLK_SRC_DEFAULT, // Set the clock source for the panel

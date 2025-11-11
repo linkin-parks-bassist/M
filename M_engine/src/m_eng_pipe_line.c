@@ -810,9 +810,31 @@ int pipe_line_clone_transformer_into_position(m_eng_pipe_line *pipeline, m_eng_t
 	RETURN_ERR_CODE(ret_val);
 }
 
-int pipe_line_change_transformer_setting(m_eng_pipe_line *pipeline, uint16_t tid, uint16_t sid, int new_val)
+int pipe_line_change_transformer_setting(m_eng_pipe_line *pipeline, uint16_t tid, uint16_t sid, int16_t new_val)
 {
+	m_eng_printf("pipe_line_change_transformer_setting\n");
 	FUNCTION_START();
+
+	if (!pipeline)
+	{
+		RETURN_ERR_CODE(ERR_NULL_PTR);
+	}
+	
+	m_eng_transformer *trans = pipe_line_get_transformer_by_id(pipeline, tid);
+	
+	m_eng_setting *setting = transformer_get_setting(trans, sid);
+	
+	if (setting)
+	{
+		setting->value = new_val;
+		setting->updated = 1;
+		m_eng_printf("setting->value = %d\n", setting->value);
+	}
+	else
+	{
+		m_eng_printf("transformer_get_setting returned NULL!\n");
+		RETURN_ERR_CODE(ERR_BAD_ARGS);
+	}
 
 	RETURN_ERR_CODE(NO_ERROR);
 }

@@ -17,6 +17,9 @@ typedef struct
 	m_int_ui_context ui_cxt;
 	
 	profile_ll *profiles;
+	sequence_ll *sequences;
+	
+	m_int_sequence *sequence;
 	
 	int saved_profiles_loaded;
 	int default_profile_exists;
@@ -33,15 +36,18 @@ int m_int_context_set_n_profiles(m_int_context *cxt, int n);
 int m_int_context_add_profile(m_int_context *cxt);
 m_int_profile *m_int_context_add_profile_rp(m_int_context *cxt);
 
+m_int_sequence *m_int_context_add_sequence_rp(m_int_context *cxt);
+
 m_int_transformer *cxt_get_transformer_by_id(m_int_context *cxt, uint16_t profile_id, uint16_t transformer_id);
 m_int_parameter *cxt_get_parameter_by_id(m_int_context *cxt, uint16_t profile_id, uint16_t transformer_id, uint16_t parameter_id);
-m_int_setting *cxt_get_setting_by_id(m_int_context *cxt, uint16_t profile_id, uint16_t transformer_id, uint16_t setting_id);
+m_int_setting *cxt_get_setting_by_id(m_int_context *cxt, uint16_t profile_id, uint16_t transformer_id, uint16_t parameter_id);
 
 int cxt_transformer_id_to_position(m_int_context *cxt, uint16_t profile_id, uint16_t transformer_id);
 int cxt_transformer_position_to_id(m_int_context *cxt, uint16_t profile_id, uint16_t transformer_pos);
 
-int cxt_remove_profile(m_int_context *cxt, m_int_profile *profile);
 int cxt_remove_transformer(m_int_context *cxt, uint16_t pid, uint16_t tid);
+int cxt_remove_profile(m_int_context *cxt, m_int_profile *profile);
+int cxt_remove_sequence(m_int_context *cxt, m_int_sequence *sequence);
 
 int set_active_profile(m_int_profile *profile);
 int set_working_profile(m_int_profile *profile);
@@ -52,5 +58,9 @@ int resolve_default_profile(m_int_context *cxt);
 int set_profile_as_default(m_int_context *cxt, m_int_profile *profile);
 
 void context_print_profiles(m_int_context *cxt);
+
+int cxt_set_all_profiles_left_button_to_main_menu(m_int_context *cxt);
+
+int cxt_handle_hw_switch(m_int_context *cxt, int sw);
 
 #endif

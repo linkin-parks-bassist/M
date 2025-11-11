@@ -10,11 +10,13 @@ int init_m_int_context(m_int_context *cxt)
 	
 	cxt->n_profiles = 0;
 	
-	cxt->active_profile = NULL;
+	cxt->active_profile  = NULL;
 	cxt->working_profile = NULL;
 	cxt->default_profile = NULL;
 	
-	cxt->profiles = NULL;
+	cxt->profiles  = NULL;
+	cxt->sequences = NULL;
+	cxt->sequence  = NULL;
 	
 	cxt->default_profile_exists = 0;
 	cxt->saved_profiles_loaded = 0;
@@ -41,6 +43,7 @@ int context_no_default_profile(m_int_context *cxt)
 		return ERR_ALLOC_FAIL;
 	
 	init_m_int_profile(cxt->active_profile);
+	create_profile_view_for(cxt->active_profile);
 	m_int_profile_set_default_name_from_id(cxt->active_profile);
 	
 	cxt->active_profile->active = 1;
@@ -116,6 +119,31 @@ m_int_profile *m_int_context_add_profile_rp(m_int_context *cxt)
 	return profile;
 }
 
+m_int_sequence *m_int_context_add_sequence_rp(m_int_context *cxt)
+{
+	if (!cxt)
+		return NULL;
+	
+	m_int_sequence *sequence = m_int_malloc(sizeof(m_int_sequence));
+	
+	if (!sequence)
+		return NULL;
+	
+	init_m_int_sequence(sequence);
+	
+	sequence_ll *nl = m_int_sequence_ptr_linked_list_append(cxt->sequences, sequence);
+	
+	if (!nl)
+	{
+		free_sequence(sequence);
+		return NULL;
+	}
+	
+	cxt->sequences = nl;
+	
+	return sequence;
+}
+
 m_int_profile *cxt_get_profile_by_id(m_int_context *cxt, uint16_t profile_id)
 {
 	if (!cxt)
@@ -170,7 +198,7 @@ m_int_parameter *cxt_get_parameter_by_id(m_int_context *cxt, uint16_t profile_id
 	return transformer_get_parameter(trans, parameter_id);
 }
 
-m_int_setting *cxt_get_setting_by_id(m_int_context *cxt, uint16_t profile_id, uint16_t transformer_id, uint16_t setting_id)
+m_int_setting *cxt_get_setting_by_id(m_int_context *cxt, uint16_t profile_id, uint16_t transformer_id, uint16_t parameter_id)
 {
 	if (!cxt)
 		return NULL;
@@ -180,10 +208,7 @@ m_int_setting *cxt_get_setting_by_id(m_int_context *cxt, uint16_t profile_id, ui
 	if (!trans)
 		return NULL;
 	
-	if (setting_id >= trans->n_settings)
-		return NULL;
-	
-	return &trans->settings[setting_id];
+	return transformer_get_setting(trans, parameter_id);
 }
 
 int cxt_transformer_id_to_position(m_int_context *cxt, uint16_t profile_id, uint16_t transformer_id)
@@ -268,6 +293,43 @@ int cxt_remove_profile(m_int_context *cxt, m_int_profile *profile)
 			}
 			
 			free_profile(profile);
+			m_int_free(current);
+			
+			return NO_ERROR;
+		}
+		
+		prev = current;
+		current = current->next;
+	}
+	
+	return ERR_INVALID_PROFILE_ID;
+}
+
+int cxt_remove_sequence(m_int_context *cxt, m_int_sequence *sequence)
+{
+	if (!cxt || !sequence)
+		return ERR_NULL_PTR;
+	
+	sequence_ll *current = cxt->sequences;
+	sequence_ll *prev = NULL;
+	
+	if (sequence && sequence->fname)
+		remove(sequence->fname);
+	
+	while (current)
+	{
+		if (current->data == sequence)
+		{
+			if (!prev)
+			{
+				cxt->sequences = current->next;
+			}
+			else
+			{
+				prev->next = current->next;
+			}
+			
+			free_sequence(sequence);
 			m_int_free(current);
 			
 			return NO_ERROR;
@@ -443,4 +505,42 @@ void context_print_profiles(m_int_context *cxt)
 	{
 		printf("There are none!\n");
 	}
+}
+
+int cxt_set_all_profiles_left_button_to_main_menu(m_int_context *cxt)
+{
+	if (!cxt)
+		return ERR_NULL_PTR;
+	
+	profile_ll *current = cxt->profiles;
+	
+	while (current)
+	{
+		if (current->data && current->data->view_page)
+		{
+			profile_view_set_left_button_mode(current->data->view_page, LEFT_BUTTON_MENU);
+		}
+		
+		current = current->next;
+	}
+	
+	return NO_ERROR;
+}
+
+int cxt_handle_hw_switch(m_int_context *cxt, int sw)
+{
+	if (!cxt)
+		return ERR_NULL_PTR;
+	
+	printf("cxt_handle_hw_switch, sw = %d\n", sw);
+	
+	if (cxt->sequence)
+	{
+		if (sw == 0)
+			m_sequence_regress(cxt->sequence);
+		else if (sw == 1)
+			m_sequence_advance(cxt->sequence);
+	}
+	
+	return NO_ERROR;
 }

@@ -80,7 +80,7 @@ int main()
 		static int last_led_transition = millis();
 		int time = millis();
 		
-		if (time - last_led_transition > LED_BLINK_MILLIS)
+		if (time - last_led_transition >= LED_BLINK_MILLIS)
 		{
 			digitalWrite(13, LED);
 			LED = 1 - LED;
@@ -98,7 +98,7 @@ int main()
 		#endif
 		
 		#ifdef PRINT_PROFILER
-		if (time - last_profiler_print > PROFILER_PRINT_MILLIS)
+		if (time - last_profiler_print >= PROFILER_PRINT_MILLIS)
 		{
 			#ifdef M_ENG_PROFILER
 			m_eng_profiler_print();

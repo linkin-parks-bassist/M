@@ -21,6 +21,7 @@ int init_m_int_profile(m_int_profile *profile)
 	
 	profile->active = 0;
 	profile->unsaved_changes = 1;
+	profile->gbs = NULL;
 	
 	profile->listings = NULL;
 	profile->default_profile = 0;
@@ -110,6 +111,22 @@ int m_int_profile_add_menu_listing(m_int_profile *profile, m_int_menu_item *list
 	
 	return NO_ERROR;
 }
+
+int profile_add_gb_reference(m_int_profile *profile, m_int_glide_button *gb)
+{
+	if (!profile || !gb)
+		return ERR_NULL_PTR;
+	
+	glide_button_ll *nl = m_int_glide_button_ptr_linked_list_append(profile->gbs, gb);
+	
+	if (nl)
+		profile->gbs = nl;
+	else
+		return ERR_ALLOC_FAIL;
+	
+	return NO_ERROR;
+}
+
 
 int m_int_profile_set_default_name_from_id(m_int_profile *profile)
 {
@@ -233,12 +250,20 @@ int profile_propagate_name_change(m_int_profile *profile)
 		profile_view_change_name(profile->view_page, profile->name);
 	}
 	
-	menu_item_ll *current = profile->listings;
+	menu_item_ll *current_mi = profile->listings;
 	
-	while (current)
+	while (current_mi)
 	{
-		profile_listing_menu_item_change_name(current->data, profile->name);
-		current = current->next;
+		profile_listing_menu_item_change_name(current_mi->data, profile->name);
+		current_mi = current_mi->next;
+	}
+	
+	glide_button_ll *current_gb = profile->gbs;
+	
+	while (current_gb)
+	{
+		glide_button_change_label(current_gb->data, profile->name);
+		current_gb = current_gb->next;
 	}
 	
 	return NO_ERROR;
@@ -267,4 +292,32 @@ void new_profile_receive_id(et_msg msg, te_msg response)
 		profile_propagate_name_change(profile);
 		lvgl_port_unlock();
 	}
+}
+
+m_int_profile *create_new_profile_with_teensy()
+{
+	m_int_profile *new_profile = m_int_context_add_profile_rp(&global_cxt);
+	
+	if (!new_profile)
+	{
+		printf("ERROR: Couldn't create new profile\n");
+		return NULL;
+	}
+	
+	et_msg msg = create_et_msg_nodata(ET_MESSAGE_CREATE_PROFILE);
+	
+	msg.callback = new_profile_receive_id;
+	msg.cb_arg = new_profile;
+	
+	queue_msg_to_teensy(msg);
+	
+	create_profile_view_for(new_profile);
+	
+	printf("create_new_profile_with_teensy: global_cxt.ui_cxt.profile_list = %p\n", global_cxt.ui_cxt.profile_list);
+	if (global_cxt.ui_cxt.profile_list)
+	{
+		profile_list_add_profile(global_cxt.ui_cxt.profile_list, new_profile);
+	}
+	
+	return new_profile;
 }

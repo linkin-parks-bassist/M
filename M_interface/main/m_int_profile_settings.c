@@ -26,6 +26,11 @@ int init_profile_settings_page(m_int_ui_page *page)
 	page->enter_page_back 		= enter_profile_settings_page_back;
 	page->refresh				= refresh_profile_settings_page;
 	
+	page->panel = new_panel();
+	
+	if (!page->panel)
+		return ERR_ALLOC_FAIL;
+	
 	return NO_ERROR;
 }
 

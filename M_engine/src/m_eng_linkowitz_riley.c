@@ -79,6 +79,10 @@ int calc_lr_low_pass_filter(void *data_struct, float *dest, float *src, int n_sa
 	float *out_buffer = dest ? dest : sink_buffer;
 
 	float intermediate;
+	
+	/*m_eng_printf("LR low pass. State: [%.03f, %.03f, %.03f, %.03f], [%.03f, %.03f, %.03f, %.03f]\n",
+		str->x_11, str->x_12, str->y_11, str->y_12,
+		str->x_21, str->x_22, str->y_21, str->y_22);*/
 
 	for (int i = 0; i < n_samples; i++)
 	{
@@ -101,7 +105,7 @@ int calc_lr_low_pass_filter(void *data_struct, float *dest, float *src, int n_sa
 				      - str->a4 * str->y_22;
 
 		str->x_22 = str->x_21;
-		str->x_21 = in_buffer[i];
+		str->x_21 = intermediate;
 
 		str->y_22 = str->y_21;
 		str->y_21 = out_buffer[i];
@@ -187,6 +191,10 @@ int calc_lr_high_pass_filter(void *data_struct, float *dest, float *src, int n_s
 	float *out_buffer = dest ? dest : sink_buffer;
 
 	float intermediate;
+	
+	/*m_eng_printf("LR high pass. State: [%.03f, %.03f, %.03f, %.03f], [%.03f, %.03f, %.03f, %.03f]\n",
+		str->x_11, str->x_12, str->y_11, str->y_12,
+		str->x_21, str->x_22, str->y_21, str->y_22);*/
 
 	for (int i = 0; i < n_samples; i++)
 	{
@@ -209,7 +217,7 @@ int calc_lr_high_pass_filter(void *data_struct, float *dest, float *src, int n_s
 				      - str->a4 * str->y_22;
 
 		str->x_22 = str->x_21;
-		str->x_21 = in_buffer[i];
+		str->x_21 = intermediate;
 
 		str->y_22 = str->y_21;
 		str->y_21 = out_buffer[i];

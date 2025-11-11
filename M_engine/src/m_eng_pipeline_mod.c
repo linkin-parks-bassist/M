@@ -40,6 +40,20 @@ m_eng_pipe_line_mod create_pipe_line_mod_remove_transformer(uint16_t tid)
 	RETURN(mod);
 }
 
+m_eng_pipe_line_mod create_pipe_line_mod_change_transformer_setting(uint16_t tid, uint16_t setting_id, int16_t new_value)
+{
+	FUNCTION_START();
+
+	m_eng_pipe_line_mod mod;
+	
+	mod.type = PIPE_LINE_MOD_CHANGE_TRANSFORMER_SETTING;
+	mod.tid  = tid;
+	mod.data = setting_id;
+	mod.sdata = new_value;
+	
+	RETURN(mod);
+}
+
 int apply_pipe_line_mod(m_eng_pipe_line *pipeline, m_eng_pipe_line_mod mod)
 {
 	FUNCTION_START();
@@ -80,7 +94,8 @@ int apply_pipe_line_mod(m_eng_pipe_line *pipeline, m_eng_pipe_line_mod mod)
 			break;
 		
 		case PIPE_LINE_MOD_CHANGE_TRANSFORMER_SETTING:
-			
+			pipe_line_change_transformer_setting(pipeline, mod.tid, mod.data, mod.sdata);
+			break;
 		
 		default:
 			m_eng_printf("I don't know how to apply a job of type %d !\n", mod.type);

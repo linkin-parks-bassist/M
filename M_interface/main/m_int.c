@@ -20,6 +20,7 @@ void app_main()
 	init_display(&disp);
 	
 	init_m_int_context(&global_cxt);
+	init_ui_context(&global_cxt.ui_cxt);
 	init_m_int_msg_queue();
 	begin_m_int_comms();
 	init_sd_card();
@@ -76,5 +77,7 @@ void app_main()
 		lvgl_port_unlock();
 	}
 	#endif
+	
+	init_footswitch_poll_task();
 }
 

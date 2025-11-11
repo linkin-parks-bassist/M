@@ -366,7 +366,7 @@ int cxt_update_parameter_value_by_id(m_eng_context *cxt, uint16_t pid, uint16_t 
 	RETURN_ERR_CODE(NO_ERROR);
 }
 
-m_eng_setting *cxt_get_setting_by_id(m_eng_context *cxt, uint16_t pid, uint16_t tid, uint16_t oid)
+m_eng_setting *cxt_get_setting_by_id(m_eng_context *cxt, uint16_t pid, uint16_t tid, uint16_t sid)
 {
 	FUNCTION_START();
 	
@@ -382,15 +382,10 @@ m_eng_setting *cxt_get_setting_by_id(m_eng_context *cxt, uint16_t pid, uint16_t 
 	
 	m_eng_transformer *trans = pipe_line_get_transformer_by_id(cxt->profiles[pid].back_pipeline, tid);
 	
-	if (oid >= trans->n_settings)
-	{
-		RETURN_PTR(NULL);
-	}
-	
-	RETURN_PTR(trans->settings[oid]);
+	RETURN_PTR(transformer_get_setting(trans, sid));
 }
 
-int cxt_update_setting_value_by_id(m_eng_context *cxt, uint16_t pid, uint16_t tid, uint16_t oid, uint16_t new_value)
+int cxt_update_setting_value_by_id(m_eng_context *cxt, uint16_t pid, uint16_t tid, uint16_t sid, uint16_t new_value)
 {
 	FUNCTION_START();
 
@@ -399,14 +394,14 @@ int cxt_update_setting_value_by_id(m_eng_context *cxt, uint16_t pid, uint16_t ti
 		RETURN_ERR_CODE(ERR_NULL_PTR);
 	}
 	
-	m_eng_setting *setting = cxt_get_setting_by_id(cxt, pid, tid, oid);
-	
-	if (!setting)
+	if (pid >= cxt->n_profiles)
 	{
-		RETURN_ERR_CODE(ERR_BAD_ARGS);
+		RETURN_ERR_CODE(ERR_INVALID_PROFILE_ID);
 	}
 	
-	RETURN_ERR_CODE(update_setting(setting, new_value));
+	m_eng_pipe_line_mod mod = create_pipe_line_mod_change_transformer_setting(tid, sid, new_value);
+	
+	RETURN_ERR_CODE(profile_apply_pipeline_mod(&cxt->profiles[pid], mod));
 }
 
 void m_eng_safe_reboot(m_eng_context *cxt)

@@ -21,6 +21,8 @@ typedef struct
 	lv_obj_t *group_containers[TRANSFORMER_VIEW_MAX_GROUPS];
 	
 	m_int_parameter_widget_ptr_linked_list *parameter_widgets;
+	
+	m_int_ui_page *settings_page;
 } m_int_transformer_view_str;
 
 

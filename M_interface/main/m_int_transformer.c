@@ -33,40 +33,42 @@ int init_transformer(m_int_transformer *trans)
 	trans->position = 0;
 	
 	trans->parameters = NULL;
-	
-	int ret_val;
-	
-	ret_val = init_transformer_setting_array(trans);
-	
-	if (ret_val != NO_ERROR)
-		return ret_val;
-	
-	/*ret_val = init_transformer_parameter_array(trans);
-	
-	if (ret_val != NO_ERROR)
-		return ret_val;*/
+	trans->settings = NULL;
 	
 	trans->view_page = NULL;
 	trans->profile = NULL;
 	
-	return NO_ERROR;
-}
-
-int init_transformer_setting_array(m_int_transformer *trans)
-{
-	if (!trans)
-		return ERR_NULL_PTR;
+	init_parameter(&trans->wet_mix, "Wet Mix", 1.0, 0.0, 1.0);
+	trans->wet_mix.id.parameter_id = TRANSFORMER_WET_MIX_PID;
 	
-	trans->n_settings = 0;
-	trans->setting_array_length = INITIAL_OPTION_ARRAY_LENGTH;
-	trans->settings = m_int_malloc(sizeof(m_int_setting) * trans->setting_array_length);
-	if (!trans->settings)
-	{
-		trans->setting_array_length = 0;
+	init_setting(&trans->band_mode, "Apply to", TRANSFORMER_MODE_FULL_SPECTRUM);
+	trans->band_mode.id.parameter_id = TRANSFORMER_BAND_MODE_SID;
+	
+	trans->band_mode.n_options = 4;
+	trans->band_mode.options = malloc(sizeof(m_int_setting_option) * trans->band_mode.n_options);
+	
+	if (!trans->band_mode.options)
 		return ERR_ALLOC_FAIL;
-	}
-	for (int i = 0; i < trans->setting_array_length; i++)
-		init_m_int_setting(&trans->settings[i]);
+	
+	trans->band_mode.options[0].value = TRANSFORMER_MODE_FULL_SPECTRUM;
+	trans->band_mode.options[0].name  = "All freq";
+	
+	trans->band_mode.options[1].value = TRANSFORMER_MODE_UPPER_SPECTRUM;
+	trans->band_mode.options[1].name  = "Freq > cutoff";
+	
+	trans->band_mode.options[2].value = TRANSFORMER_MODE_LOWER_SPECTRUM;
+	trans->band_mode.options[2].name  = "Freq < cutoff";
+	
+	trans->band_mode.options[3].value = TRANSFORMER_MODE_BAND;
+	trans->band_mode.options[3].name  = "Freq in band";
+	
+	init_parameter(&trans->lp_cutoff_freq, "Cutoff", 4000.0, 1, 4000);
+	trans->lp_cutoff_freq.scale = PARAMETER_SCALE_LOGARITHMIC;
+	trans->lp_cutoff_freq.id.parameter_id = TRANSFORMER_BAND_LP_CUTOFF_PID;
+	
+	init_parameter(&trans->hp_cutoff_freq, "Cutoff", 1.0, 1, 4000);
+	trans->hp_cutoff_freq.scale = PARAMETER_SCALE_LOGARITHMIC;
+	trans->hp_cutoff_freq.id.parameter_id = TRANSFORMER_BAND_HP_CUTOFF_PID;
 	
 	return NO_ERROR;
 }
@@ -76,18 +78,40 @@ int transformer_rectify_param_ids(m_int_transformer *trans)
 	if (!trans)
 		return ERR_NULL_PTR;
 	
-	parameter_ll *current = trans->parameters;
+	parameter_ll *current_param = trans->parameters;
 	
-	while (current)
+	while (current_param)
 	{
-		if (current->data)
+		if (current_param->data)
 		{
-			current->data->id.profile_id = trans->profile_id;
-			current->data->id.transformer_id = trans->transformer_id;
+			current_param->data->id.profile_id = trans->profile_id;
+			current_param->data->id.transformer_id = trans->transformer_id;
 		}
 		
-		current = current->next;
+		current_param = current_param->next;
 	}
+	
+	setting_ll *current_setting = trans->settings;
+	
+	while (current_setting)
+	{
+		if (current_setting->data)
+		{
+			current_setting->data->id.profile_id = trans->profile_id;
+			current_setting->data->id.transformer_id = trans->transformer_id;
+		}
+		
+		current_setting = current_setting->next;
+	}
+	
+	trans->band_mode.id.profile_id = trans->profile_id;
+	trans->band_mode.id.transformer_id = trans->transformer_id;
+	
+	trans->lp_cutoff_freq.id.profile_id = trans->profile_id;
+	trans->lp_cutoff_freq.id.transformer_id = trans->transformer_id;
+	
+	trans->hp_cutoff_freq.id.profile_id = trans->profile_id;
+	trans->hp_cutoff_freq.id.transformer_id = trans->transformer_id;
 	
 	return NO_ERROR;
 }
@@ -101,40 +125,6 @@ int transformer_set_id(m_int_transformer *trans, uint16_t profile_id, uint16_t t
 	trans->transformer_id = transformer_id;
 	
 	transformer_rectify_param_ids(trans);
-	
-	return NO_ERROR;
-}
-
-int m_int_transformer_enlarge_setting_array(m_int_transformer *trans)
-{
-	if (!trans)
-		return ERR_NULL_PTR;
-	
-	int try_size = OPTION_ARRAY_CHUNK_SIZE;
-	m_int_setting *new_ptr;
-	
-	do
-	{
-		new_ptr = m_int_malloc(sizeof(m_int_setting) * (trans->setting_array_length + try_size));
-		
-		if (!new_ptr)
-			try_size /= 2;
-	} while (!new_ptr && try_size);
-	
-	if (!new_ptr)
-		return ERR_ALLOC_FAIL;
-	
-	if (trans->settings)
-	{
-		memcpy(new_ptr, trans->settings, sizeof(m_int_setting) * trans->setting_array_length);
-		m_int_free(trans->settings);
-	}
-	
-	for (int i = 0; i < try_size; i++)
-		init_m_int_setting(&new_ptr[trans->setting_array_length + i]);
-	
-	trans->setting_array_length = trans->setting_array_length + try_size;
-	trans->settings = new_ptr;
 	
 	return NO_ERROR;
 }
@@ -192,6 +182,8 @@ m_int_parameter *transformer_add_parameter(m_int_transformer *trans)
 	if (!param)
 		return NULL;
 	
+	init_parameter_str(param);
+	
 	parameter_ll *nl = m_int_parameter_ptr_linked_list_append(trans->parameters, param);
 	
 	if (!nl)
@@ -205,46 +197,31 @@ m_int_parameter *transformer_add_parameter(m_int_transformer *trans)
 	return param;
 }
 
-
-int m_int_transformer_set_n_settings(m_int_transformer *trans, int n)
+m_int_setting *transformer_add_setting(m_int_transformer *trans)
 {
 	if (!trans)
-		return ERR_NULL_PTR;
-	
-	int tries = 0;
-	
-	while (trans->setting_array_length < n && tries < 32)
-	{
-		m_int_transformer_enlarge_setting_array(trans);
-		tries++;
-	}
-	
-	if (trans->setting_array_length < n)
-		return ERR_ALLOC_FAIL;
-	
-	trans->n_settings = n;
-	
-	return NO_ERROR;
-}
-
-int transformer_add_setting(m_int_transformer *trans, m_int_setting *setting)
-{
-	if (!trans)
-		return ERR_NULL_PTR;
+		return NULL;
 	
 	int ret_val;
 	
-	if (trans->n_settings >= trans->setting_array_length)
+	m_int_setting *setting = m_int_malloc(sizeof(m_int_setting));
+	
+	if (!setting)
+		return NULL;
+	
+	init_setting_str(setting);
+	
+	setting_ll *nl = m_int_setting_ptr_linked_list_append(trans->settings, setting);
+	
+	if (!nl)
 	{
-		ret_val = m_int_transformer_enlarge_setting_array(trans);
-		
-		if (ret_val != NO_ERROR)
-			return ret_val;
+		m_int_free(setting);
+		return NULL;
 	}
 	
-	trans->settings[trans->n_settings++] = *setting;
+	trans->settings = nl;
 	
-	return NO_ERROR;
+	return setting;
 }
 
 int transformer_init_ui_page(m_int_transformer *trans, m_int_ui_page *parent)
@@ -281,26 +258,49 @@ int clone_transformer(m_int_transformer *dest, m_int_transformer *src)
 	dest->type = src->type;
 	dest->position = src->position;
 	
-	parameter_ll *current = src->parameters;
+	parameter_ll *current_param = src->parameters;
 	m_int_parameter *param;
 	
-	while (current)
+	while (current_param)
 	{
-		if(current->data)
+		if(current_param->data)
 		{
 			param = transformer_add_parameter(dest);
 			
 			if (param)
 			{
-				memcpy(param, current->data, sizeof(m_int_parameter));
+				memcpy(param, current_param->data, sizeof(m_int_parameter));
+			}
+			else
+			{
+				return ERR_ALLOC_FAIL;
 			}
 		}
 		
-		current = current->next;
+		current_param = current_param->next;
 	}
 	
-	for (int i = 0; i < src->n_settings; i++)
-		transformer_add_setting(dest, &src->settings[i]);
+	setting_ll *current_setting = src->settings;
+	m_int_setting *setting;
+	
+	while (current_setting)
+	{
+		if(current_setting->data)
+		{
+			setting = transformer_add_setting(dest);
+			
+			if (setting)
+			{
+				clone_setting(setting, current_setting->data);
+			}
+			else
+			{
+				return ERR_ALLOC_FAIL;
+			}
+		}
+		
+		current_setting = current_setting->next;
+	}
 	
 	src->view_page = NULL;
 	
@@ -315,10 +315,12 @@ void gut_transformer(m_int_transformer *trans)
 	if (!trans)
 		return;
 	
-	m_int_free(trans->parameters);
+	free_m_int_parameter_ptr_linked_list(trans->parameters);
+	destructor_free_m_int_setting_ptr_linked_list(trans->settings, gut_setting);
 	trans->parameters = NULL;
-	m_int_free(trans->settings);
 	trans->settings = NULL;
+	
+	gut_setting(&trans->band_mode);
 	
 	free_transformer_view(trans->view_page);
 	trans->view_page = NULL;
@@ -327,9 +329,6 @@ void gut_transformer(m_int_transformer *trans)
 	trans->transformer_id = 0;
 	trans->type 		  = 0;
 	trans->position 	  = 0;
-	
-	trans->n_settings = 0;
-	trans->setting_array_length = 0;
 }
 
 
@@ -352,6 +351,24 @@ m_int_parameter *transformer_get_parameter(m_int_transformer *trans, int n)
 		return NULL;
 	
 	parameter_ll *current = trans->parameters;
+	int i = 0;
+	
+	while (current && i < n)
+	{
+		current = current->next;
+		i++;
+	}
+	
+	return current ? current->data : NULL;
+}
+
+
+m_int_setting *transformer_get_setting(m_int_transformer *trans, int n)
+{
+	if (!trans)
+		return NULL;
+	
+	setting_ll *current = trans->settings;
 	int i = 0;
 	
 	while (current && i < n)

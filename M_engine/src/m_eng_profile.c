@@ -128,6 +128,10 @@ int profile_print_job_list(m_eng_profile *profile)
 				m_eng_printf("remove transformer %d\n", current->data.tid);
 				break;
 			
+			case PIPE_LINE_MOD_CHANGE_TRANSFORMER_SETTING:
+				m_eng_printf("change setting %d.%d to %d\n", current->data.tid, current->data.data, current->data.sdata);
+				break;
+				
 			default:
 				m_eng_printf("ERROR! Unrecognised job!\n");
 				break;
