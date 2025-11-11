@@ -216,7 +216,12 @@ void menu_item_profile_listing_released_cb(lv_event_t *e)
 	
 	if (!item->long_pressed)
 	{
-		enter_ui_page_indirect(item->linked_page_indirect);
+		if (profile && profile->view_page)
+		{
+			profile->view_page->parent = global_cxt.ui_cxt.main_menu;
+			
+			enter_ui_page(profile->view_page);
+		}
 	}
 	else
 	{

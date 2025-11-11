@@ -45,6 +45,8 @@ typedef struct m_int_profile_view_str
 	
 	int left_button_mode;
 	
+	m_int_ui_page *accessed_from;
+	
 	m_int_ui_page *settings_page;
 } m_int_profile_view_str;
 

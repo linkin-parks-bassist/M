@@ -11,11 +11,15 @@ int init_profile_settings_page(m_int_ui_page *page)
 		return ERR_ALLOC_FAIL;
 	
 	init_ui_page(page);
+	page->panel = new_panel();
+	
+	if (!page->panel)
+		return ERR_NULL_PTR;
 	
 	page->data_struct = str;
 	
 	str->profile = NULL;
-	str->container = NULL;
+	page->container = NULL;
 	
 	page->configure 			= configure_profile_settings_page;
 	page->create_ui 			= create_profile_settings_page_ui;
@@ -39,10 +43,22 @@ int configure_profile_settings_page(m_int_ui_page *page, void *data)
 	if (!page)
 		return ERR_NULL_PTR;
 	
+	ui_page_add_back_button(page);
+	
 	m_int_profile *profile = (m_int_profile*)data;
 	
 	if (!profile)
 		return ERR_BAD_ARGS;
+	
+	if (!profile->name)
+	{
+		m_int_profile_set_default_name_from_id(profile);
+	}
+	
+	char buf[128];
+	snprintf(buf, 128, "%s Settings", profile->name);
+	
+	page->panel->text = m_int_strndup(buf, 128);
 	
 	m_profile_settings_str *str = (m_profile_settings_str*)page->data_struct;
 	
@@ -125,19 +141,9 @@ int create_profile_settings_page_ui(m_int_ui_page *page)
 		return ERR_BAD_ARGS;
 	}
 	
-	printf("create screen...\n");
-	page->screen = lv_obj_create(NULL);
-	printf("page->screen = %p\n", page->screen);
+	ui_page_create_base_ui(page);
 	
-	create_panel_with_back_button(page);
-	
-	char buf[256];
-	snprintf(buf, 256, "%s Settings", str->profile->name);
-	set_panel_text(page, buf);
-	
-	create_standard_menu_container(&str->container, page->screen);
-	
-	parameter_widget_create_ui(&str->volume_widget, str->container);
+	parameter_widget_create_ui(&str->volume_widget, page->container);
 	
 	str->default_button = lv_btn_create(page->screen);
     lv_obj_set_size(str->default_button, PROFILE_VIEW_BUTTON_WIDTH / 3, PROFILE_VIEW_BUTTON_HEIGHT);

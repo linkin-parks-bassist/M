@@ -49,13 +49,6 @@ int init_ui_context(m_int_ui_context *cxt)
 	cxt->profile_list  = NULL;
 	cxt->sequence_list = NULL;
 	
-	cxt->page_history_index = 0;
-	
-	cxt->page_history[0] = cxt->main_menu;
-	
-	for (int i = 1; i < PAGE_HISTORY_LEN; i++)
-		cxt->page_history[i] = NULL;
-	
 	cxt->backstage = NULL;
 	
 	return NO_ERROR;
@@ -217,24 +210,6 @@ int create_page_ui(m_int_ui_page *page)
 	return NO_ERROR;
 }
 
-int enter_ui_page_forward(m_int_ui_page *page)
-{
-	//printf("enter ui page... %p\n", page);
-	
-	if (!page)
-		return ERR_NULL_PTR;
-	
-	if (!page->screen)
-		return ERR_BAD_ARGS;
-	
-	if (page->enter_page_forward)
-		page->enter_page_forward(page);
-	else
-		lv_scr_load_anim(page->screen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 100, 0, false);
-	
-	return NO_ERROR;
-}
-
 int enter_ui_page(m_int_ui_page *page)
 {
 	printf("enter ui page...\n");
@@ -284,62 +259,6 @@ int enter_ui_page(m_int_ui_page *page)
 		}
 		lv_scr_load(page->screen);
 	}
-	
-	global_cxt.ui_cxt.page_history_index = (global_cxt.ui_cxt.page_history_index + 1) % PAGE_HISTORY_LEN;
-	global_cxt.ui_cxt.page_history[global_cxt.ui_cxt.page_history_index] = page;
-	
-	return NO_ERROR;
-}
-
-int enter_prev_page(m_int_ui_page *current_page)
-{
-	int index = global_cxt.ui_cxt.page_history_index;
-	int new_index = (index - 1) % PAGE_HISTORY_LEN;
-	
-	printf("enter_prev_page. history index = %d. prev_page = %p\n", index, global_cxt.ui_cxt.page_history[new_index]);
-	if (global_cxt.ui_cxt.page_history[new_index])
-	{
-		if (enter_ui_page(global_cxt.ui_cxt.page_history[new_index]) == NO_ERROR)
-		{
-			global_cxt.ui_cxt.page_history_index = new_index;
-			printf("entering prev page...\n");
-		}
-	}
-	else if (current_page && current_page->parent)
-	{
-		printf("enter current page's parent...\n");
-		global_cxt.ui_cxt.page_history_index = new_index;
-		enter_ui_page(current_page->parent);
-	}
-	else
-	{
-		printf("error! current_page = %p, current_page->parent = %p\n", current_page, current_page ? current_page->parent : NULL);
-		return ERR_BAD_ARGS;
-	}
-	
-	return NO_ERROR;
-}
-
-void enter_prev_page_cb(lv_event_t *e)
-{
-	m_int_ui_page *page = lv_event_get_user_data(e);
-	enter_prev_page(page);
-}
-
-int enter_ui_page_back(m_int_ui_page *page)
-{
-	//printf("enter ui page...\n");
-	
-	if (!page)
-		return ERR_NULL_PTR;
-	
-	if (!page->screen)
-		return ERR_BAD_ARGS;
-	
-	if (page->enter_page_back)
-		page->enter_page_back(page);
-	else
-		lv_scr_load_anim(page->screen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, UI_PAGE_TRANSITION_ANIM_MS, 0, false);
 	
 	return NO_ERROR;
 }
@@ -448,7 +367,10 @@ void enter_parent_page_cb(lv_event_t *e)
 		return;
 	}
 	
-	enter_ui_page(page->parent);
+	if (page->parent)
+		enter_ui_page(page->parent);
+	else
+		enter_ui_page(global_cxt.ui_cxt.main_menu);
 }
 
 void m_int_ui_page_return_to_parent(m_int_ui_page *page)
@@ -1190,7 +1112,28 @@ int ui_page_add_back_button(m_int_ui_page *page)
 	page->panel->lb->width  = STANDARD_TOP_PANEL_BUTTON_WIDTH;
 	page->panel->lb->height = STANDARD_TOP_PANEL_BUTTON_HEIGHT;
 	
-	button_set_clicked_cb(page->panel->lb, enter_prev_page_cb, page);
+	button_set_clicked_cb(page->panel->lb, enter_parent_page_cb, page);
+	
+	return NO_ERROR;
+}
+
+int ui_page_add_parent_button(m_int_ui_page *page)
+{
+	if (!page)
+		return ERR_NULL_PTR;
+	
+	if (!page->panel)
+		return ERR_BAD_ARGS;
+	
+	page->panel->lb = new_button(LV_SYMBOL_LEFT);
+	
+	if (!page->panel->lb)
+		return ERR_ALLOC_FAIL;
+	
+	page->panel->lb->width  = STANDARD_TOP_PANEL_BUTTON_WIDTH;
+	page->panel->lb->height = STANDARD_TOP_PANEL_BUTTON_HEIGHT;
+	
+	button_set_clicked_cb(page->panel->lb, enter_parent_page_cb, page);
 	
 	return NO_ERROR;
 }

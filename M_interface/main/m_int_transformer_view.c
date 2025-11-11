@@ -102,10 +102,13 @@ int configure_transformer_view(m_int_ui_page *page, void *data)
 	if (page->configured)
 		return NO_ERROR;
 	
-	ui_page_add_back_button(page);
+	ui_page_add_parent_button(page);
 	ui_page_add_right_panel_button(page, LV_SYMBOL_SETTINGS, transformer_view_enter_settings_cb);
 	
 	m_int_transformer *trans = (m_int_transformer*)data;
+	
+	page->panel->text = transformer_type_name(trans->type);
+	
 	m_int_transformer_view_str *str = page->data_struct;
 	
 	if (!str)

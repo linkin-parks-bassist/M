@@ -352,7 +352,7 @@ void transformer_widget_release_cb(lv_event_t *e)
 		{
 			if (tw->trans->view_page)
 			{
-				enter_ui_page_forward(tw->trans->view_page);
+				enter_ui_page(tw->trans->view_page);
 			}
 		}
 	}

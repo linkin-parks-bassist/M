@@ -83,6 +83,8 @@ int init_profile_view(m_int_ui_page *page)
 	str->plus		= NULL;
 	str->play 		= NULL;
 	
+	str->accessed_from = NULL;
+	
 	str->menu_button 		= NULL;
 	str->menu_button_label 	= NULL;
 	
@@ -198,6 +200,11 @@ int configure_profile_view(m_int_ui_page *page, void *data)
 	
 	m_int_profile *profile = (m_int_profile*)data;
 	
+	if (!profile->name)
+	{
+		m_int_profile_set_default_name_from_id(profile);
+	}
+	
 	page->panel->text = profile->name;
 	
 	m_int_profile_view_str *str = page->data_struct;
@@ -285,7 +292,7 @@ int configure_profile_view(m_int_ui_page *page, void *data)
 	
 	ui_page_set_title_rw(page, profile_view_set_name, profile_view_revert_name);
 	
-	ui_page_add_left_panel_button(page, LV_SYMBOL_LIST, enter_prev_page_cb);
+	ui_page_add_left_panel_button(page, LV_SYMBOL_LIST, enter_parent_page_cb);
 	ui_page_add_right_panel_button(page, LV_SYMBOL_SETTINGS, profile_view_enter_settings_page_cb);
 	
 	page->configured = 1;
@@ -358,7 +365,6 @@ int enter_profile_view(m_int_ui_page *page)
 		global_cxt.working_profile = str->profile;
 	
 	global_cxt.ui_cxt.transformer_selector.parent = page;
-	global_cxt.ui_cxt.main_menu->parent = page;
 	
 	profile_view_refresh_play_button(page);
 	profile_view_refresh_save_button(page);

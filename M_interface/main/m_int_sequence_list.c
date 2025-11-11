@@ -9,7 +9,7 @@ m_int_menu_item *create_sequence_listing_menu_item(char *text, m_int_sequence *s
 	
 	init_menu_item(item);
 	
-	item->type = MENU_ITEM_PROFILE_LISTING;
+	item->type = MENU_ITEM_SEQUENCE_LISTING;
 	if (text)
 		item->text = m_int_strndup(text, MENU_ITEM_TEXT_MAX_LEN);
 	else
@@ -41,16 +41,23 @@ int sequence_listing_menu_item_refresh_active(m_int_menu_item *item)
 	if (item->data && ((m_int_sequence*)item->data)->active)
 	{
 		printf("sequence is active. going about it\n");
-		lv_label_set_text(item->extra[1], LV_SYMBOL_PLAY);
-		lv_obj_clear_flag(item->extra[0], LV_OBJ_FLAG_HIDDEN);
-		lv_obj_clear_flag(item->extra[0], LV_OBJ_FLAG_CLICKABLE);
+		
+		if (item->extra && item->extra[0] && item->extra[1])
+		{
+			lv_label_set_text(item->extra[1], LV_SYMBOL_PLAY);
+			lv_obj_clear_flag(item->extra[0], LV_OBJ_FLAG_HIDDEN);
+			lv_obj_clear_flag(item->extra[0], LV_OBJ_FLAG_CLICKABLE);
+		}
 	}
 	else
 	{
 		printf("sequence is not active. hiding play\n");
-		lv_label_set_text(item->extra[1], LV_SYMBOL_TRASH);
-		lv_obj_add_flag(item->extra[0], LV_OBJ_FLAG_HIDDEN);
-		lv_obj_add_flag(item->extra[0], LV_OBJ_FLAG_CLICKABLE);
+		if (item->extra && item->extra[0] && item->extra[1])
+		{
+			lv_label_set_text(item->extra[1], LV_SYMBOL_TRASH);
+			lv_obj_add_flag(item->extra[0], LV_OBJ_FLAG_HIDDEN);
+			lv_obj_add_flag(item->extra[0], LV_OBJ_FLAG_CLICKABLE);
+		}
 	}
 	
 	printf("sequence_listing_menu_item_refresh_active done\n");
@@ -118,12 +125,13 @@ void sequence_list_add_cb(lv_event_t *e)
 	
 	if (!new_listing)
 	{
-		//ugh
+		printf("Failed to create sequence listing menu item\n");
 		return;
 	}
 	
 	menu_page_add_item(str, new_listing);
 	create_menu_item_ui(new_listing, page->container);
+	sequence_listing_menu_item_refresh_active(new_listing);
 }
 
 int configure_sequence_list(m_int_ui_page *page, void *data)
@@ -218,16 +226,34 @@ void disappear_sequence_listing_delete_button(lv_timer_t *timer)
 
 void menu_item_sequence_listing_released_cb(lv_event_t *e)
 {
+	printf("menu_item_sequence_listing_released_cb\n");
 	m_int_menu_item *item = (m_int_menu_item*)lv_event_get_user_data(e);
 	
 	if (!item)
 		return;
 	
+	int ret_val;
 	m_int_sequence *sequence = item->data;
+	
+	if (!sequence)
+	{
+		printf("Error: sequence listing has no associated sequence!\n");
+	}
 	
 	if (!item->long_pressed)
 	{
-		enter_ui_page_indirect(item->linked_page_indirect);
+		if (!sequence->view_page)
+		{
+			ret_val = create_sequence_view_for(sequence);
+			if (ret_val != NO_ERROR)
+			{
+				printf("Error creating sequence view for sequence: %s\n", m_error_code_to_string(ret_val));
+				return;
+			}
+		}
+		
+		sequence->view_page->parent = item->parent;
+		enter_ui_page(sequence->view_page);
 	}
 	else
 	{
@@ -254,10 +280,12 @@ void menu_item_sequence_listing_long_pressed_cb(lv_event_t *e)
 	
 	if (sequence && !sequence->active)
 	{
-		lv_obj_clear_flag(item->extra[0], LV_OBJ_FLAG_HIDDEN);
+		if (item->extra && item->extra[0])
+			lv_obj_clear_flag(item->extra[0], LV_OBJ_FLAG_HIDDEN);
 	}
 	else
 	{
-		lv_obj_clear_flag(item->extra[0], LV_OBJ_FLAG_HIDDEN);
+		if (item->extra && item->extra[0])
+			lv_obj_clear_flag(item->extra[0], LV_OBJ_FLAG_HIDDEN);
 	}
 }

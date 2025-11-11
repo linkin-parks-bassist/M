@@ -148,10 +148,6 @@ int configure_ui_page(m_int_ui_page *page, void *data);
 int create_page_ui(m_int_ui_page *page);
 
 int enter_ui_page(m_int_ui_page *page);
-int enter_ui_page_forward(m_int_ui_page *page);
-
-int enter_prev_page();
-void enter_prev_page_cb(lv_event_t *e);
 
 void enter_ui_page_cb(lv_event_t *e);
 int enter_ui_page_indirect(m_int_ui_page **_page);
@@ -169,6 +165,7 @@ int ui_page_add_left_panel_button(m_int_ui_page *page, const char *label, lv_eve
 int ui_page_add_right_panel_button(m_int_ui_page *page, const char *label, lv_event_cb_t cb);
 
 int ui_page_add_back_button(m_int_ui_page *page);
+int ui_page_add_parent_button(m_int_ui_page *page);
 
 int ui_page_set_title_rw(m_int_ui_page *page, lv_event_cb_t ok_cb, lv_event_cb_t cancel_cb);
 
@@ -219,9 +216,6 @@ typedef struct
 	lv_obj_t *backstage;
 	
 	lv_obj_t *keyboard;
-	
-	int page_history_index;
-	m_int_ui_page *page_history[PAGE_HISTORY_LEN];
 	
 	m_int_ui_page *main_menu;
 	m_int_ui_page *prev_page;
