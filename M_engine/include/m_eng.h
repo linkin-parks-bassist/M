@@ -13,7 +13,7 @@
 
 #define M_ENGINE
 
-#define NO_CMSIS
+//#define NO_CMSIS
 
 #ifdef ME_SIMULATED
 #ifndef NO_CMSIS
@@ -74,6 +74,7 @@ extern "C" {
 
 #include "m_eng_logging.h"
 
+#include "m_eng_flops.h"
 #include "m_eng_useful_functions.h"
 
 #include "m_eng_audio_block.h"

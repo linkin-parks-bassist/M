@@ -62,20 +62,11 @@ int calc_amplifier(void *data_struct, float *dest, float *src, int n_samples)
 	
 	float *in_buffer  =  src ? src  : zero_buffer;
 	float *out_buffer = dest ? dest : sink_buffer;
-	//printf("amplifier. g = %f\n", str->g);
-	#ifndef NO_CMSIS
+	
 	if (str->g == 1.0f)
-	{
 		memcpy(out_buffer, in_buffer, sizeof(float) * n_samples);
-	}
 	else
-	{
-		for (int i = 0; i < n_samples; i++)
-			out_buffer[i] = str->g * in_buffer[i];
-	}
-	#else
-	arm_scale_f32(in_buffer, str->g, out_buffer, n_samples);
-	#endif
+		m_scale_f32(out_buffer, in_buffer, str->g, n_samples);
 	
 	RETURN_ERR_CODE(NO_ERROR);
 }

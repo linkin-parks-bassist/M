@@ -9,4 +9,7 @@ float hard_clip(float x);
 
 float soft_fold(float x);
 
+int convert_block_int_to_float(float *dest, int16_t *src);
+int convert_block_float_to_int(int16_t *src, float *dest);
+
 #endif
