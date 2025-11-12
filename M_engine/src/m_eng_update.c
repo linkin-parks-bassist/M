@@ -2,8 +2,6 @@
 
 static const char *FNAME = "m_eng_update.c";
 
-#define WAVESHAPER_ENVELOPE_RATE (1.0/(64 * 128))
-
 void update_all()
 {
 	#ifndef M_ENG_SIMULATED

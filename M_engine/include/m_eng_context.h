@@ -32,7 +32,9 @@ typedef struct
 	int profile_switch_triggered;
 	int new_profile;
 	
+	#ifdef GRAPH_PIPELIME
 	m_eng_pipeline *unconpfigured_pipeline;
+	#endif
 	
 	int profiles_switching;
 	int profile_switch_progress;

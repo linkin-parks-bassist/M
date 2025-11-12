@@ -764,7 +764,7 @@ int cxt_process(m_eng_context *cxt)
 	if (!(tmp  = allocate_buffer())) goto panic_bypass;
 	if (!(dest = allocate_buffer())) goto panic_bypass;
 	
-	convert_block_int_to_float(tmp, i2s_input_blocks[1].data);
+	convert_block_int_to_float(tmp, i2s_input_blocks[1]);
 	
 	calc_low_pass_filter(&cxt->input_lpf, src, tmp, AUDIO_BLOCK_SAMPLES);
 	

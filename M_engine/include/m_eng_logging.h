@@ -40,7 +40,7 @@ typedef struct
 #define STR(x) #x
 #define XSTR(x) (STR(x))
 
-//#define M_ENG_LOG_LEVEL M_ENG_LOG_TRACE
+#define M_ENG_LOG_LEVEL M_ENG_LOG_ERRORS
 //#define M_ENG_PROFILER
 
 

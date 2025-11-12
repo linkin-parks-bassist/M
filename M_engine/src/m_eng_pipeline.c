@@ -1,3 +1,5 @@
+#ifdef GRAPH_PIPELINE
+
 #include "m_eng.h"
 
 static const char *FNAME = "m_eng_pipeline.c";
@@ -791,3 +793,5 @@ int pipeline_add_transformer_by_type(m_eng_pipeline *pipeline, uint16_t type)
 	return pipeline_add_transformer(pipeline, trans);
 }
 */
+
+#endif

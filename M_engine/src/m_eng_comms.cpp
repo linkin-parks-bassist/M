@@ -69,8 +69,6 @@ void handle_esp32_message(et_msg msg)
 {
 	FUNCTION_START();
 	
-	m_eng_printf("Recieved message of type %s\n", et_msg_code_to_string(msg.type));
-	
 	int ret_val;
 	int string_received = 0;
 	
@@ -319,7 +317,6 @@ void handle_esp32_message(et_msg msg)
 
 void i2c_receive_isr(int n)
 {
-	m_eng_printf("i2c_receive_isr\n");
 	FUNCTION_START();
 	m_eng_disable_software_interrupts();
 	
@@ -387,7 +384,6 @@ void i2c_request_isr()
 		#endif
 		
 		prev_response = response;
-		m_eng_printf("Responding with message of type %s\n", te_msg_code_to_string(response.type));
 		#ifdef PRINT_RESPONSE_BYTES
 		m_eng_printf("Sent response:\n\t");
 		for (int i = 0; i < TE_MESSAGE_MAX_TRANSFER_LEN; i++)

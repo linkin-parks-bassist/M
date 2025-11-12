@@ -14,11 +14,6 @@ void update_all();
 int update_setup();
 void update_stop();
 
-void set_active_pipeline(m_eng_pipeline *pipeline);
-int switch_active_pipeline(m_eng_pipeline *pipeline);
-
 void m_eng_software_isr();
-
-extern m_eng_pipeline *active_pipeline;
 
 #endif

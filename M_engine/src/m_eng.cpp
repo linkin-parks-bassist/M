@@ -7,9 +7,9 @@ static int LED = 1;
 #define LED_BLINK_MILLIS 	50
 //#define DEBUG_PRINTS
 #define DEBUG_PRINT_MILLIS 1000
-//#define PRINT_LOG
-#define PRINT_PROFILER
-#define LOG_PRINT_MILLIS 0
+#define PRINT_LOG
+//#define PRINT_PROFILER
+#define LOG_PRINT_MILLIS 10
 #define PROFILER_PRINT_MILLIS 1000
 
 #define SCHEDULED_MAINTAINANCE_MILLIS 100
@@ -46,7 +46,7 @@ int main()
 	m_eng_printf("done.\n");
 	
 	
-	init_i2s();
+	init_i2s_dma();
 	
 		
 	m_eng_printf("Initialising SGTL5000... ");

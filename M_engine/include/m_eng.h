@@ -101,7 +101,9 @@ extern "C" {
 #include "m_eng_percussifier.h"
 #include "m_eng_envelope.h"
 
+#ifdef GRAPH_PIPELINE
 #include "m_eng_pipeline.h"
+#endif
 #include "m_eng_pipe_line.h"
 #include "m_eng_pipeline_mod.h"
 #include "m_eng_profile.h"

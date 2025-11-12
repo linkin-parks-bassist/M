@@ -81,6 +81,7 @@ void print_profile_info(m_eng_profile *profile, int depth)
 	RETURN_VOID();
 }
 
+#ifdef GRAPH_PIPELINE
 void print_pipeline_info(m_eng_pipeline *pipeline, int depth)
 {
 	FUNCTION_START();
@@ -118,6 +119,7 @@ void print_pipeline_info(m_eng_pipeline *pipeline, int depth)
 	
 	RETURN_VOID();
 }
+#endif
 
 void print_pipe_line_info(m_eng_pipe_line *pipeline, int depth)
 {
