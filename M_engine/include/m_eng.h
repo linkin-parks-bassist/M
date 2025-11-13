@@ -109,6 +109,7 @@ extern "C" {
 #include "m_eng_percussifier.h"
 #include "m_eng_envelope.h"
 #include "m_eng_flanger.h"
+#include "m_eng_warbler.h"
 
 #ifdef GRAPH_PIPELINE
 #include "m_eng_graph.h"

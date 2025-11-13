@@ -974,6 +974,116 @@ int init_percussifier(m_transformer *trans)
 }
 
 
+int init_warbler(m_transformer *trans)
+{
+	if (!trans)
+		return ERR_NULL_PTR;
+
+	trans->type = TRANSFORMER_WARBLER;
+	trans->view_page = NULL;
+
+	m_parameter *param;
+
+	param = transformer_add_parameter(trans);
+
+	if (!param)
+		return ERR_ALLOC_FAIL;
+
+	param->id.parameter_id = 0;
+
+	param->value   = 440.0;
+	param->max   = 1500.0;
+	param->min   = 50.0;
+	param->name  = "Center";
+	param->units = unit_string_hz;
+	param->scale = PARAMETER_SCALE_LOGARITHMIC;
+	param->group = -1;
+	param->widget_type = PARAM_WIDGET_VIRTUAL_POT;
+
+	param = transformer_add_parameter(trans);
+
+	if (!param)
+		return ERR_ALLOC_FAIL;
+
+	param->id.parameter_id = 1;
+
+	param->value   = 0.25;
+	param->max   = 1.0;
+	param->min   = 0.1;
+	param->name  = "Width";
+	param->units = unit_string_;
+	param->scale = PARAMETER_SCALE_LINEAR;
+	param->group = -1;
+	param->widget_type = PARAM_WIDGET_VIRTUAL_POT;
+
+	param = transformer_add_parameter(trans);
+
+	if (!param)
+		return ERR_ALLOC_FAIL;
+
+	param->id.parameter_id = 2;
+
+	param->value   = 100;
+	param->max   = 0.5;
+	param->min   = 200.0;
+	param->name  = "Reactivity";
+	param->units = unit_string_ms;
+	param->scale = PARAMETER_SCALE_LINEAR;
+	param->group = -1;
+	param->widget_type = PARAM_WIDGET_VIRTUAL_POT;
+
+	param = transformer_add_parameter(trans);
+
+	if (!param)
+		return ERR_ALLOC_FAIL;
+
+	param->id.parameter_id = 3;
+
+	param->value   = 2.0;
+	param->max   = 10.0;
+	param->min   = 0.1;
+	param->name  = "Sensitivity";
+	param->units = unit_string_;
+	param->scale = PARAMETER_SCALE_LINEAR;
+	param->group = -1;
+	param->widget_type = PARAM_WIDGET_VIRTUAL_POT;
+
+	param = transformer_add_parameter(trans);
+
+	if (!param)
+		return ERR_ALLOC_FAIL;
+
+	param->id.parameter_id = 4;
+
+	param->value   = 0.25;
+	param->max   = 1.0;
+	param->min   = 0.0;
+	param->name  = "Min Rate";
+	param->units = unit_string_;
+	param->scale = PARAMETER_SCALE_LINEAR;
+	param->group = -1;
+	param->widget_type = PARAM_WIDGET_VIRTUAL_POT;
+
+	param = transformer_add_parameter(trans);
+
+	if (!param)
+		return ERR_ALLOC_FAIL;
+
+	param->id.parameter_id = 5;
+
+	param->value   = 0.5;
+	param->max   = 3.0;
+	param->min   = 1.0;
+	param->name  = "Max Rate";
+	param->units = unit_string_;
+	param->scale = PARAMETER_SCALE_LINEAR;
+	param->group = -1;
+	param->widget_type = PARAM_WIDGET_VIRTUAL_POT;
+
+	return NO_ERROR;
+}
+
+
 int init_transformer_of_type(m_transformer *trans, uint16_t type)
 {
 	if (!trans)
@@ -998,6 +1108,7 @@ int init_transformer_of_type(m_transformer *trans, uint16_t type)
 		case TRANSFORMER_LOW_PASS_FILTER:    return init_low_pass_filter(trans);
 		case TRANSFORMER_NOISE_SUPPRESSOR:   return init_noise_suppressor(trans);
 		case TRANSFORMER_PERCUSSIFIER:       return init_percussifier(trans);
+		case TRANSFORMER_WARBLER:            return init_warbler(trans);
 		default: return ERR_BAD_ARGS;
 	}
 

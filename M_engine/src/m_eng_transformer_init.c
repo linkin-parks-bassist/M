@@ -805,6 +805,82 @@ int init_percussifier(m_transformer *trans)
 	RETURN_ERR_CODE(ret_val);
 }
 
+int init_warbler(m_transformer *trans)
+{
+	if (!trans)
+	{
+		RETURN_ERR_CODE(ERR_NULL_PTR);
+	}
+
+	int ret_val = transformer_init_controls(trans);
+	if (ret_val != NO_ERROR)
+	{
+		RETURN_ERR_CODE(ret_val);
+	}
+
+	trans->type = TRANSFORMER_WARBLER;
+
+	trans->compute_transformer    = calc_warbler;
+	trans->compute_transformer_nl = NULL;
+	trans->transition_policy = TRANSFORMER_TRANSITION_MONOBLOCK_LINEAR;
+
+	ret_val = transformer_init_parameter_array(trans, 6);
+	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
+	ret_val = transformer_init_setting_array(trans, 0);
+	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
+	m_eng_warbler_str *str = (m_eng_warbler_str*)malloc(sizeof(m_eng_warbler_str));
+	trans->data_struct = (void*)str;
+
+	if (!str)
+	{
+		RETURN_ERR_CODE(ERR_ALLOC_FAIL);
+	}
+
+	trans->reconfigure = reconfigure_warbler;
+	trans->free_struct = NULL;
+
+	init_parameter(&str->center, 440.0, 50.0, 1500.0, 0.0725, PARAMETER_SCALE_LOGARITHMIC);
+	if ((ret_val = transformer_add_parameter(trans, &str->center)) != NO_ERROR)
+	{
+		RETURN_ERR_CODE(ret_val);
+	}
+
+	init_parameter(&str->width, 0.25, 0.1, 1.0, 0.00045, PARAMETER_SCALE_LINEAR);
+	if ((ret_val = transformer_add_parameter(trans, &str->width)) != NO_ERROR)
+	{
+		RETURN_ERR_CODE(ret_val);
+	}
+
+	init_parameter(&str->reactivity, 100, 200.0, 0.5, 0.09975, PARAMETER_SCALE_LINEAR);
+	if ((ret_val = transformer_add_parameter(trans, &str->reactivity)) != NO_ERROR)
+	{
+		RETURN_ERR_CODE(ret_val);
+	}
+
+	init_parameter(&str->sensitivity, 2.0, 0.1, 10.0, 0.00495, PARAMETER_SCALE_LINEAR);
+	if ((ret_val = transformer_add_parameter(trans, &str->sensitivity)) != NO_ERROR)
+	{
+		RETURN_ERR_CODE(ret_val);
+	}
+
+	init_parameter(&str->min_rate, 0.25, 0.0, 1.0, 0.0005, PARAMETER_SCALE_LINEAR);
+	if ((ret_val = transformer_add_parameter(trans, &str->min_rate)) != NO_ERROR)
+	{
+		RETURN_ERR_CODE(ret_val);
+	}
+
+	init_parameter(&str->max_rate, 0.5, 1.0, 3.0, 0.001, PARAMETER_SCALE_LINEAR);
+	if ((ret_val = transformer_add_parameter(trans, &str->max_rate)) != NO_ERROR)
+	{
+		RETURN_ERR_CODE(ret_val);
+	}
+
+	trans->clone_struct = NULL;
+	trans->struct_size = sizeof(m_eng_warbler_str);
+	ret_val = init_warbler_str(str);
+	RETURN_ERR_CODE(ret_val);
+}
+
 int init_transformer(m_transformer *trans, uint16_t type)
 {
 	if (!trans)
@@ -827,6 +903,7 @@ int init_transformer(m_transformer *trans, uint16_t type)
 		case TRANSFORMER_LOW_PASS_FILTER:    return init_low_pass_filter(trans);
 		case TRANSFORMER_NOISE_SUPPRESSOR:   return init_noise_suppressor(trans);
 		case TRANSFORMER_PERCUSSIFIER:       return init_percussifier(trans);
+		case TRANSFORMER_WARBLER:            return init_warbler(trans);
 		default: RETURN_ERR_CODE(ERR_BAD_ARGS);
 	}
 
