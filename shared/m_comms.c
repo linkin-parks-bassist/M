@@ -75,6 +75,15 @@ int et_message_data_length(et_msg msg)
 		case ET_MESSAGE_SET_PARAM_VALUE: 
 			return 3 * sizeof(uint16_t) + sizeof(float);
 
+		case ET_MESSAGE_GET_N_SETTINGS: 
+			return 2 * sizeof(uint16_t);
+
+		case ET_MESSAGE_GET_SETTING_VALUE: 
+			return 3 * sizeof(uint16_t);
+			
+		case ET_MESSAGE_SET_SETTING_VALUE: 
+			return 3 * sizeof(uint16_t) + sizeof(int16_t);
+
 		case ET_MESSAGE_STRING_CONTINUE:
 			return 0;
 			
@@ -311,12 +320,12 @@ const char *et_msg_code_to_string(uint16_t code)
 			return "ET_MESSAGE_GET_PARAM_VALUE";
 		case ET_MESSAGE_SET_PARAM_VALUE:
 			return "ET_MESSAGE_SET_PARAM_VALUE";
-		case ET_MESSAGE_GET_N_OPTIONS:
-			return "ET_MESSAGE_GET_N_OPTIONS";
-		case ET_MESSAGE_GET_OPTION_VALUE:
-			return "ET_MESSAGE_GET_OPTION_VALUE";
-		case ET_MESSAGE_SET_OPTION_VALUE:
-			return "ET_MESSAGE_SET_OPTION_VALUE";
+		case ET_MESSAGE_GET_N_SETTINGS:
+			return "ET_MESSAGE_GET_N_SETTINGS";
+		case ET_MESSAGE_GET_SETTING_VALUE:
+			return "ET_MESSAGE_GET_SETTING_VALUE";
+		case ET_MESSAGE_SET_SETTING_VALUE:
+			return "ET_MESSAGE_SET_SETTING_VALUE";
 		case ET_MESSAGE_STRING_CONTINUE:
 			return "ET_MESSAGE_STRING_CONTINUE";
 		case ET_MESSAGE_STRING_CONTINUING:
@@ -367,10 +376,10 @@ const char *te_msg_code_to_string(uint16_t code)
 			return "TE_MESSAGE_N_PARAMETERS";
 		case TE_MESSAGE_PARAM_VALUE:
 			return "TE_MESSAGE_PARAM_VALUE";
-		case TE_MESSAGE_N_OPTIONS:
-			return "TE_MESSAGE_N_OPTIONS";
-		case TE_MESSAGE_OPTION_VALUE:
-			return "TE_MESSAGE_OPTION_VALUE";
+		case TE_MESSAGE_N_SETTINGS:
+			return "TE_MESSAGE_N_SETTINGS";
+		case TE_MESSAGE_SETTING_VALUE:
+			return "TE_MESSAGE_SETTING_VALUE";
 		case TE_MESSAGE_STRING_CONTINUING:
 			return "TE_MESSAGE_STRING_CONTINUING";
 		case TE_MESSAGE_START_OVER:

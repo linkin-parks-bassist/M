@@ -16,7 +16,7 @@ int init_m_eng_context(m_eng_context *cxt)
 	cxt->profile_array_size = PROFILE_ARRAY_INITIAL_SIZE;
 	
 	do {
-		cxt->profiles = (m_eng_profile*)malloc(sizeof(m_eng_profile) * cxt->profile_array_size);
+		cxt->profiles = (m_eng_profile*)m_alloc(sizeof(m_eng_profile) * cxt->profile_array_size);
 		if (!cxt->profiles)
 			cxt->profile_array_size /= 2;
 	} while (!cxt->profiles && cxt->profile_array_size);
@@ -87,7 +87,7 @@ int m_eng_context_new_profile(m_eng_context *cxt)
 		
 		do
 		{
-			new_ptr = (m_eng_profile*)malloc(sizeof(m_eng_profile) * (cxt->profile_array_size + try_size));
+			new_ptr = (m_eng_profile*)m_alloc(sizeof(m_eng_profile) * (cxt->profile_array_size + try_size));
 			if (!new_ptr)
 				try_size /= 2;
 		} while (!new_ptr && try_size);
@@ -98,7 +98,7 @@ int m_eng_context_new_profile(m_eng_context *cxt)
 		}
 		
 		memcpy(new_ptr, cxt->profiles, sizeof(m_eng_profile) * (cxt->profile_array_size));
-		free(cxt->profiles);
+		m_free(cxt->profiles);
 		cxt->profiles = new_ptr;
 		cxt->profile_array_size += try_size;
 		

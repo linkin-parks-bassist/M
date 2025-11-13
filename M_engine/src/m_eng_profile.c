@@ -55,14 +55,14 @@ int init_profile(m_eng_profile *profile)
 	
 	profile->back_pipeline = NULL;
 	
-	profile->front_pipeline = (m_pipeline*)malloc(sizeof(m_pipeline));
+	profile->front_pipeline = (m_pipeline*)m_alloc(sizeof(m_pipeline));
 	
 	if (!profile->front_pipeline)
 	{
 		RETURN_ERR_CODE(ERR_ALLOC_FAIL);
 	}
 	
-	profile->back_pipeline = (m_pipeline*)malloc(sizeof(m_pipeline));
+	profile->back_pipeline = (m_pipeline*)m_alloc(sizeof(m_pipeline));
 	
 	if (!profile->back_pipeline)
 	{
@@ -268,7 +268,7 @@ int profile_update(m_eng_profile *profile)
 		{
 			apply_pipeline_mod(profile->back_pipeline, profile->jobs->data);
 			next = profile->jobs->next;
-			free(profile->jobs);
+			m_free(profile->jobs);
 			profile->jobs = next;
 		}
 		
@@ -276,7 +276,7 @@ int profile_update(m_eng_profile *profile)
 		{
 			apply_pipeline_mod(profile->back_pipeline, profile->ujobs->data);
 			next = profile->ujobs->next;
-			free(profile->ujobs);
+			m_free(profile->ujobs);
 			profile->ujobs = next;
 		}
 		

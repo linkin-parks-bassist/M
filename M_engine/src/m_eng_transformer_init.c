@@ -26,7 +26,7 @@ int init_3_band_eq(m_transformer *trans)
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
 	ret_val = transformer_init_setting_array(trans, 0);
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
-	m_eng_3_band_eq_str *str = (m_eng_3_band_eq_str*)malloc(sizeof(m_eng_3_band_eq_str));
+	m_eng_3_band_eq_str *str = (m_eng_3_band_eq_str*)m_alloc(sizeof(m_eng_3_band_eq_str));
 	trans->data_struct = (void*)str;
 
 	if (!str)
@@ -84,7 +84,7 @@ int init_amplifier(m_transformer *trans)
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
 	ret_val = transformer_init_setting_array(trans, 1);
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
-	m_eng_amplifier_str *str = (m_eng_amplifier_str*)malloc(sizeof(m_eng_amplifier_str));
+	m_eng_amplifier_str *str = (m_eng_amplifier_str*)m_alloc(sizeof(m_eng_amplifier_str));
 	trans->data_struct = (void*)str;
 
 	if (!str)
@@ -136,7 +136,7 @@ int init_band_pass_filter(m_transformer *trans)
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
 	ret_val = transformer_init_setting_array(trans, 0);
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
-	m_eng_band_pass_filter_str *str = (m_eng_band_pass_filter_str*)malloc(sizeof(m_eng_band_pass_filter_str));
+	m_eng_band_pass_filter_str *str = (m_eng_band_pass_filter_str*)m_alloc(sizeof(m_eng_band_pass_filter_str));
 	trans->data_struct = (void*)str;
 
 	if (!str)
@@ -188,7 +188,7 @@ int init_compressor(m_transformer *trans)
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
 	ret_val = transformer_init_setting_array(trans, 0);
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
-	m_eng_compressor_str *str = (m_eng_compressor_str*)malloc(sizeof(m_eng_compressor_str));
+	m_eng_compressor_str *str = (m_eng_compressor_str*)m_alloc(sizeof(m_eng_compressor_str));
 	trans->data_struct = (void*)str;
 
 	if (!str)
@@ -252,7 +252,7 @@ int init_dirty_octave(m_transformer *trans)
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
 	ret_val = transformer_init_setting_array(trans, 0);
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
-	m_eng_dirty_octave_str *str = (m_eng_dirty_octave_str*)malloc(sizeof(m_eng_dirty_octave_str));
+	m_eng_dirty_octave_str *str = (m_eng_dirty_octave_str*)m_alloc(sizeof(m_eng_dirty_octave_str));
 	trans->data_struct = (void*)str;
 
 	if (!str)
@@ -298,7 +298,7 @@ int init_distortion(m_transformer *trans)
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
 	ret_val = transformer_init_setting_array(trans, 0);
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
-	m_eng_distortion_str *str = (m_eng_distortion_str*)malloc(sizeof(m_eng_distortion_str));
+	m_eng_distortion_str *str = (m_eng_distortion_str*)m_alloc(sizeof(m_eng_distortion_str));
 	trans->data_struct = (void*)str;
 
 	if (!str)
@@ -362,7 +362,7 @@ int init_envelope(m_transformer *trans)
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
 	ret_val = transformer_init_setting_array(trans, 0);
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
-	m_eng_envelope_str *str = (m_eng_envelope_str*)malloc(sizeof(m_eng_envelope_str));
+	m_eng_envelope_str *str = (m_eng_envelope_str*)m_alloc(sizeof(m_eng_envelope_str));
 	trans->data_struct = (void*)str;
 
 	if (!str)
@@ -438,7 +438,7 @@ int init_flanger(m_transformer *trans)
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
 	ret_val = transformer_init_setting_array(trans, 1);
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
-	m_eng_flanger_str *str = (m_eng_flanger_str*)malloc(sizeof(m_eng_flanger_str));
+	m_eng_flanger_str *str = (m_eng_flanger_str*)m_alloc(sizeof(m_eng_flanger_str));
 	trans->data_struct = (void*)str;
 
 	if (!str)
@@ -508,7 +508,7 @@ int init_high_pass_filter(m_transformer *trans)
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
 	ret_val = transformer_init_setting_array(trans, 0);
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
-	m_eng_high_pass_filter_str *str = (m_eng_high_pass_filter_str*)malloc(sizeof(m_eng_high_pass_filter_str));
+	m_eng_high_pass_filter_str *str = (m_eng_high_pass_filter_str*)m_alloc(sizeof(m_eng_high_pass_filter_str));
 	trans->data_struct = (void*)str;
 
 	if (!str)
@@ -554,7 +554,7 @@ int init_low_end_compressor(m_transformer *trans)
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
 	ret_val = transformer_init_setting_array(trans, 0);
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
-	m_eng_low_end_compressor_str *str = (m_eng_low_end_compressor_str*)malloc(sizeof(m_eng_low_end_compressor_str));
+	m_eng_low_end_compressor_str *str = (m_eng_low_end_compressor_str*)m_alloc(sizeof(m_eng_low_end_compressor_str));
 	trans->data_struct = (void*)str;
 
 	if (!str)
@@ -642,7 +642,7 @@ int init_low_pass_filter(m_transformer *trans)
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
 	ret_val = transformer_init_setting_array(trans, 0);
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
-	m_eng_low_pass_filter_str *str = (m_eng_low_pass_filter_str*)malloc(sizeof(m_eng_low_pass_filter_str));
+	m_eng_low_pass_filter_str *str = (m_eng_low_pass_filter_str*)m_alloc(sizeof(m_eng_low_pass_filter_str));
 	trans->data_struct = (void*)str;
 
 	if (!str)
@@ -688,7 +688,7 @@ int init_noise_suppressor(m_transformer *trans)
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
 	ret_val = transformer_init_setting_array(trans, 0);
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
-	m_eng_noise_suppressor_str *str = (m_eng_noise_suppressor_str*)malloc(sizeof(m_eng_noise_suppressor_str));
+	m_eng_noise_suppressor_str *str = (m_eng_noise_suppressor_str*)m_alloc(sizeof(m_eng_noise_suppressor_str));
 	trans->data_struct = (void*)str;
 
 	if (!str)
@@ -746,7 +746,7 @@ int init_percussifier(m_transformer *trans)
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
 	ret_val = transformer_init_setting_array(trans, 0);
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
-	m_eng_percussifier_str *str = (m_eng_percussifier_str*)malloc(sizeof(m_eng_percussifier_str));
+	m_eng_percussifier_str *str = (m_eng_percussifier_str*)m_alloc(sizeof(m_eng_percussifier_str));
 	trans->data_struct = (void*)str;
 
 	if (!str)
@@ -828,7 +828,7 @@ int init_warbler(m_transformer *trans)
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
 	ret_val = transformer_init_setting_array(trans, 0);
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
-	m_eng_warbler_str *str = (m_eng_warbler_str*)malloc(sizeof(m_eng_warbler_str));
+	m_eng_warbler_str *str = (m_eng_warbler_str*)m_alloc(sizeof(m_eng_warbler_str));
 	trans->data_struct = (void*)str;
 
 	if (!str)

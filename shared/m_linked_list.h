@@ -9,27 +9,27 @@
 #define LL_MALLOC malloc
 #endif
 
-#define DECLARE_LINKED_LIST(X) struct X##_linked_list;																									\
-typedef struct X##_linked_list {																														\
+#define DECLARE_LINKED_LIST(X) struct X##_ll;																									\
+typedef struct X##_ll {																														\
 	X data;																																				\
-	struct X##_linked_list *next;																														\
-} X##_linked_list;																																		\
+	struct X##_ll *next;																														\
+} X##_ll;																																		\
 																																						\
-X##_linked_list *X##_linked_list_new(X x);																												\
-void free_##X##_linked_list(X##_linked_list *list);																										\
-X##_linked_list *X##_linked_list_tail(X##_linked_list *list);																							\
-X##_linked_list *X##_linked_list_append(X##_linked_list *list, X x);																					\
-X##_linked_list *X##_linked_list_append_return_tail(X##_linked_list **list, X x);																		\
-X##_linked_list *X##_linked_list_remove_next(X##_linked_list *list);																					\
-void destructor_free_##X##_linked_list(X##_linked_list *list, void (*destructor)(X x));																	\
-void X##_linked_list_map(X##_linked_list *list, X (*fmap)(X x));																						\
-X##_linked_list *X##_linked_list_cmp_search(X##_linked_list *list, int (*cmp_function)(X, X), X x);														\
-X##_linked_list *X##_linked_list_destructor_free_and_remove_matching(X##_linked_list *list, int (*cmp_function)(X, X), X x, void (*destructor)(X));
+X##_ll *X##_ll_new(X x);																												\
+void free_##X##_ll(X##_ll *list);																										\
+X##_ll *X##_ll_tail(X##_ll *list);																							\
+X##_ll *X##_ll_append(X##_ll *list, X x);																					\
+X##_ll *X##_ll_append_return_tail(X##_ll **list, X x);																		\
+X##_ll *X##_ll_remove_next(X##_ll *list);																					\
+void destructor_free_##X##_ll(X##_ll *list, void (*destructor)(X x));																	\
+void X##_ll_map(X##_ll *list, X (*fmap)(X x));																						\
+X##_ll *X##_ll_cmp_search(X##_ll *list, int (*cmp_function)(X, X), X x);														\
+X##_ll *X##_ll_destructor_free_and_remove_matching(X##_ll *list, int (*cmp_function)(X, X), X x, void (*destructor)(X));
 
 #define IMPLEMENT_LINKED_LIST(X)																														\
-X##_linked_list *X##_linked_list_new(X x)																												\
+X##_ll *X##_ll_new(X x)																												\
 {																																						\
-	X##_linked_list *result = (X##_linked_list*)LL_MALLOC(sizeof(X##_linked_list));																		\
+	X##_ll *result = (X##_ll*)LL_MALLOC(sizeof(X##_ll));																		\
 																																						\
 	if (result == NULL)																																	\
 		return NULL;																																	\
@@ -40,12 +40,12 @@ X##_linked_list *X##_linked_list_new(X x)																												\
 	return result;																																		\
 }																																						\
 																																						\
-X##_linked_list *X##_linked_list_tail(X##_linked_list *list)																							\
+X##_ll *X##_ll_tail(X##_ll *list)																							\
 {																																						\
 	if (list == NULL)																																	\
 		return NULL;																																	\
 																																						\
-	X##_linked_list *current = list;																													\
+	X##_ll *current = list;																													\
 																																						\
 	while (current->next != NULL)																														\
 		current = current->next;																														\
@@ -53,12 +53,12 @@ X##_linked_list *X##_linked_list_tail(X##_linked_list *list)																				
 	return current;																																		\
 }																																						\
 																																						\
-void free_##X##_linked_list(X##_linked_list *list)																										\
+void free_##X##_ll(X##_ll *list)																										\
 {																																						\
 	if (list == NULL)																																	\
 		return;																																			\
-	X##_linked_list *current = list;																													\
-	X##_linked_list *next = NULL;																														\
+	X##_ll *current = list;																													\
+	X##_ll *next = NULL;																														\
 	while (current != NULL) {																															\
 		next = current->next;																															\
 		LL_FREE(current);																																	\
@@ -66,13 +66,13 @@ void free_##X##_linked_list(X##_linked_list *list)																										\
 	}																																					\
 }																																						\
 																																						\
-void destructor_free_##X##_linked_list(X##_linked_list *list, void (*destructor)(X x))																	\
+void destructor_free_##X##_ll(X##_ll *list, void (*destructor)(X x))																	\
 {																																						\
 	if (list == NULL)																																	\
 		return;																																			\
 																																						\
-	X##_linked_list *current = list;																													\
-	X##_linked_list *next = NULL;																														\
+	X##_ll *current = list;																													\
+	X##_ll *next = NULL;																														\
 																																						\
 	while (current != NULL) {																															\
 		next = current->next;																															\
@@ -82,12 +82,12 @@ void destructor_free_##X##_linked_list(X##_linked_list *list, void (*destructor)
 	}																																					\
 }																																						\
 																																						\
-X##_linked_list *X##_linked_list_append(X##_linked_list *list, X x)																						\
+X##_ll *X##_ll_append(X##_ll *list, X x)																						\
 {																																						\
-	X##_linked_list *next = X##_linked_list_new(x);																										\
+	X##_ll *next = X##_ll_new(x);																										\
 	if (list == NULL) return next;																														\
 																																						\
-	X##_linked_list *current = list;																													\
+	X##_ll *current = list;																													\
 																																						\
 	while (current->next != NULL)																														\
 		current = current->next;																														\
@@ -97,18 +97,18 @@ X##_linked_list *X##_linked_list_append(X##_linked_list *list, X x)													
 	return list;																																		\
 }																																						\
 																																						\
-X##_linked_list *X##_linked_list_append_return_tail(X##_linked_list **list, X x)																		\
+X##_ll *X##_ll_append_return_tail(X##_ll **list, X x)																		\
 {																																						\
 	if (list == NULL)																																	\
 		return NULL;																																	\
 																																						\
-	X##_linked_list *next = X##_linked_list_new(x);																										\
+	X##_ll *next = X##_ll_new(x);																										\
 	if (*list == NULL) {																																\
 		*list = next;																																	\
 		return next;																																	\
 	}																																					\
 																																						\
-	X##_linked_list *current = *list;																													\
+	X##_ll *current = *list;																													\
 																																						\
 	while (current->next != NULL)																														\
 		current = current->next;																														\
@@ -118,12 +118,12 @@ X##_linked_list *X##_linked_list_append_return_tail(X##_linked_list **list, X x)
 	return next;																																		\
 }																																						\
 																																						\
-X##_linked_list *X##_linked_list_remove_next(X##_linked_list *list)																						\
+X##_ll *X##_ll_remove_next(X##_ll *list)																						\
 {																																						\
 	if (list == NULL)																																	\
 		return NULL;																																	\
 																																						\
-	X##_linked_list *next = list->next;																													\
+	X##_ll *next = list->next;																													\
 																																						\
 	if (next == NULL)																																	\
 		return NULL;																																	\
@@ -133,21 +133,21 @@ X##_linked_list *X##_linked_list_remove_next(X##_linked_list *list)													
 	return next;																																		\
 }																																						\
 																																						\
-void X##_linked_list_map(X##_linked_list *list, X (*fmap)(X x))																							\
+void X##_ll_map(X##_ll *list, X (*fmap)(X x))																							\
 {																																						\
 	if (list == NULL)																																	\
 		return;																																			\
 																																						\
 	list->data = fmap(list->data);																														\
-	X##_linked_list_map(list->next, fmap);																												\
+	X##_ll_map(list->next, fmap);																												\
 }																																						\
 																																						\
-X##_linked_list *X##_linked_list_cmp_search(X##_linked_list *list, int (*cmp_function)(X, X), X x)														\
+X##_ll *X##_ll_cmp_search(X##_ll *list, int (*cmp_function)(X, X), X x)														\
 {																																						\
 	if (list == NULL)																																	\
 		return NULL;																																	\
 																																						\
-	X##_linked_list *current = list;																													\
+	X##_ll *current = list;																													\
 																																						\
 	while (current) {																																	\
 		if (cmp_function(current->data, x) == 0)																										\
@@ -159,14 +159,14 @@ X##_linked_list *X##_linked_list_cmp_search(X##_linked_list *list, int (*cmp_fun
 	return NULL;																																		\
 }																																						\
 																																						\
-X##_linked_list *X##_linked_list_destructor_free_and_remove_matching(X##_linked_list *list, int (*cmp_function)(X, X), X x, void (*destructor)(X))		\
+X##_ll *X##_ll_destructor_free_and_remove_matching(X##_ll *list, int (*cmp_function)(X, X), X x, void (*destructor)(X))		\
 {																																						\
 	if (list == NULL)																																	\
 		return NULL;																																	\
 																																						\
-	X##_linked_list *current = list;																													\
-	X##_linked_list *prev = NULL;																														\
-	X##_linked_list *next = NULL;																														\
+	X##_ll *current = list;																													\
+	X##_ll *prev = NULL;																														\
+	X##_ll *next = NULL;																														\
 																																						\
 	while (current)	{																																	\
 		next = current->next;																															\
@@ -186,28 +186,28 @@ X##_linked_list *X##_linked_list_destructor_free_and_remove_matching(X##_linked_
 	return list;																																		\
 }
 
-#define DECLARE_LINKED_PTR_LIST(X) struct X##_ptr_linked_list;																							\
-typedef struct X##_ptr_linked_list {																													\
+#define DECLARE_LINKED_PTR_LIST(X) struct X##_pll;																							\
+typedef struct X##_pll {																													\
 	X *data;																																			\
-	struct X##_ptr_linked_list *next;																													\
-} X##_ptr_linked_list;																																	\
+	struct X##_pll *next;																													\
+} X##_pll;																																	\
 																																						\
-X##_ptr_linked_list *X##_ptr_linked_list_new(X *value);																									\
-void free_##X##_ptr_linked_list(X##_ptr_linked_list *list);																								\
-X##_ptr_linked_list *X##_ptr_linked_list_tail(X##_ptr_linked_list *list);																				\
-X##_ptr_linked_list *X##_ptr_linked_list_append(X##_ptr_linked_list *list, X *value);																	\
-X##_ptr_linked_list *X##_ptr_linked_list_append_return_tail(X##_ptr_linked_list **list, X *x);															\
-X##_ptr_linked_list *X##_ptr_linked_list_remove_next(X##_ptr_linked_list *list);																		\
-void X##_ptr_linked_list_free_all(X##_ptr_linked_list *list);																							\
-void destructor_free_##X##_ptr_linked_list(X##_ptr_linked_list *list, void (*destructor)(X *x));														\
-X##_ptr_linked_list *X##_ptr_linked_list_cmp_search(X##_ptr_linked_list *list, int (*cmp_function)(const X*, const X*), const X *x);					\
-X##_ptr_linked_list *X##_ptr_linked_list_destructor_free_and_remove_matching(X##_ptr_linked_list *list, int (*cmp_function)(X*, X*), X *x, void (*destructor)(X*));
+X##_pll *X##_pll_new(X *value);																									\
+void free_##X##_pll(X##_pll *list);																								\
+X##_pll *X##_pll_tail(X##_pll *list);																				\
+X##_pll *X##_pll_append(X##_pll *list, X *value);																	\
+X##_pll *X##_pll_append_return_tail(X##_pll **list, X *x);															\
+X##_pll *X##_pll_remove_next(X##_pll *list);																		\
+void X##_pll_free_all(X##_pll *list);																							\
+void destructor_free_##X##_pll(X##_pll *list, void (*destructor)(X *x));														\
+X##_pll *X##_pll_cmp_search(X##_pll *list, int (*cmp_function)(const X*, const X*), const X *x);					\
+X##_pll *X##_pll_destructor_free_and_remove_matching(X##_pll *list, int (*cmp_function)(X*, X*), X *x, void (*destructor)(X*));
 
 #define IMPLEMENT_LINKED_PTR_LIST(X)																													\
 																																						\
-X##_ptr_linked_list *X##_ptr_linked_list_new(X *value)																									\
+X##_pll *X##_pll_new(X *value)																									\
 {																																						\
-	X##_ptr_linked_list *result = (X##_ptr_linked_list*)LL_MALLOC(sizeof(X##_ptr_linked_list));															\
+	X##_pll *result = (X##_pll*)LL_MALLOC(sizeof(X##_pll));															\
 																																						\
 	if (result == NULL)																																	\
 		return NULL;																																	\
@@ -218,12 +218,12 @@ X##_ptr_linked_list *X##_ptr_linked_list_new(X *value)																									\
 	return result;																																		\
 }																																						\
 																																						\
-X##_ptr_linked_list *X##_ptr_linked_list_tail(X##_ptr_linked_list *list)																				\
+X##_pll *X##_pll_tail(X##_pll *list)																				\
 {																																						\
 	if (list == NULL)																																	\
 		return NULL;																																	\
 																																						\
-	X##_ptr_linked_list *current = list;																												\
+	X##_pll *current = list;																												\
 																																						\
 	while (current->next != NULL)																														\
 		current = current->next;																														\
@@ -231,12 +231,12 @@ X##_ptr_linked_list *X##_ptr_linked_list_tail(X##_ptr_linked_list *list)								
 	return current;																																		\
 }																																						\
 																																						\
-X##_ptr_linked_list *X##_ptr_linked_list_append(X##_ptr_linked_list *list, X *x)																		\
+X##_pll *X##_pll_append(X##_pll *list, X *x)																		\
 {																																						\
-	X##_ptr_linked_list *next = X##_ptr_linked_list_new(x);																								\
+	X##_pll *next = X##_pll_new(x);																								\
 	if (list == NULL) return next;																														\
 																																						\
-	X##_ptr_linked_list *current = list;																												\
+	X##_pll *current = list;																												\
 																																						\
 	while (current->next != NULL)																														\
 		current = current->next;																														\
@@ -246,18 +246,18 @@ X##_ptr_linked_list *X##_ptr_linked_list_append(X##_ptr_linked_list *list, X *x)
 	return list;																																		\
 }																																						\
 																																						\
-X##_ptr_linked_list *X##_ptr_linked_list_append_return_tail(X##_ptr_linked_list **list, X *x)															\
+X##_pll *X##_pll_append_return_tail(X##_pll **list, X *x)															\
 {																																						\
 	if (list == NULL)																																	\
 		return NULL;																																	\
 																																						\
-	X##_ptr_linked_list *next = X##_ptr_linked_list_new(x);																								\
+	X##_pll *next = X##_pll_new(x);																								\
 	if (*list == NULL) {																																\
 		*list = next;																																	\
 		return next;																																	\
 	}																																					\
 																																						\
-	X##_ptr_linked_list *current = *list;																												\
+	X##_pll *current = *list;																												\
 																																						\
 	while (current->next != NULL)																														\
 		current = current->next;																														\
@@ -268,12 +268,12 @@ X##_ptr_linked_list *X##_ptr_linked_list_append_return_tail(X##_ptr_linked_list 
 }																																						\
 																																						\
 																																						\
-void free_##X##_ptr_linked_list(X##_ptr_linked_list *list)																								\
+void free_##X##_pll(X##_pll *list)																								\
 {																																						\
 	if (list == NULL)																																	\
 		return;																																			\
-	X##_ptr_linked_list *current = list;																												\
-	X##_ptr_linked_list *next = NULL;																													\
+	X##_pll *current = list;																												\
+	X##_pll *next = NULL;																													\
 	while (current != NULL) {																															\
 		next = current->next;																															\
 		LL_FREE(current->data);																															\
@@ -282,13 +282,13 @@ void free_##X##_ptr_linked_list(X##_ptr_linked_list *list)																						
 	}																																					\
 }																																						\
 																																						\
-void destructor_free_##X##_ptr_linked_list(X##_ptr_linked_list *list, void (*destructor)(X *x))															\
+void destructor_free_##X##_pll(X##_pll *list, void (*destructor)(X *x))															\
 {																																						\
 	if (list == NULL)																																	\
 		return;																																			\
 																																						\
-	X##_ptr_linked_list *current = list;																												\
-	X##_ptr_linked_list *next = NULL;																													\
+	X##_pll *current = list;																												\
+	X##_pll *next = NULL;																													\
 	while (current != NULL) {																															\
 		next = current->next;																															\
 		destructor(current->data);																														\
@@ -297,12 +297,12 @@ void destructor_free_##X##_ptr_linked_list(X##_ptr_linked_list *list, void (*des
 	}																																					\
 }																																						\
 																																						\
-X##_ptr_linked_list *X##_ptr_linked_list_remove_next(X##_ptr_linked_list *list)																			\
+X##_pll *X##_pll_remove_next(X##_pll *list)																			\
 {																																						\
 	if (list == NULL)																																	\
 		return NULL;																																	\
 																																						\
-	X##_ptr_linked_list *next = list->next;																												\
+	X##_pll *next = list->next;																												\
 																																						\
 	if (next == NULL)																																	\
 		return NULL;																																	\
@@ -312,21 +312,21 @@ X##_ptr_linked_list *X##_ptr_linked_list_remove_next(X##_ptr_linked_list *list)	
 	return next;																																		\
 }																																						\
 																																						\
-void X##_ptr_linked_list_map(X##_ptr_linked_list *list, X *(*fmap)(X *x))																				\
+void X##_pll_map(X##_pll *list, X *(*fmap)(X *x))																				\
 {																																						\
 	if (list == NULL)																																	\
 		return;																																			\
 																																						\
 	list->data = fmap(list->data);																														\
-	X##_ptr_linked_list_map(list->next, fmap);																											\
+	X##_pll_map(list->next, fmap);																											\
 }																																						\
 																																						\
-X##_ptr_linked_list *X##_ptr_linked_list_cmp_search(X##_ptr_linked_list *list, int (*cmp_function)(const X*, const X*), const X *x)						\
+X##_pll *X##_pll_cmp_search(X##_pll *list, int (*cmp_function)(const X*, const X*), const X *x)						\
 {																																						\
 	if (list == NULL)																																	\
 		return NULL;																																	\
 																																						\
-	X##_ptr_linked_list *current = list;																												\
+	X##_pll *current = list;																												\
 																																						\
 	while (current) {																																	\
 		if (cmp_function(current->data, x) == 0)																										\
@@ -339,14 +339,14 @@ X##_ptr_linked_list *X##_ptr_linked_list_cmp_search(X##_ptr_linked_list *list, i
 }																																						\
 																																						\
 																																						\
-X##_ptr_linked_list *X##_ptr_linked_list_destructor_free_and_remove_matching(X##_ptr_linked_list *list, int (*cmp_function)(X*, X*), X *x, void (*destructor)(X*))\
+X##_pll *X##_pll_destructor_free_and_remove_matching(X##_pll *list, int (*cmp_function)(X*, X*), X *x, void (*destructor)(X*))\
 {																																						\
 	if (list == NULL)																																	\
 		return NULL;																																	\
 																																						\
-	X##_ptr_linked_list *current = list;																												\
-	X##_ptr_linked_list *next = NULL;																													\
-	X##_ptr_linked_list *prev = NULL;																													\
+	X##_pll *current = list;																												\
+	X##_pll *next = NULL;																													\
+	X##_pll *prev = NULL;																													\
 																																						\
 	while (current)	{																																	\
 		next = current->next;																															\

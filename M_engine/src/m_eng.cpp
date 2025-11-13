@@ -12,6 +12,9 @@ static int LED = 1;
 #define LOG_PRINT_MILLIS 10
 #define PROFILER_PRINT_MILLIS 1000
 
+#define PRINT_MEM_REPORT
+#define MEM_REPORT_MILLIS 1000
+
 #define SCHEDULED_MAINTAINANCE_MILLIS 100
 
 //#define SGTL5000_CHECK 
@@ -74,6 +77,9 @@ int main()
 		#ifdef PRINT_PROFILER
 		static int last_profiler_print = millis();
 		#endif
+		#ifdef PRINT_MEM_REPORT
+		static int last_mem_report = millis();
+		#endif
 		#ifdef SCHEDULED_MAINTAINANCE
 		static int last_scheduled_maintainance = millis();
 		#endif
@@ -94,6 +100,14 @@ int main()
 			m_eng_print_flush_log();
 			#endif
 			last_log_print = millis();
+		}
+		#endif
+		
+		#ifdef PRINT_MEM_REPORT
+		if (time - last_mem_report >= MEM_REPORT_MILLIS)
+		{
+			print_memory_report();
+			last_mem_report = millis();
 		}
 		#endif
 		

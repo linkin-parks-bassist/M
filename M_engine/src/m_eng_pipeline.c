@@ -12,7 +12,7 @@ int init_pipeline(m_pipeline *pipeline)
 	
 	pipeline->n_transformers = 0;
 	pipeline->transformer_array_length = INITIAL_TRANSFORMER_ARRAY_LENGTH;
-	pipeline->transformers = (m_transformer**)malloc(sizeof(m_transformer*) * pipeline->transformer_array_length);
+	pipeline->transformers = (m_transformer**)m_alloc(sizeof(m_transformer*) * pipeline->transformer_array_length);
 	
 	for (int i = 0; i < pipeline->transformer_array_length; i++)
 		pipeline->transformers[i] = NULL;
@@ -142,7 +142,7 @@ int pipeline_expand_transformer_array(m_pipeline *pipeline)
 	
 	do
 	{
-		new_ptr = (m_transformer**)malloc(sizeof(m_transformer*) * (pipeline->transformer_array_length + try_size));
+		new_ptr = (m_transformer**)m_alloc(sizeof(m_transformer*) * (pipeline->transformer_array_length + try_size));
 		if (!new_ptr)
 			try_size /= 2;
 	} while (!new_ptr && try_size);
@@ -155,7 +155,7 @@ int pipeline_expand_transformer_array(m_pipeline *pipeline)
 	m_eng_disable_software_interrupts();
 	
 	memcpy(new_ptr, pipeline->transformers, sizeof(m_transformer*) * (pipeline->transformer_array_length));
-	free(pipeline->transformers);
+	m_free(pipeline->transformers);
 	pipeline->transformers = new_ptr;
 	pipeline->transformer_array_length += try_size;
 	
@@ -190,7 +190,7 @@ int pipeline_expand_transformer_array_to(m_pipeline *pipeline, int n)
 	
 	do
 	{
-		new_ptr = (m_transformer**)malloc(sizeof(m_transformer*) * (pipeline->transformer_array_length + try_size));
+		new_ptr = (m_transformer**)m_alloc(sizeof(m_transformer*) * (pipeline->transformer_array_length + try_size));
 		if (!new_ptr)
 			try_size /= 2;
 	} while (!new_ptr && try_size >= binary_max(n - pipeline->transformer_array_length, 0));
@@ -203,7 +203,7 @@ int pipeline_expand_transformer_array_to(m_pipeline *pipeline, int n)
 	m_eng_disable_software_interrupts();
 	
 	memcpy(new_ptr, pipeline->transformers, sizeof(m_transformer*) * (pipeline->transformer_array_length));
-	free(pipeline->transformers);
+	m_free(pipeline->transformers);
 	pipeline->transformers = new_ptr;
 	pipeline->transformer_array_length += try_size;
 	
@@ -404,7 +404,7 @@ int pipeline_append_transformer_type(m_pipeline *pipeline, uint16_t type)
 		RETURN_NEG_ERR_CODE(ERR_NULL_PTR);
 	}
 	
-	m_transformer *trans = (m_transformer*)malloc(sizeof(m_transformer));
+	m_transformer *trans = (m_transformer*)m_alloc(sizeof(m_transformer));
 	
 	if (!trans)
 	{
@@ -415,7 +415,7 @@ int pipeline_append_transformer_type(m_pipeline *pipeline, uint16_t type)
 	
 	if (ret_val != NO_ERROR)
 	{
-		free(trans);
+		m_free(trans);
 		RETURN_NEG_ERR_CODE(ret_val);
 	}
 	
@@ -438,7 +438,7 @@ int pipeline_insert_transformer_type(m_pipeline *pipeline, uint16_t type, uint16
 		RETURN_NEG_ERR_CODE(ERR_NULL_PTR);
 	}
 	
-	m_transformer *trans = (m_transformer*)malloc(sizeof(m_transformer));
+	m_transformer *trans = (m_transformer*)m_alloc(sizeof(m_transformer));
 	
 	if (!trans)
 	{
@@ -449,7 +449,7 @@ int pipeline_insert_transformer_type(m_pipeline *pipeline, uint16_t type, uint16
 	
 	if (ret_val != NO_ERROR)
 	{
-		free(trans);
+		m_free(trans);
 		RETURN_NEG_ERR_CODE(ret_val);
 	}
 	
@@ -744,7 +744,7 @@ int clone_pipeline(m_pipeline **dest_ptr, m_pipeline *src)
 	
 	if (!dest)
 	{
-		dest = (m_pipeline*)malloc(sizeof(m_pipeline));
+		dest = (m_pipeline*)m_alloc(sizeof(m_pipeline));
 		
 		if (!dest)
 		{

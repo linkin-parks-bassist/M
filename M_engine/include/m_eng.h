@@ -72,6 +72,12 @@ extern "C" {
 #include "m_error_codes.h"
 #include "m_status.h"
 #include "m_comms.h"
+
+#include "m_alloc.h"
+
+#define LL_MALLOC m_alloc
+#define LL_FREE   m_free
+
 #include "m_linked_list.h"
 
 #include "m_parameter.h"

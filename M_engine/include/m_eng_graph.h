@@ -33,7 +33,7 @@ typedef struct
 
 typedef struct
 {
-	/* Dimensions, for malloc purposes. Can be changed later, with malloc price */
+	/* Dimensions, for m_alloc purposes. Can be changed later, with m_alloc price */
 	int width, height;
 	int err_flags;
 	

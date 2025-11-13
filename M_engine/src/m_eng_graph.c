@@ -68,7 +68,7 @@ int init_pipeline(m_eng_graph *pipeline, int width, int height)
 	pipeline->output_node.active = 1;
 	
 	//m_printf("Allocating node array...\n");
-	pipeline->nodes = (m_eng_graph_node**)malloc(width * sizeof(m_eng_graph_node*));
+	pipeline->nodes = (m_eng_graph_node**)m_alloc(width * sizeof(m_eng_graph_node*));
 	
 	if (!pipeline->nodes)
 		goto free_and_err_out;
@@ -78,7 +78,7 @@ int init_pipeline(m_eng_graph *pipeline, int width, int height)
 	
 	for (int i = 0; i < width; i++)
 	{
-		pipeline->nodes[i] = (m_eng_graph_node*)malloc(height * sizeof(m_eng_graph_node));
+		pipeline->nodes[i] = (m_eng_graph_node*)m_alloc(height * sizeof(m_eng_graph_node));
 			
 		if (!pipeline->nodes[i])
 			goto free_and_err_out;
@@ -95,7 +95,7 @@ int init_pipeline(m_eng_graph *pipeline, int width, int height)
 		}
 	}
 	
-	pipeline->active_node_array = (m_eng_graph_node**)malloc(height * width * sizeof(m_eng_graph_node*) + 2);
+	pipeline->active_node_array = (m_eng_graph_node**)m_alloc(height * width * sizeof(m_eng_graph_node*) + 2);
 	
 	if (!pipeline->active_node_array)
 		goto free_and_err_out;
@@ -180,10 +180,10 @@ int pipeline_reconfigure(m_eng_graph *pipeline)
 	m_printf("Configuring pipeline\n");
 	
 	/* I will need lots of (possibly big) arrays, but I don't want to blow up the stack.
-	 * VLAs are not allowed, so I will need to malloc everything. If one malloc fails,
+	 * VLAs are not allowed, so I will need to m_alloc everything. If one m_alloc fails,
 	 * I need to free all the previous ones. So, forward declare and NULL everything,
 	 * and write a "panic, free everything non-null, and return an error" section at
-	 * the end of the function (after the usual RETURN_VOID(); goto'd on malloc fail */
+	 * the end of the function (after the usual RETURN_VOID(); goto'd on m_alloc fail */
 	vec2i 	  *current_stage_nodes 			= NULL;
 	uint8_t  **node_fed 					= NULL;
 	int   	  *current_stage_transformers 	= NULL;
@@ -291,7 +291,7 @@ int pipeline_reconfigure(m_eng_graph *pipeline)
 	}
 	
 	// Keep an array of nodes acting as inputs at the current propagation step
-	current_stage_nodes = (vec2i*)malloc(sizeof(vec2i) * pipeline->width * pipeline->height);
+	current_stage_nodes = (vec2i*)m_alloc(sizeof(vec2i) * pipeline->width * pipeline->height);
 	
 	if (!current_stage_nodes)
 		goto pipeline_reconfigure_alloc_fail_panic;
@@ -305,7 +305,7 @@ int pipeline_reconfigure(m_eng_graph *pipeline)
 	 * the current stage
 	 * node has been used as an output twice, that is a node conflict.
 	 * Store as coordinates for convenience */
-	node_fed = (uint8_t**)malloc(pipeline->width * sizeof(uint8_t*));
+	node_fed = (uint8_t**)m_alloc(pipeline->width * sizeof(uint8_t*));
 	
 	if (!node_fed)
 		goto pipeline_reconfigure_alloc_fail_panic;
@@ -315,7 +315,7 @@ int pipeline_reconfigure(m_eng_graph *pipeline)
 	
 	for (int x = 0; x < pipeline->width; x++)
 	{
-		node_fed[x] = (uint8_t*)malloc(pipeline->height * sizeof(uint8_t));
+		node_fed[x] = (uint8_t*)m_alloc(pipeline->height * sizeof(uint8_t));
 		
 		if (!node_fed[x])
 			goto pipeline_reconfigure_alloc_fail_panic;
@@ -326,7 +326,7 @@ int pipeline_reconfigure(m_eng_graph *pipeline)
 	
 	/* Keep an array of transformers taking inputs in the current stage
 	 * Store these as array indices (IDs) for convenience */
-	current_stage_transformers = (int*)malloc(sizeof(int) * pipeline->n_transformers);
+	current_stage_transformers = (int*)m_alloc(sizeof(int) * pipeline->n_transformers);
 	
 	if (!current_stage_transformers)
 		goto pipeline_reconfigure_alloc_fail_panic;
@@ -334,14 +334,14 @@ int pipeline_reconfigure(m_eng_graph *pipeline)
 	/* Keep an array of whether or not each transformer has been
 	 * added to the current stage, to prevent double-adding without
 	 * having to go back and check the array */
-	transformer_in_current_stage = (uint8_t*)malloc(sizeof(uint8_t) * pipeline->n_transformers);
+	transformer_in_current_stage = (uint8_t*)m_alloc(sizeof(uint8_t) * pipeline->n_transformers);
 	
 	if (!transformer_in_current_stage)
 		goto pipeline_reconfigure_alloc_fail_panic;
 	
 	/* Keep track of which transformers have been encountered. If
 	 * one appears in two stages, that is a loop! */
-	transformer_in_prior_stage = (uint8_t*)malloc(sizeof(uint8_t) * pipeline->n_transformers);
+	transformer_in_prior_stage = (uint8_t*)m_alloc(sizeof(uint8_t) * pipeline->n_transformers);
 	
 	if (!transformer_in_prior_stage)
 		goto pipeline_reconfigure_alloc_fail_panic;
@@ -504,24 +504,24 @@ pipeline_reconfigure_alloc_fail_panic:
 pipeline_reconfigure_free_and_return:
 
 	if (current_stage_nodes)
-		free(current_stage_nodes);
+		m_free(current_stage_nodes);
 	
 	if (node_fed)
 	{
 		for (int i = 0; i < pipeline->width; i++)
-			if (node_fed[i]) free(node_fed[i]);
+			if (node_fed[i]) m_free(node_fed[i]);
 		
-		free(node_fed);
+		m_free(node_fed);
 	}
 	
 	if (current_stage_transformers)
-		free(current_stage_transformers);
+		m_free(current_stage_transformers);
 	
 	if (transformer_in_current_stage)
-		free(transformer_in_current_stage);
+		m_free(transformer_in_current_stage);
 	
 	if (transformer_in_prior_stage)
-		free(transformer_in_prior_stage);
+		m_free(transformer_in_prior_stage);
 
 	RETURN_ERR_CODE(ret_val);
 }
@@ -776,7 +776,7 @@ int pipeline_add_transformer_by_type(m_eng_graph *pipeline, uint16_t type)
 		RETURN_NEG_ERR_CODE(ERR_NULL_PTR);
 	}
 	
-	m_transformer *trans = (m_transformer*)malloc(sizeof(m_transformer));
+	m_transformer *trans = (m_transformer*)m_alloc(sizeof(m_transformer));
 	
 	if (!trans)
 	{

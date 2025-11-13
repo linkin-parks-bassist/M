@@ -20,7 +20,7 @@ int transformer_init_parameter_array(m_transformer *trans, int n)
 	
 	trans->n_parameters = 0;
 	trans->parameter_array_size = n;
-	trans->parameters 	= (m_parameter**)malloc(sizeof(m_parameter*) * n);
+	trans->parameters 	= (m_parameter**)m_alloc(sizeof(m_parameter*) * n);
 	
 	if (!trans->parameters)
 	{
@@ -52,7 +52,7 @@ int transformer_init_setting_array(m_transformer *trans, int n)
 	
 	trans->n_settings = 0;
 	trans->setting_array_size = n;
-	trans->settings 	= (m_setting**)malloc(sizeof(m_setting*) * n);
+	trans->settings 	= (m_setting**)m_alloc(sizeof(m_setting*) * n);
 	
 	if (!trans->settings)
 	{
@@ -679,12 +679,12 @@ void free_transformer(m_transformer *trans)
 	if (trans->parameters)
 	{
 		m_printf("Freeing parameter array...\n");
-		free(trans->parameters);
+		m_free(trans->parameters);
 	}
 	if (trans->settings)
 	{
 		m_printf("Freeing setting array...\n");
-		free(trans->settings);
+		m_free(trans->settings);
 	}
 	
 	if (trans->data_struct)
@@ -693,10 +693,10 @@ void free_transformer(m_transformer *trans)
 		if (trans->free_struct)
 			trans->free_struct(trans->data_struct);
 		else
-			free(trans->data_struct);
+			m_free(trans->data_struct);
 	}
 	
-	free(trans);
+	m_free(trans);
 }
 
 int clone_transformer(m_transformer **dest_ptr, m_transformer *src)
@@ -710,7 +710,7 @@ int clone_transformer(m_transformer **dest_ptr, m_transformer *src)
 	
 	if (!*dest_ptr)
 	{
-		*dest_ptr = (m_transformer*)malloc(sizeof(m_transformer));
+		*dest_ptr = (m_transformer*)m_alloc(sizeof(m_transformer));
 		if (!*dest_ptr)
 		{
 			RETURN_ERR_CODE(ERR_ALLOC_FAIL);

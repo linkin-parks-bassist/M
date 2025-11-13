@@ -50,7 +50,7 @@ int reconfigure_flanger(void *data_struct)
 	
 	if (!str->block_memory)
 	{
-		str->block_memory = malloc(sizeof(float*) * blocks_needed);
+		str->block_memory = m_alloc(sizeof(float*) * blocks_needed);
 		
 		for (int i = 0; i < blocks_needed; i++)
 			str->block_memory[i] = NULL;
@@ -69,7 +69,7 @@ int reconfigure_flanger(void *data_struct)
 	}
 	else if (str->num_blocks < blocks_needed)
 	{
-		new_array = malloc(blocks_needed * sizeof(float*));
+		new_array = m_alloc(blocks_needed * sizeof(float*));
 		
 		if (!new_array)
 			goto flanger_alloc_fail;
@@ -92,7 +92,7 @@ int reconfigure_flanger(void *data_struct)
 		for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
 			new_array[0][i] *= 1.0 - sqr(cosf(PI * (float)i / (float)(2 * AUDIO_BLOCK_SAMPLES)));
 		
-		free(str->block_memory);
+		m_free(str->block_memory);
 		str->block_memory = new_array;
 		str->block_index = str->num_blocks - 1;
 		str->num_blocks = blocks_needed;
@@ -110,7 +110,7 @@ flanger_alloc_fail:
 				release_buffer(new_array[i]);
 		}
 		
-		free(new_array);
+		m_free(new_array);
 		str->block_memory = NULL;
 		str->num_blocks = 0;
 	}
@@ -203,4 +203,31 @@ int calc_flanger(void *data_struct, float *dest, float *src, int n_samples)
 	}
 	
 	RETURN_ERR_CODE(NO_ERROR);
+}
+
+int free_flanger_struct(void *data_struct)
+{
+	if (!data_struct)
+		return ERR_NULL_PTR;
+	
+	m_eng_flanger_str *str = (m_eng_flanger_str*)data_struct;
+	
+	if (str->block_memory)
+	{
+		for (int i = 0; i < str->num_blocks; i++)
+		{
+			if (str->block_memory[i])
+			{
+				release_buffer(str->block_memory[i]);
+				str->block_memory[i] = 0;
+			}
+		}
+		
+		m_free(str->block_memory);
+		str->block_memory = NULL;
+	}
+	
+	m_free(data_struct);
+	
+	return NO_ERROR;
 }

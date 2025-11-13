@@ -44,7 +44,7 @@ void init_mem_pools()
 		#else
 		buffer_buffer[i] = NULL;
 		for (int j = 0; j < MEMPOOL_MALLOC_TRIES && !buffer_buffer[i]; j++)
-			buffer_buffer[i] = (float*)malloc(sizeof(float) * AUDIO_BLOCK_SAMPLES);
+			buffer_buffer[i] = (float*)m_alloc(sizeof(float) * AUDIO_BLOCK_SAMPLES);
 		#endif
 	}
 	

@@ -1,5 +1,5 @@
-#ifndef ERROR_CODES_H_
-#define ERROR_CODES_H_
+#ifndef M_ERROR_CODES_H_
+#define M_ERROR_CODES_H_
 
 #define NO_ERROR						0
 #define ERR_NULL_PTR					1
