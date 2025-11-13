@@ -1,6 +1,6 @@
 #include "m_int.h"
 
-static const char *TAG = "m_int_transformer_select.c";
+static const char *TAG = "m_transformer_select.c";
 
 IMPLEMENT_LINKED_PTR_LIST(m_int_trans_selector_button);
 
@@ -9,13 +9,13 @@ void enter_transformer_selector_cb(lv_event_t *e)
 	enter_ui_page(&global_cxt.ui_cxt.transformer_selector);
 }
 
-int init_transformer_selector(m_int_ui_page *page)
+int init_transformer_selector(m_ui_page *page)
 {
 	//printf("init_transformer_selector...\n");
 	if (!page)
 		return ERR_NULL_PTR;
 	
-	m_int_transformer_selector_str *str = m_int_malloc(sizeof(m_int_transformer_selector_str));
+	m_transformer_selector_str *str = m_alloc(sizeof(m_transformer_selector_str));
 	
 	page->data_struct = str;
 	
@@ -29,19 +29,19 @@ int init_transformer_selector(m_int_ui_page *page)
 	m_int_trans_selector_button *button;
     for (int i = 0; i < N_TRANSFORMER_TYPES; i++)
     {
-		button = m_int_malloc(sizeof(m_int_trans_selector_button));
+		button = m_alloc(sizeof(m_int_trans_selector_button));
 		
 		if (!button)
 			return ERR_ALLOC_FAIL;
 		
 		init_transformer_selector_button(button, i);
-		str->buttons = m_int_trans_selector_button_ptr_linked_list_append(str->buttons, button);
+		str->buttons = m_int_trans_selector_button_pll_append(str->buttons, button);
 	}
 	
 	return NO_ERROR;
 }
 
-int configure_transformer_selector(m_int_ui_page *page, void *data)
+int configure_transformer_selector(m_ui_page *page, void *data)
 {
 	//printf("configure_transformer_selector...\n");
 	if (!page || !data)
@@ -50,7 +50,7 @@ int configure_transformer_selector(m_int_ui_page *page, void *data)
 	if (page->configured)
 		return NO_ERROR;
 	
-	m_int_transformer_selector_str *ts = page->data_struct;
+	m_transformer_selector_str *ts = page->data_struct;
 	
 	if (!ts)
 		return ERR_BAD_ARGS;
@@ -73,10 +73,10 @@ void add_transformer_from_menu(lv_event_t *e)
 		return;
 	}
 	
-	m_int_ui_page *pv = NULL;
-	m_int_transformer *trans = NULL;
+	m_ui_page *pv = NULL;
+	m_transformer *trans = NULL;
 	
-	m_int_profile *profile = global_cxt.working_profile;
+	m_profile *profile = global_cxt.working_profile;
 	
 	uint16_t type = button->type;
 	
@@ -91,7 +91,7 @@ void add_transformer_from_menu(lv_event_t *e)
 		pv = profile->view_page;
 	}
 	
-	trans = m_int_profile_append_transformer_type(profile, type);
+	trans = m_profile_append_transformer_type(profile, type);
 	
 	if (pv)
 		profile_view_append_transformer(pv, trans);
@@ -142,7 +142,7 @@ int create_transformer_selector_button_ui(m_int_trans_selector_button *button, l
 	return NO_ERROR;
 }
 
-int create_transformer_selector_ui(m_int_ui_page *page)
+int create_transformer_selector_ui(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -150,7 +150,7 @@ int create_transformer_selector_ui(m_int_ui_page *page)
 	if (page->ui_created)
 		return NO_ERROR;
 	
-	m_int_transformer_selector_str *ts = (m_int_transformer_selector_str*)page->data_struct;
+	m_transformer_selector_str *ts = (m_transformer_selector_str*)page->data_struct;
 	
 	if (!ts)
 		return ERR_BAD_ARGS;
@@ -161,7 +161,7 @@ int create_transformer_selector_ui(m_int_ui_page *page)
 	set_panel_text(page, "Add Effect");
 	create_standard_button_list_tall(&ts->button_list, page->screen);
     
-    m_int_trans_selector_button_ptr_linked_list *current = ts->buttons;
+    m_int_trans_selector_button_pll *current = ts->buttons;
     
     while (current)
     {
@@ -174,7 +174,7 @@ int create_transformer_selector_ui(m_int_ui_page *page)
 	return NO_ERROR;
 }
 
-int enter_transformer_selector(m_int_ui_page *page)
+int enter_transformer_selector(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -184,7 +184,7 @@ int enter_transformer_selector(m_int_ui_page *page)
 	return NO_ERROR;
 }
 
-int enter_transformer_selector_forward(m_int_ui_page *page)
+int enter_transformer_selector_forward(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -194,7 +194,7 @@ int enter_transformer_selector_forward(m_int_ui_page *page)
 	return NO_ERROR;
 }
 
-int enter_transformer_selector_back(m_int_ui_page *page)
+int enter_transformer_selector_back(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;

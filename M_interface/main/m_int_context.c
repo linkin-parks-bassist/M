@@ -25,7 +25,7 @@ int init_m_int_context(m_int_context *cxt)
 	
 	init_parameter(&cxt->settings.global_volume, "Volume", -90.0, -12.0, 12.0);
 	cxt->settings.global_volume.units = " dB";
-	cxt->settings.global_volume.id = (m_int_parameter_id){.profile_id = 0xFFFF, .transformer_id = 0, .parameter_id = 0};
+	cxt->settings.global_volume.id = (m_parameter_id){.profile_id = 0xFFFF, .transformer_id = 0, .parameter_id = 0};
 	
 	return NO_ERROR;
 }
@@ -35,21 +35,21 @@ int context_no_default_profile(m_int_context *cxt)
 	if (!cxt)
 		return ERR_NULL_PTR;
 	
-	cxt->active_profile = m_int_malloc(sizeof(m_int_profile));
+	cxt->active_profile = m_alloc(sizeof(m_profile));
 	cxt->working_profile = cxt->active_profile;
 	cxt->default_profile = cxt->active_profile;
 	
 	if (!cxt->active_profile)
 		return ERR_ALLOC_FAIL;
 	
-	init_m_int_profile(cxt->active_profile);
+	init_m_profile(cxt->active_profile);
 	create_profile_view_for(cxt->active_profile);
-	m_int_profile_set_default_name_from_id(cxt->active_profile);
+	m_profile_set_default_name_from_id(cxt->active_profile);
 	
 	cxt->active_profile->active = 1;
 	
 	printf("Created profile, %p. Name: %s\n", cxt->active_profile, cxt->active_profile->name);
-	profile_ll *nl = m_int_profile_ptr_linked_list_append(NULL, cxt->active_profile);
+	profile_ll *nl = m_profile_pll_append(NULL, cxt->active_profile);
 	
 	if (!nl)
 	{
@@ -70,14 +70,14 @@ int m_int_context_add_profile(m_int_context *cxt)
 	if (!cxt)
 		return ERR_NULL_PTR;
 	
-	m_int_profile *profile = m_int_malloc(sizeof(m_int_profile));
+	m_profile *profile = m_alloc(sizeof(m_profile));
 	
 	if (!profile)
 		return ERR_ALLOC_FAIL;
 	
-	init_m_int_profile(profile);
+	init_m_profile(profile);
 	
-	profile_ll *nl = m_int_profile_ptr_linked_list_append(cxt->profiles, profile);
+	profile_ll *nl = m_profile_pll_append(cxt->profiles, profile);
 	
 	if (!nl)
 	{
@@ -92,19 +92,19 @@ int m_int_context_add_profile(m_int_context *cxt)
 	return NO_ERROR;
 }
 
-m_int_profile *m_int_context_add_profile_rp(m_int_context *cxt)
+m_profile *m_int_context_add_profile_rp(m_int_context *cxt)
 {
 	if (!cxt)
 		return NULL;
 	
-	m_int_profile *profile = m_int_malloc(sizeof(m_int_profile));
+	m_profile *profile = m_alloc(sizeof(m_profile));
 	
 	if (!profile)
 		return NULL;
 	
-	init_m_int_profile(profile);
+	init_m_profile(profile);
 	
-	profile_ll *nl = m_int_profile_ptr_linked_list_append(cxt->profiles, profile);
+	profile_ll *nl = m_profile_pll_append(cxt->profiles, profile);
 	
 	if (!nl)
 	{
@@ -124,14 +124,14 @@ m_int_sequence *m_int_context_add_sequence_rp(m_int_context *cxt)
 	if (!cxt)
 		return NULL;
 	
-	m_int_sequence *sequence = m_int_malloc(sizeof(m_int_sequence));
+	m_int_sequence *sequence = m_alloc(sizeof(m_int_sequence));
 	
 	if (!sequence)
 		return NULL;
 	
 	init_m_int_sequence(sequence);
 	
-	sequence_ll *nl = m_int_sequence_ptr_linked_list_append(cxt->sequences, sequence);
+	sequence_ll *nl = m_int_sequence_pll_append(cxt->sequences, sequence);
 	
 	if (!nl)
 	{
@@ -144,7 +144,7 @@ m_int_sequence *m_int_context_add_sequence_rp(m_int_context *cxt)
 	return sequence;
 }
 
-m_int_profile *cxt_get_profile_by_id(m_int_context *cxt, uint16_t profile_id)
+m_profile *cxt_get_profile_by_id(m_int_context *cxt, uint16_t profile_id)
 {
 	if (!cxt)
 		return NULL;
@@ -162,21 +162,21 @@ m_int_profile *cxt_get_profile_by_id(m_int_context *cxt, uint16_t profile_id)
 	return NULL;
 }
 
-m_int_transformer *cxt_get_transformer_by_id(m_int_context *cxt, uint16_t profile_id, uint16_t transformer_id)
+m_transformer *cxt_get_transformer_by_id(m_int_context *cxt, uint16_t profile_id, uint16_t transformer_id)
 {
 	if (!cxt)
 		return NULL;
 	
-	m_int_profile *profile = cxt_get_profile_by_id(cxt, profile_id);
+	m_profile *profile = cxt_get_profile_by_id(cxt, profile_id);
 	
 	if (!profile)
 		return NULL;
 	
-	m_int_transformer_ptr_linked_list *current = profile->pipeline.transformers;
+	m_transformer_pll *current = profile->pipeline.transformers;
 	
 	while (current)
 	{
-		if (current->data && current->data->transformer_id == transformer_id)
+		if (current->data && current->data->id == transformer_id)
 			return current->data;
 		
 		current = current->next;
@@ -185,12 +185,12 @@ m_int_transformer *cxt_get_transformer_by_id(m_int_context *cxt, uint16_t profil
 	return NULL;
 }
 
-m_int_parameter *cxt_get_parameter_by_id(m_int_context *cxt, uint16_t profile_id, uint16_t transformer_id, uint16_t parameter_id)
+m_parameter *cxt_get_parameter_by_id(m_int_context *cxt, uint16_t profile_id, uint16_t transformer_id, uint16_t parameter_id)
 {
 	if (!cxt)
 		return NULL;
 	
-	m_int_transformer *trans = cxt_get_transformer_by_id(cxt, profile_id, transformer_id);
+	m_transformer *trans = cxt_get_transformer_by_id(cxt, profile_id, transformer_id);
 	
 	if (!trans)
 		return NULL;
@@ -198,12 +198,12 @@ m_int_parameter *cxt_get_parameter_by_id(m_int_context *cxt, uint16_t profile_id
 	return transformer_get_parameter(trans, parameter_id);
 }
 
-m_int_setting *cxt_get_setting_by_id(m_int_context *cxt, uint16_t profile_id, uint16_t transformer_id, uint16_t parameter_id)
+m_setting *cxt_get_setting_by_id(m_int_context *cxt, uint16_t profile_id, uint16_t transformer_id, uint16_t parameter_id)
 {
 	if (!cxt)
 		return NULL;
 	
-	m_int_transformer *trans = cxt_get_transformer_by_id(cxt, profile_id, transformer_id);
+	m_transformer *trans = cxt_get_transformer_by_id(cxt, profile_id, transformer_id);
 	
 	if (!trans)
 		return NULL;
@@ -216,17 +216,17 @@ int cxt_transformer_id_to_position(m_int_context *cxt, uint16_t profile_id, uint
 	if (!cxt)
 		return -ERR_NULL_PTR;
 	
-	m_int_profile *profile = cxt_get_profile_by_id(cxt, profile_id);
+	m_profile *profile = cxt_get_profile_by_id(cxt, profile_id);
 	
 	if (!profile)
 		return -ERR_INVALID_PROFILE_ID;
 	
-	transformer_ll *current = profile->pipeline.transformers;
+	m_transformer_pll *current = profile->pipeline.transformers;
 	
 	int i = 0;
 	while (current)
 	{
-		if (current->data && current->data->transformer_id == transformer_id)
+		if (current->data && current->data->id == transformer_id)
 			return i;
 		
 		current = current->next;
@@ -241,12 +241,12 @@ int cxt_transformer_position_to_id(m_int_context *cxt, uint16_t profile_id, uint
 	if (!cxt)
 		return -ERR_NULL_PTR;
 	
-	m_int_profile *profile = cxt_get_profile_by_id(cxt, profile_id);
+	m_profile *profile = cxt_get_profile_by_id(cxt, profile_id);
 	
 	if (!profile)
 		return -ERR_INVALID_PROFILE_ID;
 	
-	transformer_ll *current = profile->pipeline.transformers;
+	m_transformer_pll *current = profile->pipeline.transformers;
 	
 	int i = 0;
 	while (current)
@@ -256,7 +256,7 @@ int cxt_transformer_position_to_id(m_int_context *cxt, uint16_t profile_id, uint
 			if (!current->data)
 				return ERR_NULL_PTR;
 			
-			return current->data->transformer_id;
+			return current->data->id;
 		}
 		
 		current = current->next;
@@ -266,7 +266,7 @@ int cxt_transformer_position_to_id(m_int_context *cxt, uint16_t profile_id, uint
 	return -ERR_INVALID_TRANSFORMER_ID;
 }
 
-int cxt_remove_profile(m_int_context *cxt, m_int_profile *profile)
+int cxt_remove_profile(m_int_context *cxt, m_profile *profile)
 {
 	if (!cxt || !profile)
 		return ERR_NULL_PTR;
@@ -293,7 +293,7 @@ int cxt_remove_profile(m_int_context *cxt, m_int_profile *profile)
 			}
 			
 			free_profile(profile);
-			m_int_free(current);
+			m_free(current);
 			
 			return NO_ERROR;
 		}
@@ -330,7 +330,7 @@ int cxt_remove_sequence(m_int_context *cxt, m_int_sequence *sequence)
 			}
 			
 			free_sequence(sequence);
-			m_int_free(current);
+			m_free(current);
 			
 			return NO_ERROR;
 		}
@@ -348,7 +348,7 @@ int cxt_remove_transformer(m_int_context *cxt, uint16_t pid, uint16_t tid)
 	if (!cxt)
 		return ERR_NULL_PTR;
 	
-	int ret_val = m_int_profile_remove_transformer(cxt_get_profile_by_id(cxt, pid), tid);
+	int ret_val = m_profile_remove_transformer(cxt_get_profile_by_id(cxt, pid), tid);
 	
 	if (ret_val == NO_ERROR)
 	{
@@ -359,7 +359,7 @@ int cxt_remove_transformer(m_int_context *cxt, uint16_t pid, uint16_t tid)
 	return ret_val;
 }
 
-int set_active_profile(m_int_profile *profile)
+int set_active_profile(m_profile *profile)
 {
 	if (!profile)
 		return ERR_NULL_PTR;
@@ -367,15 +367,15 @@ int set_active_profile(m_int_profile *profile)
 	if (profile == global_cxt.active_profile)
 		return NO_ERROR;
 	
-	m_int_profile_set_inactive(global_cxt.active_profile);
-	m_int_profile_set_active(profile);
+	m_profile_set_inactive(global_cxt.active_profile);
+	m_profile_set_active(profile);
 	
 	global_cxt.active_profile = profile;
 	
 	return queue_msg_to_teensy(create_et_msg(ET_MESSAGE_SWITCH_PROFILE, "s", profile->id));
 }
 
-int set_working_profile(m_int_profile *profile)
+int set_working_profile(m_profile *profile)
 {
 	if (!profile)
 		return ERR_NULL_PTR;
@@ -420,7 +420,7 @@ int resolve_default_profile(m_int_context *cxt)
 			cxt->active_profile  = current->data;
 			cxt->working_profile = current->data;
 			cxt->default_profile = current->data;
-			m_int_profile_set_active(current->data);
+			m_profile_set_active(current->data);
 			
 			cxt->default_profile_exists = 1;
 			
@@ -435,7 +435,7 @@ int resolve_default_profile(m_int_context *cxt)
 	return NO_ERROR;
 }
 
-int set_profile_as_default(m_int_context *cxt, m_int_profile *profile)
+int set_profile_as_default(m_int_context *cxt, m_profile *profile)
 {
 	if (!cxt || !profile)
 		return ERR_NULL_PTR;
@@ -479,7 +479,7 @@ void context_print_profiles(m_int_context *cxt)
 		if (current->data)
 		{
 			int j = 0;
-			transformer_ll *ct = current->data->pipeline.transformers;
+			m_transformer_pll *ct = current->data->pipeline.transformers;
 			
 			while (ct)
 			{

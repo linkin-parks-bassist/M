@@ -37,39 +37,39 @@
 #define VSLIDER_TALL_PAD_H 120
 #define VSLIDER_TALL_PAD_W 80
 
-struct m_int_profile;
+struct m_profile;
 
 typedef struct
 {
 	int type;
-	m_int_parameter_id id;
+	m_parameter_id id;
 	
-	m_int_parameter *param;
-	struct m_int_profile *profile;
+	m_parameter *param;
+	struct m_profile *profile;
 	
 	char val_label_text[PARAM_WIDGET_LABEL_BUFSIZE];
 	lv_obj_t *val_label;
 	lv_obj_t *name_label;
 	lv_obj_t *container;
 	lv_obj_t *obj;
-} m_int_parameter_widget;
+} m_parameter_widget;
 
-int nullify_parameter_widget(m_int_parameter_widget *pw);
-int configure_parameter_widget(m_int_parameter_widget *pw, m_int_parameter *param, struct m_int_profile *profile);
+int nullify_parameter_widget(m_parameter_widget *pw);
+int configure_parameter_widget(m_parameter_widget *pw, m_parameter *param, struct m_profile *profile);
 
-int parameter_widget_create_ui(m_int_parameter_widget *pw, lv_obj_t *parent);
-int parameter_widget_create_ui_no_callback(m_int_parameter_widget *pw, lv_obj_t *parent);
+int parameter_widget_create_ui(m_parameter_widget *pw, lv_obj_t *parent);
+int parameter_widget_create_ui_no_callback(m_parameter_widget *pw, lv_obj_t *parent);
 
-int param_widget_request_value(m_int_parameter_widget *pw);
+int param_widget_request_value(m_parameter_widget *pw);
 
-void parameter_widget_update_value_label(m_int_parameter_widget *pot);
+void parameter_widget_update_value_label(m_parameter_widget *pot);
 
-void parameter_widget_change_cb_inner(m_int_parameter_widget *pw);
+void parameter_widget_change_cb_inner(m_parameter_widget *pw);
 void parameter_widget_refresh_cb(lv_event_t *event);
 
-void free_parameter_widget(m_int_parameter_widget *pw);
+void free_parameter_widget(m_parameter_widget *pw);
 
-DECLARE_LINKED_PTR_LIST(m_int_parameter_widget);
+DECLARE_LINKED_PTR_LIST(m_parameter_widget);
 
 
 //
@@ -88,10 +88,10 @@ DECLARE_LINKED_PTR_LIST(m_int_parameter_widget);
 typedef struct
 {
 	int type;
-	m_int_parameter_id id;
+	m_parameter_id id;
 	
-	m_int_setting *setting;
-	struct m_int_profile *profile;
+	m_setting *setting;
+	struct m_profile *profile;
 	
 	lv_obj_t *container;
 	lv_obj_t *obj;
@@ -99,23 +99,23 @@ typedef struct
 	lv_obj_t *pad;
 	
 	const char *name;
-} m_int_setting_widget;
+} m_setting_widget;
 
-int nullify_setting_widget(m_int_setting_widget *pw);
-int configure_setting_widget(m_int_setting_widget *pw, m_int_setting *setting, struct m_int_profile *profile);
+int nullify_setting_widget(m_setting_widget *pw);
+int configure_setting_widget(m_setting_widget *pw, m_setting *setting, struct m_profile *profile);
 
-int setting_widget_create_ui(m_int_setting_widget *pw, lv_obj_t *parent);
-int setting_widget_create_ui_no_callback(m_int_setting_widget *pw, lv_obj_t *parent);
+int setting_widget_create_ui(m_setting_widget *pw, lv_obj_t *parent);
+int setting_widget_create_ui_no_callback(m_setting_widget *pw, lv_obj_t *parent);
 
-int setting_widget_request_value(m_int_setting_widget *pw);
+int setting_widget_request_value(m_setting_widget *pw);
 
-void setting_widget_update_value_label(m_int_setting_widget *pot);
+void setting_widget_update_value_label(m_setting_widget *pot);
 
-void setting_widget_change_cb_inner(m_int_setting_widget *pw);
+void setting_widget_change_cb_inner(m_setting_widget *pw);
 void setting_widget_refresh_cb(lv_event_t *event);
 
-void free_setting_widget(m_int_setting_widget *pw);
+void free_setting_widget(m_setting_widget *pw);
 
-DECLARE_LINKED_PTR_LIST(m_int_setting_widget);
+DECLARE_LINKED_PTR_LIST(m_setting_widget);
 
 #endif

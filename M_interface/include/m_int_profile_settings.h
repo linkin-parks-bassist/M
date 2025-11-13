@@ -3,8 +3,8 @@
 
 typedef struct
 {
-	m_int_parameter_widget volume_widget;
-	m_int_profile *profile;
+	m_parameter_widget volume_widget;
+	m_profile *profile;
 	
 	lv_obj_t *container;
 		
@@ -18,15 +18,15 @@ typedef struct
 	lv_obj_t *save_button_label;
 } m_profile_settings_str;
 
-int init_profile_settings_page(m_int_ui_page *page);
+int init_profile_settings_page(m_ui_page *page);
 
-int configure_profile_settings_page(m_int_ui_page *page, void *data);
-int create_profile_settings_page_ui(m_int_ui_page *page);
-int free_profile_settings_page_ui(m_int_ui_page *page);
-int profile_settings_page_free_all(m_int_ui_page *page);
-int enter_profile_settings_page(m_int_ui_page *page);
-int enter_profile_settings_page_forward(m_int_ui_page *page);
-int enter_profile_settings_page_back(m_int_ui_page *page);
-int refresh_profile_settings_page(m_int_ui_page *page);
+int configure_profile_settings_page(m_ui_page *page, void *data);
+int create_profile_settings_page_ui(m_ui_page *page);
+int free_profile_settings_page_ui(m_ui_page *page);
+int profile_settings_page_free_all(m_ui_page *page);
+int enter_profile_settings_page(m_ui_page *page);
+int enter_profile_settings_page_forward(m_ui_page *page);
+int enter_profile_settings_page_back(m_ui_page *page);
+int refresh_profile_settings_page(m_ui_page *page);
 
 #endif

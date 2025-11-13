@@ -3,7 +3,7 @@
 
 typedef struct
 {
-	m_eng_parameter cutoff_frequency;
+	m_parameter cutoff_frequency;
 	
 	float a0, a1, a2, a3, a4;
 	float x1, x2, y1, y2;
@@ -15,7 +15,7 @@ int calc_low_pass_filter(void *data_struct, float *dest, float *src, int n_sampl
 
 typedef struct
 {
-	m_eng_parameter cutoff_frequency;
+	m_parameter cutoff_frequency;
 	
 	float a0, a1, a2, a3, a4;
 	float x1, x2, y1, y2;
@@ -27,8 +27,8 @@ int calc_high_pass_filter(void *data_struct, float *dest, float *src, int n_samp
 
 typedef struct
 {
-	m_eng_parameter center;
-	m_eng_parameter bandwidth;
+	m_parameter center;
+	m_parameter bandwidth;
 	
 	float a0, a1, a2, a3, a4;
 	float x1, x2, y1, y2;

@@ -76,10 +76,10 @@ void m_int_lv_log_cb(const char *buf)
 	if (waiting_buf)
 	{
 		char *local_waiting_buf = m_int_strndup(waiting_buf, M_INT_LV_LOG_BUF_LEN);
-		m_int_free(waiting_buf);
+		m_free(waiting_buf);
 		waiting_buf = NULL;
 		m_int_lv_log_cb(local_waiting_buf);
-		m_int_free(local_waiting_buf);
+		m_free(local_waiting_buf);
 	}
 	
 	if (xSemaphoreTake(m_int_lv_log_mutex, pdMS_TO_TICKS(I2C_MASTER_TIMEOUT_MS)) != pdTRUE)

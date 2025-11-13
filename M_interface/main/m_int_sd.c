@@ -27,7 +27,6 @@ const char mount_point[] = MOUNT_POINT;
 
 sdmmc_host_t host = SDSPI_HOST_DEFAULT();
 
-
 int init_sd_card()
 {
 	esp_err_t ret;
@@ -151,7 +150,7 @@ string_ll *list_files_in_directory(char *dir)
 			continue;
 		}
 		
-		fname = m_int_malloc(strlen(dir) + 1 + 255);
+		fname = m_alloc(strlen(dir) + 1 + 255);
 		
 		if (!fname)
 		{
@@ -161,7 +160,7 @@ string_ll *list_files_in_directory(char *dir)
 		
 		sprintf(fname, "%s/%s", dir, directory_entry->d_name);
 		
-		nl = char_ptr_linked_list_append(list, fname);
+		nl = char_pll_append(list, fname);
 		
 		if (nl)
 		{
@@ -177,6 +176,11 @@ string_ll *list_files_in_directory(char *dir)
 	}
 	
 	return list;
+}
+
+void erase_sd_card_void_cb(void *data)
+{
+	erase_sd_card();
 }
 
 void erase_sd_card()

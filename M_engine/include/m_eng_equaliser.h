@@ -6,14 +6,14 @@
 
 typedef struct
 {
-	m_eng_parameter low;
-	m_eng_parameter mid;
-	m_eng_parameter high;
+	m_parameter low;
+	m_parameter mid;
+	m_parameter high;
 	
 	float coefs[3];
 	int control_mode;
 	
-	m_eng_lr_low_pass_filter_str filters[2];
+	m_lr_low_pass_filter_str filters[2];
 } m_eng_3_band_eq_str;
 
 int init_3_band_eq_str(m_eng_3_band_eq_str *str);

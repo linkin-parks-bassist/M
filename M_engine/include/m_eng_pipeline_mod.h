@@ -6,23 +6,23 @@
 #define PIPE_LINE_MOD_REMOVE_TRANSFORMER			2
 #define PIPE_LINE_MOD_CHANGE_TRANSFORMER_SETTING	3
 
-typedef struct
+typedef struct m_pipeline_mod
 {
 	int type;
 	uint16_t tid;
 	uint16_t data;
 	int16_t sdata;
-} m_eng_pipe_line_mod;
+} m_pipeline_mod;
 
-int init_pipe_line_mod(m_eng_pipe_line_mod *mod);
+int init_pipeline_mod(m_pipeline_mod *mod);
 
-m_eng_pipe_line_mod create_pipe_line_mod_append_transformer			(uint16_t type);
-m_eng_pipe_line_mod create_pipe_line_mod_move_transformer			(uint16_t tid, uint16_t position);
-m_eng_pipe_line_mod create_pipe_line_mod_remove_transformer			(uint16_t tid);
-m_eng_pipe_line_mod create_pipe_line_mod_change_transformer_setting (uint16_t tid, uint16_t setting_id, int16_t new_value);
+m_pipeline_mod create_pipeline_mod_append_transformer			(uint16_t type);
+m_pipeline_mod create_pipeline_mod_move_transformer			(uint16_t tid, uint16_t position);
+m_pipeline_mod create_pipeline_mod_remove_transformer			(uint16_t tid);
+m_pipeline_mod create_pipeline_mod_change_transformer_setting (uint16_t tid, uint16_t setting_id, int16_t new_value);
 
-int apply_pipe_line_mod(m_eng_pipe_line *pipeline, m_eng_pipe_line_mod mod);
+int apply_pipeline_mod(m_pipeline *pipeline, m_pipeline_mod mod);
 
-DECLARE_LINKED_LIST(m_eng_pipe_line_mod);
+DECLARE_LINKED_LIST(m_pipeline_mod);
 
 #endif

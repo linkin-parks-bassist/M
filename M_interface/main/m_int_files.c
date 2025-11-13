@@ -45,7 +45,7 @@ void dump_file_contents(char *fname)
 	fclose(file);
 }
 
-int save_profile_as_file(m_int_profile *profile, char *fname)
+int save_profile_as_file(m_profile *profile, char *fname)
 {
 	//printf("save_profile_as_file\n");
 	
@@ -84,8 +84,8 @@ int save_profile_as_file(m_int_profile *profile, char *fname)
 	
 	write_string(name);
 	
-	m_int_transformer_ll *current_transformer = profile->pipeline.transformers;
-	parameter_ll *current_param;
+	m_transformer_pll *current_transformer = profile->pipeline.transformers;
+	m_parameter_pll *current_param;
 	
 	n = 0;
 	
@@ -109,14 +109,14 @@ int save_profile_as_file(m_int_profile *profile, char *fname)
 		}
 		
 		write_short(current_transformer->data->type);
-		write_short(current_transformer->data->transformer_id);
+		write_short(current_transformer->data->id);
 		
 		current_param = current_transformer->data->parameters;
 		
 		while (current_param)
 		{
 			if (current_param->data)
-				write_float(current_param->data->val);
+				write_float(current_param->data->value);
 			
 			current_param = current_param->next;
 		}
@@ -139,7 +139,7 @@ int save_profile_as_file(m_int_profile *profile, char *fname)
 	return NO_ERROR;
 }
 
-int save_settings_to_file(m_int_settings *settings, const char *fname)
+int save_settings_to_file(m_settings *settings, const char *fname)
 {
 	if (!settings || !fname)
 		return ERR_NULL_PTR;
@@ -157,7 +157,7 @@ int save_settings_to_file(m_int_settings *settings, const char *fname)
 	
 	write_byte(M_INT_WRITE_UNFINISHED_BYTE);
 	
-	write_float(settings->global_volume.val);
+	write_float(settings->global_volume.value);
 	
 	write_byte(settings->default_profile != NULL);
 	
@@ -177,7 +177,7 @@ int save_settings_to_file(m_int_settings *settings, const char *fname)
 	return NO_ERROR;
 }
 
-int load_settings_from_file(m_int_settings *settings, const char *fname)
+int load_settings_from_file(m_settings *settings, const char *fname)
 {
 	if (!settings || !fname)
 		return ERR_NULL_PTR;
@@ -191,7 +191,7 @@ int load_settings_from_file(m_int_settings *settings, const char *fname)
 	if (!file)
 	{
 		printf("Failed to open file %s\n", fname);
-		settings->global_volume.val = 0.0;
+		settings->global_volume.value = 0.0;
 		return ERR_FOPEN_FAIL;
 	}
 	
@@ -215,9 +215,9 @@ int load_settings_from_file(m_int_settings *settings, const char *fname)
 		goto read_settings_exit;
 	}
 	
-	read_float(settings->global_volume.val);
+	read_float(settings->global_volume.value);
 
-	printf("read global volume: %f\n", settings->global_volume.val);
+	printf("read global volume: %f\n", settings->global_volume.value);
 
 	read_byte(byte);
 	
@@ -234,7 +234,7 @@ read_settings_exit:
 	return ret_val;
 }
 
-int read_profile_from_file(m_int_profile *profile, char *fname)
+int read_profile_from_file(m_profile *profile, char *fname)
 {
 	//printf("read_profile_from_file\n");
 	if (!fname || !profile)
@@ -262,8 +262,8 @@ int read_profile_from_file(m_int_profile *profile, char *fname)
 	char string_read_buffer[IO_BUFFER_SIZE];
 	char *name = NULL;
 	int ret_val = NO_ERROR;
-	m_int_transformer *trans = NULL;
-	parameter_ll *current_param = NULL;
+	m_transformer *trans = NULL;
+	m_parameter_pll *current_param = NULL;
 	
 	// Check that this is a profile file
 	byte = fgetc(file);
@@ -328,7 +328,7 @@ int read_profile_from_file(m_int_profile *profile, char *fname)
 			goto profile_read_bail;
 		}
 		
-		trans = m_int_profile_append_transformer_type(profile, arg16);
+		trans = m_profile_append_transformer_type(profile, arg16);
 		
 		if (!trans)
 		{
@@ -343,13 +343,13 @@ int read_profile_from_file(m_int_profile *profile, char *fname)
 		
 		
 		ESP_LOGI(TAG, "Transformer ID: %d\n", (int)arg16);
-		trans->transformer_id = arg16;
+		trans->id = arg16;
 		
 		current_param = trans->parameters;
 		while (current_param)
 		{
 			if (current_param->data)
-				read_float(current_param->data->val);
+				read_float(current_param->data->value);
 			
 			current_param = current_param->next;
 		}
@@ -420,7 +420,7 @@ int safe_file_write(int (*write_func)(void *arg, const char *fname), void *arg, 
 	return ret_val;
 }
 
-int save_profile_as_file_safe(m_int_profile *profile, char *fname)
+int save_profile_as_file_safe(m_profile *profile, char *fname)
 {
 	// Check if the file exists
 	FILE *target = fopen(fname, "r");
@@ -487,7 +487,7 @@ char *generate_filename(char *prefix, char *suffix)
 			prefix[i] = (prefix[i] == '%') ? '_' : prefix[i];
 	}
 	
-	char *fname = m_int_malloc(plen + slen + FNAM_ENG_DIGITS + 1);
+	char *fname = m_alloc(plen + slen + FNAM_ENG_DIGITS + 1);
 	
 	if (!fname)
 		return NULL;
@@ -513,7 +513,7 @@ char *generate_filename(char *prefix, char *suffix)
 	return fname;
 }
 
-int save_profile(m_int_profile *profile)
+int save_profile(m_profile *profile)
 {
 	if (!profile->fname)
 	{
@@ -529,7 +529,7 @@ int save_profile(m_int_profile *profile)
 			
 			if (test)
 			{
-				m_int_free(profile->fname);
+				m_free(profile->fname);
 				fclose(test);
 			}
 		} while (test);
@@ -554,25 +554,25 @@ int load_saved_profiles(m_int_context *cxt)
 {
 	string_ll *current_file = list_files_in_directory("/sdcard/profiles");
 	
-	m_int_profile *profile;
+	m_profile *profile;
 	
-	m_int_profile_ptr_linked_list *nl;
+	m_profile_pll *nl;
 	
 	int ret_val;
 	
 	while (current_file)
 	{
-		profile = m_int_malloc(sizeof(m_int_profile));
+		profile = m_alloc(sizeof(m_profile));
 		
 		if (!profile)
 			return ERR_ALLOC_FAIL;
 		
-		init_m_int_profile(profile);
+		init_m_profile(profile);
 		ret_val = read_profile_from_file(profile, current_file->data);
 		
 		if (ret_val == NO_ERROR)
 		{	
-			nl = m_int_profile_ptr_linked_list_append(cxt->profiles, profile);
+			nl = m_profile_pll_append(cxt->profiles, profile);
 		
 			if (!nl)
 			{

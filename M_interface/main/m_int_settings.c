@@ -2,7 +2,7 @@
 
 SemaphoreHandle_t settings_mutex;
 
-int init_settings(m_int_settings *settings)
+int init_settings(m_settings *settings)
 {
 	if (!settings)
 		return ERR_NULL_PTR;
@@ -17,24 +17,24 @@ int init_settings(m_int_settings *settings)
 	return NO_ERROR;
 }
 
-int send_settings(m_int_settings *settings)
+int send_settings(m_settings *settings)
 {
 	if (!settings)
 		return ERR_NULL_PTR;
 	
 	xSemaphoreTake(settings_mutex, portMAX_DELAY);
-	queue_msg_to_teensy(create_et_msg(ET_MESSAGE_SET_PARAM_VALUE, "sssf", 0xFFFF, 0, 0, settings->global_volume.val));
+	queue_msg_to_teensy(create_et_msg(ET_MESSAGE_SET_PARAM_VALUE, "sssf", 0xFFFF, 0, 0, settings->global_volume.value));
 	xSemaphoreGive(settings_mutex);
 	
 	return NO_ERROR;
 }
 
-int copy_settings_struct(m_int_settings *dest, m_int_settings *src)
+int copy_settings_struct(m_settings *dest, m_settings *src)
 {
 	if (!dest || !src)
 		return ERR_NULL_PTR;
 	
-	dest->global_volume.val = src->global_volume.val;
+	dest->global_volume.value = src->global_volume.value;
 	dest->default_profile = src->default_profile;
 	
 	return NO_ERROR;
@@ -48,7 +48,7 @@ void settings_save_task(void *arg)
 	int ret_val;
 	int i = 0;
 	
-	m_int_settings local_copy;
+	m_settings local_copy;
 
 	while (true)
 	{
@@ -89,7 +89,7 @@ int init_settings_save_task()
 	return NO_ERROR;
 }
 
-int settings_set_default_profile(m_int_profile *profile)
+int settings_set_default_profile(m_profile *profile)
 {
 	xSemaphoreTake(settings_mutex, portMAX_DELAY);
 	global_cxt.settings.default_profile = profile->fname;

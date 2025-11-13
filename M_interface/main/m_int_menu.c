@@ -15,8 +15,9 @@ int init_menu_item(m_int_menu_item *item)
 	item->text = NULL;
 	item->desc = NULL;
 	
-	item->click_cb = NULL;
-	item->cb_arg   = NULL;
+	item->action_cb = NULL;
+	item->click_cb  = NULL;
+	item->cb_arg    = NULL;
 	
 	item->linked_page = NULL;
 	item->linked_page_indirect = NULL;
@@ -80,6 +81,9 @@ int configure_menu_item(m_int_menu_item *item)
 		case MENU_ITEM_PARAMETER_WIDGET:
 		case MENU_ITEM_PAD:
 			break;
+			
+		case MENU_ITEM_DANGER_BUTTON:
+			break;
 		
 		default:
 			return ERR_BAD_ARGS;
@@ -109,11 +113,11 @@ int delete_menu_item_ui(m_int_menu_item *item)
 int free_menu_item(m_int_menu_item *item)
 {
 	if (item->text)
-		m_int_free(item->text);
+		m_free(item->text);
 	if (item->desc)
-		m_int_free(item->desc);
+		m_free(item->desc);
 	
-	m_int_free(item);
+	m_free(item);
 	
 	return NO_ERROR;
 }
@@ -149,6 +153,57 @@ void parameter_widget_change_cb_settings_wrapper(lv_event_t *e)
 	xSemaphoreGive(settings_mutex);
 }
 
+#define DANGER_BUTTON_CONFIRM_TEXT "Yes"
+#define DANGER_BUTTON_CANCEL_TEXT  "Cancel"
+
+void danger_button_value_changed_cb(lv_event_t *e)
+{
+	m_int_menu_item *item = lv_event_get_user_data(e);
+	
+	if (!item)
+		return;
+	
+	if (!item->extra)
+		return;
+	
+	if (!item->extra[0])
+		return;
+	
+	const char *button_text = lv_msgbox_get_active_btn_text(item->extra[0]);
+	
+	if (strncmp(DANGER_BUTTON_CONFIRM_TEXT, button_text, strlen(DANGER_BUTTON_CONFIRM_TEXT) + 1) == 0)
+	{
+		if (item->action_cb)
+			item->action_cb(item->cb_arg);
+	}
+	
+	lv_msgbox_close(item->extra[0]);
+}
+
+void danger_button_activate_popup_cb(lv_event_t *e)
+{
+	m_int_menu_item *item = lv_event_get_user_data(e);
+	
+	if (!item)
+		return;
+	
+	if (!item->parent)
+		return;
+	
+	if (!item->extra)
+	{
+		item->extra = m_alloc(sizeof(lv_obj_t*));
+		if (!item->extra)
+			return;
+	}
+	
+	static const char *btns[] = {DANGER_BUTTON_CONFIRM_TEXT, DANGER_BUTTON_CANCEL_TEXT, NULL};
+	
+	item->extra[0] = lv_msgbox_create(item->parent->screen, item->text, "Are you sure?", btns, 1);
+	lv_obj_add_event_cb(item->extra[0], danger_button_value_changed_cb, LV_EVENT_VALUE_CHANGED, item);
+	lv_obj_center(item->extra[0]);
+}
+
 int create_menu_item_ui(m_int_menu_item *item, lv_obj_t *parent)
 {
 	if (!item)
@@ -165,12 +220,16 @@ int create_menu_item_ui(m_int_menu_item *item, lv_obj_t *parent)
 			create_standard_button_click(&item->obj, &item->label, parent, item->text, item->click_cb, item->cb_arg);
 			break;
 		
+		case MENU_ITEM_DANGER_BUTTON:
+			create_standard_button_click(&item->obj, &item->label, parent, item->text, danger_button_activate_popup_cb, item);
+			break;
+		
 		case MENU_ITEM_SEQUENCE_LISTING:
 			create_standard_button_long_press_release(&item->obj, &item->label, parent, item->text,
 				menu_item_sequence_listing_long_pressed_cb, item,
 				menu_item_sequence_listing_released_cb, item);
 			
-			item->extra = m_int_malloc(sizeof(lv_obj_t*) * 2);
+			item->extra = m_alloc(sizeof(lv_obj_t*) * 2);
 			
 			if (!item->extra)
 				return ERR_ALLOC_FAIL;
@@ -193,7 +252,7 @@ int create_menu_item_ui(m_int_menu_item *item, lv_obj_t *parent)
 				menu_item_profile_listing_long_pressed_cb, item,
 				menu_item_profile_listing_released_cb, item);
 			
-			item->extra = m_int_malloc(sizeof(lv_obj_t*) * 2);
+			item->extra = m_alloc(sizeof(lv_obj_t*) * 2);
 			
 			if (!item->extra)
 				return ERR_ALLOC_FAIL;
@@ -213,7 +272,7 @@ int create_menu_item_ui(m_int_menu_item *item, lv_obj_t *parent)
 		
 		case MENU_ITEM_PARAMETER_WIDGET:
 			parameter_widget_create_ui_no_callback(item->data, parent);
-			lv_obj_add_event_cb(((m_int_parameter_widget*)item->data)->obj, parameter_widget_change_cb_settings_wrapper, LV_EVENT_VALUE_CHANGED, item);
+			lv_obj_add_event_cb(((m_parameter_widget*)item->data)->obj, parameter_widget_change_cb_settings_wrapper, LV_EVENT_VALUE_CHANGED, item);
 			break;
 		
 		case MENU_ITEM_PAD:
@@ -230,7 +289,7 @@ int create_menu_item_ui(m_int_menu_item *item, lv_obj_t *parent)
 
 m_int_menu_item *create_pad_menu_item(int pad_height)
 {
-	m_int_menu_item *item = m_int_malloc(sizeof(m_int_menu_item));
+	m_int_menu_item *item = m_alloc(sizeof(m_int_menu_item));
 	
 	if (!item)
 		return NULL;
@@ -243,9 +302,9 @@ m_int_menu_item *create_pad_menu_item(int pad_height)
 	return item;
 }
 
-m_int_menu_item *create_page_link_menu_item(char *text, m_int_ui_page *linked_page, m_int_ui_page *parent)
+m_int_menu_item *create_page_link_menu_item(char *text, m_ui_page *linked_page, m_ui_page *parent)
 {
-	m_int_menu_item *item = m_int_malloc(sizeof(m_int_menu_item));
+	m_int_menu_item *item = m_alloc(sizeof(m_int_menu_item));
 	
 	if (!item)
 		return NULL;
@@ -263,9 +322,9 @@ m_int_menu_item *create_page_link_menu_item(char *text, m_int_ui_page *linked_pa
 	return item;
 }
 
-m_int_menu_item *create_page_link_indirect_menu_item(char *text, m_int_ui_page **linked_page, m_int_ui_page *parent)
+m_int_menu_item *create_page_link_indirect_menu_item(char *text, m_ui_page **linked_page, m_ui_page *parent)
 {
-	m_int_menu_item *item = m_int_malloc(sizeof(m_int_menu_item));
+	m_int_menu_item *item = m_alloc(sizeof(m_int_menu_item));
 	
 	if (!item)
 		return NULL;
@@ -280,12 +339,12 @@ m_int_menu_item *create_page_link_indirect_menu_item(char *text, m_int_ui_page *
 	return item;
 }
 
-m_int_menu_item *create_parameter_widget_menu_item(m_int_parameter *param, m_int_ui_page *parent)
+m_int_menu_item *create_parameter_widget_menu_item(m_parameter *param, m_ui_page *parent)
 {
 	if (!param)
 		return NULL;
 	
-	m_int_menu_item *item = m_int_malloc(sizeof(m_int_menu_item));
+	m_int_menu_item *item = m_alloc(sizeof(m_int_menu_item));
 	
 	if (!item)
 		return NULL;
@@ -294,7 +353,7 @@ m_int_menu_item *create_parameter_widget_menu_item(m_int_parameter *param, m_int
 		
 	item->type = MENU_ITEM_PARAMETER_WIDGET;
 	
-	m_int_parameter_widget *pw = m_int_malloc(sizeof(m_int_parameter_widget));
+	m_parameter_widget *pw = m_alloc(sizeof(m_parameter_widget));
 	
 	nullify_parameter_widget(pw);
 	
@@ -307,6 +366,28 @@ m_int_menu_item *create_parameter_widget_menu_item(m_int_parameter *param, m_int
 	item->data = pw;
 	
 	configure_parameter_widget(item->data, param, NULL);
+	
+	return item;
+}
+
+m_int_menu_item *create_danger_button_menu_item(void (*action_cb)(void* arg), void *arg, const char *text, m_ui_page *parent)
+{
+	if (!action_cb)
+		return NULL;
+	
+	m_int_menu_item *item = m_alloc(sizeof(m_int_menu_item));
+	
+	if (!item)
+		return NULL;
+	
+	init_menu_item(item);
+		
+	item->type = MENU_ITEM_DANGER_BUTTON;
+	
+	item->text = m_int_strndup(text, 128);
+	item->action_cb = action_cb;
+	item->cb_arg = arg;
+	item->parent = parent;
 	
 	return item;
 }
@@ -325,14 +406,14 @@ int init_menu_page_str(m_int_menu_page_str *str)
 	return NO_ERROR;
 }
 
-int init_menu_page(m_int_ui_page *page)
+int init_menu_page(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
 	
 	init_ui_page(page);
 	
-	m_int_menu_page_str *str = m_int_malloc(sizeof(m_int_menu_page_str));
+	m_int_menu_page_str *str = m_alloc(sizeof(m_int_menu_page_str));
 	
 	page->data_struct = str;
 	
@@ -347,7 +428,7 @@ int init_menu_page(m_int_ui_page *page)
 	return init_menu_page_str(str);
 }
 
-int configure_menu_page(m_int_ui_page *page, void *data)
+int configure_menu_page(m_ui_page *page, void *data)
 {
 	printf("configure_menu_page\n");
 	if (!page)
@@ -368,7 +449,7 @@ int configure_menu_page(m_int_ui_page *page, void *data)
 	ui_page_add_back_button(page);
 	
 	page->parent = data;
-	menu_item_ll *current_item = str->items;
+	m_int_menu_item_pll *current_item = str->items;
 	
 	while (current_item)
 	{
@@ -385,7 +466,7 @@ int configure_menu_page(m_int_ui_page *page, void *data)
 	return ret_val;
 }
 
-int create_menu_page_ui(m_int_ui_page *page)
+int create_menu_page_ui(m_ui_page *page)
 {
 	printf("create_menu_page_ui\n");
 	if (!page)
@@ -405,7 +486,7 @@ int create_menu_page_ui(m_int_ui_page *page)
 		return ERR_BAD_ARGS;
 	}
 	
-	menu_item_ll *current = str->items;
+	m_int_menu_item_pll *current = str->items;
 	
 	int i = 0;
 	while (current)
@@ -426,7 +507,7 @@ int create_menu_page_ui(m_int_ui_page *page)
 }
 
 
-int enter_menu_page(m_int_ui_page *page)
+int enter_menu_page(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -439,7 +520,7 @@ int enter_menu_page(m_int_ui_page *page)
 	
 	if (str)
 	{
-		menu_item_ll *current = str->items;
+		m_int_menu_item_pll *current = str->items;
 		
 		while (current)
 		{
@@ -459,7 +540,7 @@ int enter_menu_page(m_int_ui_page *page)
 	return NO_ERROR;
 }
 
-int refresh_menu_page(m_int_ui_page *page)
+int refresh_menu_page(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -469,7 +550,7 @@ int refresh_menu_page(m_int_ui_page *page)
 	if (!str)
 		return ERR_BAD_ARGS;
 	
-	menu_item_ll *current = str->items;
+	m_int_menu_item_pll *current = str->items;
 	
 	while (current)
 	{
@@ -480,7 +561,7 @@ int refresh_menu_page(m_int_ui_page *page)
 	return NO_ERROR;
 }
 
-int free_menu_page_ui(m_int_ui_page *page)
+int free_menu_page_ui(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -497,7 +578,7 @@ int menu_page_add_item(m_int_menu_page_str *str, m_int_menu_item *item)
 	
 	//printf("menu_page_add_item(%p, %p). str->items = %p\n", str, item, str->items);
 	
-	menu_item_ll *nl = m_int_menu_item_ptr_linked_list_append(str->items, item);
+	m_int_menu_item_pll *nl = m_int_menu_item_pll_append(str->items, item);
 	
 	if (!nl)
 		return ERR_ALLOC_FAIL;
@@ -512,7 +593,7 @@ void enter_main_menu_cb(lv_event_t *e)
 	enter_ui_page(global_cxt.ui_cxt.main_menu);
 }
 
-int init_main_menu(m_int_ui_page *page)
+int init_main_menu(m_ui_page *page)
 {
 	init_menu_page(page);
 	
@@ -521,7 +602,7 @@ int init_main_menu(m_int_ui_page *page)
 	return NO_ERROR;
 }
 
-int configure_main_menu(m_int_ui_page *page, void *data)
+int configure_main_menu(m_ui_page *page, void *data)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -549,7 +630,7 @@ int configure_main_menu(m_int_ui_page *page, void *data)
 	
 	menu_page_add_item(str, item);
 	
-	m_int_ui_page *profile_list = m_int_malloc(sizeof(m_int_ui_page));
+	m_ui_page *profile_list = m_alloc(sizeof(m_ui_page));
 	
 	if (!profile_list)
 		return ERR_NULL_PTR;
@@ -565,7 +646,7 @@ int configure_main_menu(m_int_ui_page *page, void *data)
 	
 	menu_page_add_item(str, item);
 	
-	m_int_ui_page *sequence_list = m_int_malloc(sizeof(m_int_ui_page));
+	m_ui_page *sequence_list = m_alloc(sizeof(m_ui_page));
 	
 	if (!sequence_list)
 		return ERR_NULL_PTR;
@@ -581,10 +662,14 @@ int configure_main_menu(m_int_ui_page *page, void *data)
 	
 	menu_page_add_item(str, item);
 	
+	item = create_danger_button_menu_item(erase_sd_card_void_cb, NULL, "Erase SD card", page);
+	
+	menu_page_add_item(str, item);
+	
 	return NO_ERROR;
 }
 
-int enter_main_menu(m_int_ui_page *page)
+int enter_main_menu(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -594,7 +679,7 @@ int enter_main_menu(m_int_ui_page *page)
 	return NO_ERROR;
 }
 
-int enter_main_menu_forward(m_int_ui_page *page)
+int enter_main_menu_forward(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -604,7 +689,7 @@ int enter_main_menu_forward(m_int_ui_page *page)
 	return NO_ERROR;
 }
 
-int enter_main_menu_back(m_int_ui_page *page)
+int enter_main_menu_back(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -614,7 +699,7 @@ int enter_main_menu_back(m_int_ui_page *page)
 	return NO_ERROR;
 }
 
-int menu_page_remove_item(m_int_ui_page *page, m_int_menu_item *item)
+int menu_page_remove_item(m_ui_page *page, m_int_menu_item *item)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -624,8 +709,8 @@ int menu_page_remove_item(m_int_ui_page *page, m_int_menu_item *item)
 	if (!str)
 		return ERR_BAD_ARGS;
 	
-	menu_item_ll *current_item = str->items;
-	menu_item_ll *prev_item = NULL;
+	m_int_menu_item_pll *current_item = str->items;
+	m_int_menu_item_pll *prev_item = NULL;
 	
 	while (current_item)
 	{
@@ -639,7 +724,7 @@ int menu_page_remove_item(m_int_ui_page *page, m_int_menu_item *item)
 			else
 				str->items = current_item->next;
 			
-			m_int_free(current_item);
+			m_free(current_item);
 			return NO_ERROR;
 		}
 		

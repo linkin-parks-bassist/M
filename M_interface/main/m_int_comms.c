@@ -18,7 +18,7 @@ int teensy_online = 1;
 
 IMPLEMENT_LINKED_PTR_LIST(et_msg);
 
-static et_msg_ptr_linked_list *retry_queue = NULL;
+static et_msg_pll *retry_queue = NULL;
 
 static et_msg hi_msg;
 
@@ -30,7 +30,7 @@ int queue_message_retry(et_msg *msg)
 	if (msg->retries > ET_MESSAGE_MAX_RETRIES)
 		msg->retries = ET_MESSAGE_MAX_RETRIES;
 	
-	et_msg_ptr_linked_list *nl = et_msg_ptr_linked_list_append(retry_queue, msg);
+	et_msg_pll *nl = et_msg_pll_append(retry_queue, msg);
 	
 	if (!nl)
 		return ERR_ALLOC_FAIL;
@@ -46,7 +46,7 @@ int queue_msg_to_teensy(et_msg msg)
 {
 	printf("Queueing message of type %s\n", et_msg_code_to_string(msg.type));
 	
-	et_msg *msg_copy = m_int_malloc(sizeof(et_msg));
+	et_msg *msg_copy = m_alloc(sizeof(et_msg));
 	
 	if (!msg_copy)
 		return ERR_ALLOC_FAIL;
@@ -229,7 +229,7 @@ static int handle_msg(et_msg *msg)
 			}
 			else
 			{
-				m_int_free(msg);
+				m_free(msg);
 				return ERR_COMMS_FAIL;
 			}
 			break;
@@ -257,7 +257,7 @@ void m_int_comms_task(void *param)
 	
 	esp_err_t err;
 	
-	et_msg_ptr_linked_list *retry_next;
+	et_msg_pll *retry_next;
 
 	while (true)
 	{
@@ -283,7 +283,7 @@ void m_int_comms_task(void *param)
 			if (retry_queue->data)
 				handle_msg(retry_queue->data);
 			
-			m_int_free(retry_queue);
+			m_free(retry_queue);
 			retry_queue = retry_next;
 		}
 		

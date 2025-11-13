@@ -34,33 +34,33 @@ int main()
 		exit(0);
 	}
 	
-	m_eng_printf("Hello!\n");
+	m_printf("Hello!\n");
 		
-	m_eng_printf("Initialising memory pools... ");
+	m_printf("Initialising memory pools... ");
 	init_mem_pools();
-	m_eng_printf("done.\n");
+	m_printf("done.\n");
 	
-	m_eng_printf("Initialising context struct... ");
+	m_printf("Initialising context struct... ");
 	init_m_eng_context(&global_cxt);
 	
-	m_eng_printf("done.\n");
+	m_printf("done.\n");
 	
 	
 	init_i2s_dma();
 	
 		
-	m_eng_printf("Initialising SGTL5000... ");
+	m_printf("Initialising SGTL5000... ");
 	
 	sgtl5000_start();
 	
-	m_eng_printf("done.\n");
+	m_printf("done.\n");
 	
 	
-	m_eng_printf("Initialising esp32 link... ");
+	m_printf("Initialising esp32 link... ");
 	init_esp32_link();
-	m_eng_printf("done.\n");
+	m_printf("done.\n");
 		
-	m_eng_printf("Initialisation complete. Entering main loop...\n");
+	m_printf("Initialisation complete. Entering main loop...\n");
 
 	
 	while (1)
@@ -126,7 +126,7 @@ int main()
 		#ifdef SGTL5000_CHECK
 		if (!sgtl5000_healthy())
 		{
-			m_eng_printf("SGTL5000 died!\n");
+			m_printf("SGTL5000 died!\n");
 			sgtl5000_soft_reboot();
 		}
 		#endif

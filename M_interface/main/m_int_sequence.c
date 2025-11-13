@@ -23,7 +23,7 @@ int init_m_int_sequence(m_int_sequence *seq)
 	return NO_ERROR;
 }
 
-int sequence_append_profile(m_int_sequence *seq, m_int_profile *profile)
+int sequence_append_profile(m_int_sequence *seq, m_profile *profile)
 {
 	if (!seq || !profile)
 		return ERR_NULL_PTR;
@@ -60,7 +60,7 @@ int sequence_append_profile(m_int_sequence *seq, m_int_profile *profile)
 }
 
 
-seq_profile_ll *sequence_append_profile_rp(m_int_sequence *seq, m_int_profile *profile)
+seq_profile_ll *sequence_append_profile_rp(m_int_sequence *seq, m_profile *profile)
 {
 	if (!seq || !profile)
 		return NULL;
@@ -164,7 +164,7 @@ int m_int_sequence_add_menu_listing(m_int_sequence *sequence, m_int_menu_item *l
 	if (!sequence || !listing)
 		return ERR_NULL_PTR;
 	
-	menu_item_ll *nl = m_int_menu_item_ptr_linked_list_append(sequence->listings, listing);
+	m_int_menu_item_pll *nl = m_int_menu_item_pll_append(sequence->listings, listing);
 	
 	if (nl)
 		sequence->listings = nl;

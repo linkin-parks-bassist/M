@@ -1,9 +1,9 @@
 #include "m_eng.h"
 
-static const char *FNAME = "m_eng_printf.c";
+static const char *FNAME = "m_printf.c";
 #define ALLOW_PRINTLINES
 
-void m_eng_printf(const char *fmt, ...)
+void m_printf(const char *fmt, ...)
 {
 	#ifdef ALLOW_PRINTLINES
 	char buf[1024];
@@ -109,7 +109,7 @@ void pretty_print_block(int16_t *data, const char *start)
 	buf[pos++] = '\n';
 	buf[pos] = 0;
 	
-	m_eng_printf(buf);
+	m_printf(buf);
 }
 
 void pretty_print_block_float(float *data, const char *start)
@@ -178,5 +178,5 @@ void pretty_print_block_float(float *data, const char *start)
 	buf[pos++] = '\n';
 	buf[pos] = 0;
 	
-	m_eng_printf(buf);
+	m_printf(buf);
 }

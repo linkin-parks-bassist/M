@@ -1,8 +1,9 @@
 #include "m_int.h"
 
-static const char *TAG = "m_int_parameter_widget.c";
+static const char *TAG = "m_parameter_widget.c";
 
-IMPLEMENT_LINKED_PTR_LIST(m_int_parameter_widget);
+IMPLEMENT_LINKED_PTR_LIST(m_parameter_widget);
+IMPLEMENT_LINKED_PTR_LIST(m_setting_widget);
 
 int format_float(char *buf, float val, int max_len)
 {
@@ -64,7 +65,7 @@ int format_float(char *buf, float val, int max_len)
 	return pos - 1;
 }
 
-int nullify_parameter_widget(m_int_parameter_widget *pw)
+int nullify_parameter_widget(m_parameter_widget *pw)
 {
 	if (!pw)
 		return ERR_NULL_PTR;
@@ -81,12 +82,12 @@ int nullify_parameter_widget(m_int_parameter_widget *pw)
 	return NO_ERROR;
 }
 
-void format_parameter_widget_value_label(m_int_parameter_widget *pw)
+void format_parameter_widget_value_label(m_parameter_widget *pw)
 {
 	if (!pw || !pw->param)
 		return;
 	
-	int i = format_float(pw->val_label_text, pw->param->val, PARAM_WIDGET_LABEL_BUFSIZE);
+	int i = format_float(pw->val_label_text, pw->param->value, PARAM_WIDGET_LABEL_BUFSIZE);
 	
 	if (pw->param->units && i < PARAM_WIDGET_LABEL_BUFSIZE)
 	{
@@ -94,7 +95,7 @@ void format_parameter_widget_value_label(m_int_parameter_widget *pw)
 	}
 }
 
-int parameter_widget_update_value(m_int_parameter_widget *pw)
+int parameter_widget_update_value(m_parameter_widget *pw)
 {
 	if (!pw)
 		return ERR_NULL_PTR;
@@ -113,12 +114,12 @@ int parameter_widget_update_value(m_int_parameter_widget *pw)
 		if (pw->param->scale == PARAMETER_SCALE_LOGARITHMIC)
 		{
 			
-			val = PARAMETER_WIDGET_RANGE_SIZE * ((logf(pw->param->val) - logf(pw->param->min)) /
+			val = PARAMETER_WIDGET_RANGE_SIZE * ((logf(pw->param->value) - logf(pw->param->min)) /
 												 (logf(pw->param->max) - logf(pw->param->min)));
 		}
 		else
 		{
-			val = PARAMETER_WIDGET_RANGE_SIZE * ((pw->param->val - pw->param->min) /
+			val = PARAMETER_WIDGET_RANGE_SIZE * ((pw->param->value - pw->param->min) /
 												 (pw->param->max - pw->param->min));
 		}
 	}
@@ -139,7 +140,7 @@ int parameter_widget_update_value(m_int_parameter_widget *pw)
 	return NO_ERROR;
 }
 
-void parameter_widget_update_value_label(m_int_parameter_widget *pw)
+void parameter_widget_update_value_label(m_parameter_widget *pw)
 {
 	if (!pw)
 		return;
@@ -151,7 +152,7 @@ void parameter_widget_update_value_label(m_int_parameter_widget *pw)
 	lv_label_set_text(pw->val_label, pw->val_label_text);
 }
 
-int configure_parameter_widget(m_int_parameter_widget *pw, m_int_parameter *param, m_int_profile *profile)
+int configure_parameter_widget(m_parameter_widget *pw, m_parameter *param, m_profile *profile)
 {
 	if (!pw || !param)
 		return ERR_NULL_PTR;
@@ -159,14 +160,14 @@ int configure_parameter_widget(m_int_parameter_widget *pw, m_int_parameter *para
 	pw->param = param;
 	pw->profile = profile;
 	
-	format_float(pw->val_label_text, pw->param->val, PARAM_WIDGET_LABEL_BUFSIZE);
+	format_float(pw->val_label_text, pw->param->value, PARAM_WIDGET_LABEL_BUFSIZE);
 	
 	return NO_ERROR;
 }
 
 void parameter_widget_refresh_cb(lv_event_t *event)
 {
-	m_int_parameter_widget *pw = lv_event_get_user_data(event);
+	m_parameter_widget *pw = lv_event_get_user_data(event);
 	
 	if (!pw)
 	{
@@ -179,7 +180,7 @@ void parameter_widget_refresh_cb(lv_event_t *event)
 	parameter_widget_update_value_label(pw);
 }
 
-void parameter_widget_change_cb_inner(m_int_parameter_widget *pw)
+void parameter_widget_change_cb_inner(m_parameter_widget *pw)
 {
 	float val;
 	
@@ -204,17 +205,17 @@ void parameter_widget_change_cb_inner(m_int_parameter_widget *pw)
 			float lnmin = logf(pw->param->min);
 			float lnmax = logf(pw->param->max);
 			
-			pw->param->val = expf(lnmin + val * (lnmax - lnmin));
+			pw->param->value = expf(lnmin + val * (lnmax - lnmin));
 			break;
 		
 		default:
-			pw->param->val = pw->param->min + val * (pw->param->max - pw->param->min);
+			pw->param->value = pw->param->min + val * (pw->param->max - pw->param->min);
 			break;
 	}
 	
 	parameter_widget_update_value_label(pw);
 	
-	et_msg msg = create_et_msg(ET_MESSAGE_SET_PARAM_VALUE, "sssf", pw->param->id.profile_id, pw->param->id.transformer_id, pw->param->id.parameter_id, pw->param->val);
+	et_msg msg = create_et_msg(ET_MESSAGE_SET_PARAM_VALUE, "sssf", pw->param->id.profile_id, pw->param->id.transformer_id, pw->param->id.parameter_id, pw->param->value);
 
 	queue_msg_to_teensy(msg);
 	
@@ -230,7 +231,7 @@ void parameter_widget_change_cb_inner(m_int_parameter_widget *pw)
 
 void parameter_widget_change_cb(lv_event_t *event)
 {
-	m_int_parameter_widget *pw = lv_event_get_user_data(event);
+	m_parameter_widget *pw = lv_event_get_user_data(event);
 	
 	if (!pw)
 	{
@@ -241,7 +242,7 @@ void parameter_widget_change_cb(lv_event_t *event)
 	parameter_widget_change_cb_inner(pw);
 }
 
-int parameter_widget_create_ui(m_int_parameter_widget *pw, lv_obj_t *parent)
+int parameter_widget_create_ui(m_parameter_widget *pw, lv_obj_t *parent)
 {
 	if (!pw)
 		return ERR_NULL_PTR;
@@ -255,7 +256,7 @@ int parameter_widget_create_ui(m_int_parameter_widget *pw, lv_obj_t *parent)
 	return NO_ERROR;
 }
 
-int parameter_widget_create_ui_no_callback(m_int_parameter_widget *pw, lv_obj_t *parent)
+int parameter_widget_create_ui_no_callback(m_parameter_widget *pw, lv_obj_t *parent)
 {
 	if (!pw || !pw->param || !parent)
 		return ERR_NULL_PTR;
@@ -350,7 +351,7 @@ int parameter_widget_create_ui_no_callback(m_int_parameter_widget *pw, lv_obj_t 
 
 void param_widget_receive(et_msg msg, te_msg response)
 {
-	m_int_parameter_widget *pw = (m_int_parameter_widget*)msg.cb_arg;
+	m_parameter_widget *pw = (m_parameter_widget*)msg.cb_arg;
 	
 	if (!pw || !pw->param)
 		return;
@@ -374,9 +375,9 @@ void param_widget_receive(et_msg msg, te_msg response)
 	 && transformer_id == pw->param->id.transformer_id
 	 && parameter_id   == pw->param->id.parameter_id)
 	{
-		memcpy(&pw->param->val, &response.data[6], sizeof(float));
+		memcpy(&pw->param->value, &response.data[6], sizeof(float));
 		
-		printf("Parameter %d.%d.%d value revieced: %f\n", profile_id, transformer_id, parameter_id, pw->param->val);
+		printf("Parameter %d.%d.%d value revieced: %f\n", profile_id, transformer_id, parameter_id, pw->param->value);
 		parameter_widget_update_value(pw);
 		parameter_widget_update_value_label(pw);
 	}
@@ -390,7 +391,7 @@ void param_widget_receive(et_msg msg, te_msg response)
 	}
 }
 
-int param_widget_request_value(m_int_parameter_widget *pw)
+int param_widget_request_value(m_parameter_widget *pw)
 {
 	printf("param_widget_request_value...\n");
 	if (!pw)
@@ -414,17 +415,17 @@ int param_widget_request_value(m_int_parameter_widget *pw)
 //
 //
 
-void free_parameter_widget(m_int_parameter_widget *pw)
+void free_parameter_widget(m_parameter_widget *pw)
 {
 	if (!pw)
 		return;
 	
-	// Currently the m_int_parameter_widget struct contains nothing that
+	// Currently the m_parameter_widget struct contains nothing that
 	// it owns itself. This may change !
-	m_int_free(pw);
+	m_free(pw);
 }
 
-int nullify_setting_widget(m_int_setting_widget *sw)
+int nullify_setting_widget(m_setting_widget *sw)
 {
 	if (!sw)
 		return ERR_NULL_PTR;
@@ -438,7 +439,7 @@ int nullify_setting_widget(m_int_setting_widget *sw)
 	return NO_ERROR;
 }
 
-int setting_widget_update_value(m_int_setting_widget *sw)
+int setting_widget_update_value(m_setting_widget *sw)
 {
 	if (!sw)
 		return ERR_NULL_PTR;
@@ -450,14 +451,7 @@ int setting_widget_update_value(m_int_setting_widget *sw)
 	return NO_ERROR;
 }
 
-void setting_widget_update_value_label(m_int_setting_widget *sw)
-{
-	if (!sw)
-		return;
-	
-}
-
-int configure_setting_widget(m_int_setting_widget *sw, m_int_setting *setting, m_int_profile *profile)
+int configure_setting_widget(m_setting_widget *sw, m_setting *setting, m_profile *profile)
 {
 	if (!sw || !setting)
 		return ERR_NULL_PTR;
@@ -470,15 +464,15 @@ int configure_setting_widget(m_int_setting_widget *sw, m_int_setting *setting, m
 
 void setting_widget_refresh_cb(lv_event_t *event)
 {
-	m_int_setting_widget *sw = lv_event_get_user_data(event);
+	m_setting_widget *sw = lv_event_get_user_data(event);
 	
 	if (!sw)
 		return;
 }
 
-void setting_widget_change_cb_inner(m_int_setting_widget *sw)
+void setting_widget_change_cb_inner(m_setting_widget *sw)
 {	
-	et_msg msg = create_et_msg(ET_MESSAGE_SET_SETTING_VALUE, "sssf", sw->setting->id.profile_id, sw->setting->id.transformer_id, sw->setting->id.parameter_id, sw->setting->val);
+	et_msg msg = create_et_msg(ET_MESSAGE_SET_SETTING_VALUE, "sssf", sw->setting->id.profile_id, sw->setting->id.transformer_id, sw->setting->id.setting_id, sw->setting->value);
 
 	queue_msg_to_teensy(msg);
 	
@@ -494,7 +488,7 @@ void setting_widget_change_cb_inner(m_int_setting_widget *sw)
 
 void setting_widget_change_cb(lv_event_t *event)
 {
-	m_int_setting_widget *sw = lv_event_get_user_data(event);
+	m_setting_widget *sw = lv_event_get_user_data(event);
 	
 	if (!sw)
 	{
@@ -505,7 +499,7 @@ void setting_widget_change_cb(lv_event_t *event)
 	setting_widget_change_cb_inner(sw);
 }
 
-int setting_widget_create_ui(m_int_setting_widget *sw, lv_obj_t *parent)
+int setting_widget_create_ui(m_setting_widget *sw, lv_obj_t *parent)
 {
 	if (!sw)
 		return ERR_NULL_PTR;
@@ -519,7 +513,7 @@ int setting_widget_create_ui(m_int_setting_widget *sw, lv_obj_t *parent)
 	return NO_ERROR;
 }
 
-int setting_widget_create_ui_no_callback(m_int_setting_widget *sw, lv_obj_t *parent)
+int setting_widget_create_ui_no_callback(m_setting_widget *sw, lv_obj_t *parent)
 {
 	if (!sw || !sw->setting || !parent)
 		return ERR_NULL_PTR;
@@ -571,14 +565,13 @@ int setting_widget_create_ui_no_callback(m_int_setting_widget *sw, lv_obj_t *par
 	}
 	
 	setting_widget_update_value(sw);
-	setting_widget_update_value_label(sw);
 	
 	return NO_ERROR;
 }
 
 void setting_widget_receive(et_msg msg, te_msg response)
 {
-	m_int_setting_widget *sw = (m_int_setting_widget*)msg.cb_arg;
+	m_setting_widget *sw = (m_setting_widget*)msg.cb_arg;
 	
 	if (!sw || !sw->setting)
 		return;
@@ -600,11 +593,11 @@ void setting_widget_receive(et_msg msg, te_msg response)
 	
 	if (profile_id 	   == sw->setting->id.profile_id
 	 && transformer_id == sw->setting->id.transformer_id
-	 && parameter_id   == sw->setting->id.parameter_id)
+	 && parameter_id   == sw->setting->id.setting_id)
 	{
-		memcpy(&sw->setting->val, &response.data[6], sizeof(float));
+		memcpy(&sw->setting->value, &response.data[6], sizeof(float));
 		
-		printf("Parameter %d.%d.%d value revieced: %f\n", profile_id, transformer_id, parameter_id, sw->setting->val);
+		printf("Parameter %d.%d.%d value revieced: %f\n", profile_id, transformer_id, parameter_id, sw->setting->value);
 		setting_widget_update_value(sw);
 		setting_widget_update_value_label(sw);
 	}
@@ -613,18 +606,18 @@ void setting_widget_receive(et_msg msg, te_msg response)
 		#ifndef M_SIMULATED
 		ESP_LOGE(TAG, "Data for setting %d.%d.%d received by setting %d.%d.%d...",
 			profile_id, transformer_id, parameter_id, 
-			sw->setting->id.profile_id, sw->setting->id.transformer_id, sw->setting->id.parameter_id); 
+			sw->setting->id.profile_id, sw->setting->id.transformer_id, sw->setting->id.setting_id); 
 		#endif
 	}
 }
 
-int setting_widget_request_value(m_int_setting_widget *sw)
+int setting_widget_request_value(m_setting_widget *sw)
 {
 	printf("setting_widget_request_value...\n");
 	if (!sw)
 		return ERR_NULL_PTR;
 	
-	et_msg msg = create_et_msg(ET_MESSAGE_GET_SETTING_VALUE, "sss", sw->setting->id.profile_id, sw->setting->id.transformer_id, sw->setting->id.parameter_id);
+	et_msg msg = create_et_msg(ET_MESSAGE_GET_SETTING_VALUE, "sss", sw->setting->id.profile_id, sw->setting->id.transformer_id, sw->setting->id.setting_id);
 	msg.callback = setting_widget_receive;
 	msg.cb_arg = sw;
 
@@ -634,12 +627,12 @@ int setting_widget_request_value(m_int_setting_widget *sw)
 	return NO_ERROR;
 }
 
-void free_setting_widget(m_int_setting_widget *sw)
+void free_setting_widget(m_setting_widget *sw)
 {
 	if (!sw)
 		return;
 	
-	// Currently the m_int_setting_widget struct contains nothing that
+	// Currently the m_setting_widget struct contains nothing that
 	// it owns itself. This may change !
-	m_int_free(sw);
+	m_free(sw);
 }

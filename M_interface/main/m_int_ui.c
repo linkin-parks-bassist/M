@@ -2,9 +2,9 @@
 
 IMPLEMENT_LINKED_PTR_LIST(lv_obj_t);
 
-m_int_ui_page test_page;
+m_ui_page test_page;
 
-int create_test_page_ui(m_int_ui_page *page)
+int create_test_page_ui(m_ui_page *page)
 {
 	ui_page_create_base_ui(page);
 	return NO_ERROR;
@@ -40,7 +40,7 @@ int init_ui_context(m_int_ui_context *cxt)
 	
 	init_transformer_selector(&cxt->transformer_selector);
 	
-	cxt->main_menu = m_int_malloc(sizeof(m_int_ui_page));
+	cxt->main_menu = m_alloc(sizeof(m_ui_page));
 	
 	init_main_menu(cxt->main_menu);
 	
@@ -54,7 +54,7 @@ int init_ui_context(m_int_ui_context *cxt)
 	return NO_ERROR;
 }
 
-int m_int_ui_page_set_background_default(m_int_ui_page *page)
+int m_ui_page_set_background_default(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -87,7 +87,7 @@ void create_ui(lv_disp_t *disp)
 	//create_page_ui(global_cxt.ui_cxt.main_menu);
 	
 	//create_page_uicxt->transformer_selector.create_ui(&cxt->transformer_selector);
-	m_int_profile_set_active(global_cxt.active_profile);
+	m_profile_set_active(global_cxt.active_profile);
 	
 	init_test_page();
 	
@@ -121,7 +121,7 @@ void init_global_bg(lv_disp_t *disp)
                         NULL);
 }
 
-int init_ui_page(m_int_ui_page *page)
+int init_ui_page(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -151,9 +151,9 @@ int init_ui_page(m_int_ui_page *page)
 	return NO_ERROR;
 }
 
-m_int_ui_page *create_ui_page()
+m_ui_page *create_ui_page()
 {
-	m_int_ui_page *res = m_int_malloc(sizeof(m_int_ui_page));
+	m_ui_page *res = m_alloc(sizeof(m_ui_page));
 	
 	if (!res)
 		return NULL;
@@ -163,7 +163,7 @@ m_int_ui_page *create_ui_page()
 	return res;
 }
 
-int configure_ui_page(m_int_ui_page *page, void *data)
+int configure_ui_page(m_ui_page *page, void *data)
 {
 	//printf("configure_ui_page\n");
 	if (!page)
@@ -192,7 +192,7 @@ int configure_ui_page(m_int_ui_page *page, void *data)
 	return NO_ERROR;
 }
 
-int create_page_ui(m_int_ui_page *page)
+int create_page_ui(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -210,7 +210,7 @@ int create_page_ui(m_int_ui_page *page)
 	return NO_ERROR;
 }
 
-int enter_ui_page(m_int_ui_page *page)
+int enter_ui_page(m_ui_page *page)
 {
 	printf("enter ui page...\n");
 	
@@ -263,7 +263,7 @@ int enter_ui_page(m_int_ui_page *page)
 	return NO_ERROR;
 }
 
-int enter_ui_page_indirect(m_int_ui_page **_page)
+int enter_ui_page_indirect(m_ui_page **_page)
 {
 	//printf("enter ui page indirect...\n");
 	
@@ -277,14 +277,14 @@ int enter_ui_page_indirect(m_int_ui_page **_page)
 
 
 
-int enter_ui_page_indirect_forward(m_int_ui_page **_page)
+int enter_ui_page_indirect_forward(m_ui_page **_page)
 {
 	//printf("enter ui page indirect...\n");
 	
 	if (!_page)
 		return ERR_NULL_PTR;
 	
-	m_int_ui_page *page = *_page;
+	m_ui_page *page = *_page;
 	
 	if (!page)
 		return ERR_NULL_PTR;
@@ -300,14 +300,14 @@ int enter_ui_page_indirect_forward(m_int_ui_page **_page)
 	return NO_ERROR;
 }
 
-int enter_ui_page_indirect_back(m_int_ui_page **_page)
+int enter_ui_page_indirect_back(m_ui_page **_page)
 {
 	//printf("enter ui page indirect...\n");
 	
 	if (!_page)
 		return ERR_NULL_PTR;
 	
-	m_int_ui_page *page = *_page;
+	m_ui_page *page = *_page;
 	
 	if (!page)
 		return ERR_NULL_PTR;
@@ -328,7 +328,7 @@ int enter_ui_page_indirect_back(m_int_ui_page **_page)
 void enter_ui_page_cb(lv_event_t *e)
 {
 	printf("enter ui page callback triggered\n");
-	m_int_ui_page *page = (m_int_ui_page*)lv_event_get_user_data(e);
+	m_ui_page *page = (m_ui_page*)lv_event_get_user_data(e);
 	printf("Given page: %p\n", page);
 	if (page)
 		enter_ui_page(page);
@@ -337,14 +337,14 @@ void enter_ui_page_cb(lv_event_t *e)
 void enter_ui_page_forward_cb(lv_event_t *e)
 {
 	//printf("enter ui page callback triggered\n");
-	m_int_ui_page **_page = (m_int_ui_page**)lv_event_get_user_data(e);
+	m_ui_page **_page = (m_ui_page**)lv_event_get_user_data(e);
 	enter_ui_page_indirect_forward(_page);
 }
 
 void enter_ui_page_back_cb(lv_event_t *e)
 {
 	printf("enter ui page callback triggered\n");
-	m_int_ui_page **_page = (m_int_ui_page**)lv_event_get_user_data(e);
+	m_ui_page **_page = (m_ui_page**)lv_event_get_user_data(e);
 	
 	printf("_page = %p, *_page = %p\n", _page, _page ? *_page : NULL);
 	enter_ui_page_indirect_back(_page);
@@ -353,7 +353,7 @@ void enter_ui_page_back_cb(lv_event_t *e)
 void enter_parent_page_cb(lv_event_t *e)
 {
 	printf("enter_parent_page_cb\n");
-	m_int_ui_page *page = lv_event_get_user_data(e);
+	m_ui_page *page = lv_event_get_user_data(e);
 	
 	if (!page)
 	{
@@ -373,7 +373,7 @@ void enter_parent_page_cb(lv_event_t *e)
 		enter_ui_page(global_cxt.ui_cxt.main_menu);
 }
 
-void m_int_ui_page_return_to_parent(m_int_ui_page *page)
+void m_ui_page_return_to_parent(m_ui_page *page)
 {
 	if (!page)
 		return;
@@ -387,7 +387,7 @@ void m_int_ui_page_return_to_parent(m_int_ui_page *page)
 		enter_ui_page(page->parent);
 }
 
-int init_ui_page_panel_str(m_int_ui_page_panel *panel)
+int init_ui_page_panel_str(m_ui_page_panel *panel)
 {
 	if (!panel)
 		return ERR_NULL_PTR;
@@ -402,12 +402,12 @@ int init_ui_page_panel_str(m_int_ui_page_panel *panel)
 	return NO_ERROR;
 }
 
-int create_panel(m_int_ui_page *page)
+int create_panel(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
 	
-	page->panel = m_int_malloc(sizeof(m_int_ui_page_panel));
+	page->panel = m_alloc(sizeof(m_ui_page_panel));
 	
 	if (!page->panel)
 		return ERR_ALLOC_FAIL;
@@ -429,7 +429,7 @@ int create_panel(m_int_ui_page *page)
     return NO_ERROR;
 }
 
-int set_panel_text(m_int_ui_page *page, const char *text)
+int set_panel_text(m_ui_page *page, const char *text)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -459,7 +459,7 @@ int set_panel_text(m_int_ui_page *page, const char *text)
     return NO_ERROR;
 }
 
-int set_panel_text_rw(m_int_ui_page *page, const char *text)
+int set_panel_text_rw(m_ui_page *page, const char *text)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -486,7 +486,7 @@ int set_panel_text_rw(m_int_ui_page *page, const char *text)
     return NO_ERROR;
 }
 
-int create_panel_rw_title(m_int_ui_page *page, const char *text)
+int create_panel_rw_title(m_ui_page *page, const char *text)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -498,7 +498,7 @@ int create_panel_rw_title(m_int_ui_page *page, const char *text)
     return NO_ERROR;
 }
 
-int create_panel_left_button(m_int_ui_page *page, const char *button_text, lv_event_cb_t cb, void *cb_arg)
+int create_panel_left_button(m_ui_page *page, const char *button_text, lv_event_cb_t cb, void *cb_arg)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -520,7 +520,7 @@ int create_panel_left_button(m_int_ui_page *page, const char *button_text, lv_ev
     return NO_ERROR;
 }
 
-int create_panel_right_button(m_int_ui_page *page, const char *button_text, lv_event_cb_t cb, void *cb_arg)
+int create_panel_right_button(m_ui_page *page, const char *button_text, lv_event_cb_t cb, void *cb_arg)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -542,7 +542,7 @@ int create_panel_right_button(m_int_ui_page *page, const char *button_text, lv_e
     return NO_ERROR;
 }
 
-int create_panel_rw_title_and_left_button(m_int_ui_page *page, const char *text, const char *left_button_text, lv_event_cb_t left_cb, void *left_cb_arg)
+int create_panel_rw_title_and_left_button(m_ui_page *page, const char *text, const char *left_button_text, lv_event_cb_t left_cb, void *left_cb_arg)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -556,22 +556,22 @@ int create_panel_rw_title_and_left_button(m_int_ui_page *page, const char *text,
     return NO_ERROR;
 }
 
-int create_panel_with_back_button(m_int_ui_page *page)
+int create_panel_with_back_button(m_ui_page *page)
 {
 	return create_panel_with_left_button(page, LV_SYMBOL_LEFT, enter_parent_page_cb, page);
 }
 
-int create_panel_with_back_and_settings_buttons(m_int_ui_page *page, m_int_ui_page *settings_page)
+int create_panel_with_back_and_settings_buttons(m_ui_page *page, m_ui_page *settings_page)
 {
 	return create_panel_with_back_button_and_page_button(page, LV_SYMBOL_SETTINGS, settings_page);
 }
 
-int create_panel_with_back_button_and_right_button(m_int_ui_page *page, const char *right_button_text, lv_event_cb_t right_cb, void *cb_arg)
+int create_panel_with_back_button_and_right_button(m_ui_page *page, const char *right_button_text, lv_event_cb_t right_cb, void *cb_arg)
 {
 	return create_panel_with_left_and_right_buttons(page, LV_SYMBOL_LEFT, enter_parent_page_cb, page, right_button_text, right_cb, cb_arg);
 }
 
-int create_panel_with_left_button(m_int_ui_page *page, const char *left_button_text, lv_event_cb_t left_cb, void *cb_arg)
+int create_panel_with_left_button(m_ui_page *page, const char *left_button_text, lv_event_cb_t left_cb, void *cb_arg)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -583,7 +583,7 @@ int create_panel_with_left_button(m_int_ui_page *page, const char *left_button_t
     return NO_ERROR;
 }
 
-int create_panel_with_right_button(m_int_ui_page *page, const char *right_button_text, lv_event_cb_t right_cb, void *cb_arg)
+int create_panel_with_right_button(m_ui_page *page, const char *right_button_text, lv_event_cb_t right_cb, void *cb_arg)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -595,7 +595,7 @@ int create_panel_with_right_button(m_int_ui_page *page, const char *right_button
     return NO_ERROR;
 }
 
-int create_panel_with_back_button_and_page_button(m_int_ui_page *page, const char *right_button_text, m_int_ui_page *right_button_page)
+int create_panel_with_back_button_and_page_button(m_ui_page *page, const char *right_button_text, m_ui_page *right_button_page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -607,7 +607,7 @@ int create_panel_with_back_button_and_page_button(m_int_ui_page *page, const cha
     return NO_ERROR;
 }
 
-int create_panel_with_left_and_right_buttons(m_int_ui_page *page,
+int create_panel_with_left_and_right_buttons(m_ui_page *page,
 	const char *left_button_text, lv_event_cb_t left_cb, void *left_cb_arg,
 	const char *right_button_text, lv_event_cb_t right_cb, void *right_cb_arg)
 {
@@ -987,7 +987,7 @@ int button_set_released_cb(m_int_button *button, lv_event_cb_t cb, void *cb_arg)
 	return NO_ERROR;
 }
 
-int init_panel(m_int_ui_page_panel *panel)
+int init_panel(m_ui_page_panel *panel)
 {
 	if (!panel)
 		return ERR_NULL_PTR;
@@ -1007,9 +1007,9 @@ int init_panel(m_int_ui_page_panel *panel)
 	return NO_ERROR;
 }
 
-m_int_ui_page_panel *new_panel()
+m_ui_page_panel *new_panel()
 {
-	m_int_ui_page_panel *panel = malloc(sizeof(m_int_ui_page_panel));
+	m_ui_page_panel *panel = malloc(sizeof(m_ui_page_panel));
 	
 	if (!panel)
 		return NULL;
@@ -1021,7 +1021,7 @@ m_int_ui_page_panel *new_panel()
 
 static void edit_rw_text_cb(lv_event_t *e)
 {
-	m_int_ui_page *page = (m_int_ui_page*)lv_event_get_user_data(e);
+	m_ui_page *page = (m_ui_page*)lv_event_get_user_data(e);
 	
 	if (!page)
 		return;
@@ -1031,7 +1031,7 @@ static void edit_rw_text_cb(lv_event_t *e)
 }
 
 
-int ui_page_create_panel_ui(m_int_ui_page *page)
+int ui_page_create_panel_ui(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -1096,7 +1096,7 @@ int ui_page_create_panel_ui(m_int_ui_page *page)
 	return NO_ERROR;
 }
 
-int ui_page_add_back_button(m_int_ui_page *page)
+int ui_page_add_back_button(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -1117,7 +1117,7 @@ int ui_page_add_back_button(m_int_ui_page *page)
 	return NO_ERROR;
 }
 
-int ui_page_add_parent_button(m_int_ui_page *page)
+int ui_page_add_parent_button(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -1138,7 +1138,7 @@ int ui_page_add_parent_button(m_int_ui_page *page)
 	return NO_ERROR;
 }
 
-int ui_page_add_left_panel_button(m_int_ui_page *page, const char *label, lv_event_cb_t cb)
+int ui_page_add_left_panel_button(m_ui_page *page, const char *label, lv_event_cb_t cb)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -1156,7 +1156,7 @@ int ui_page_add_left_panel_button(m_int_ui_page *page, const char *label, lv_eve
 	return NO_ERROR;
 }
 
-int ui_page_add_right_panel_button(m_int_ui_page *page, const char *label, lv_event_cb_t cb)
+int ui_page_add_right_panel_button(m_ui_page *page, const char *label, lv_event_cb_t cb)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -1174,7 +1174,7 @@ int ui_page_add_right_panel_button(m_int_ui_page *page, const char *label, lv_ev
 	return NO_ERROR;
 }
 
-int ui_page_create_base_ui(m_int_ui_page *page)
+int ui_page_create_base_ui(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -1197,7 +1197,7 @@ int ui_page_create_base_ui(m_int_ui_page *page)
 }
 
 
-int ui_page_create_container(m_int_ui_page *page)
+int ui_page_create_container(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -1236,7 +1236,7 @@ int ui_page_create_container(m_int_ui_page *page)
 	return NO_ERROR;
 }
 
-int ui_page_create_bottom_buttons(m_int_ui_page *page)
+int ui_page_create_bottom_buttons(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -1273,7 +1273,7 @@ int ui_page_create_bottom_buttons(m_int_ui_page *page)
 	return NO_ERROR;
 }
 
-m_int_button *ui_page_add_bottom_button(m_int_ui_page *page, const char *label, lv_event_cb_t cb)
+m_int_button *ui_page_add_bottom_button(m_ui_page *page, const char *label, lv_event_cb_t cb)
 {
 	if (!page)
 		return NULL;
@@ -1300,7 +1300,7 @@ m_int_button *ui_page_add_bottom_button(m_int_ui_page *page, const char *label, 
 	return page->bottom_buttons[index];
 }
 
-int ui_page_set_title_rw(m_int_ui_page *page, lv_event_cb_t save_cb, lv_event_cb_t cancel_cb)
+int ui_page_set_title_rw(m_ui_page *page, lv_event_cb_t save_cb, lv_event_cb_t cancel_cb)
 {
 	if (!page)
 		return ERR_NULL_PTR;

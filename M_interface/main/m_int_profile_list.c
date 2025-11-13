@@ -1,8 +1,8 @@
 #include "m_int.h"
 
-m_int_menu_item *create_profile_listing_menu_item(char *text, m_int_profile *profile, m_int_ui_page *parent)
+m_int_menu_item *create_profile_listing_menu_item(char *text, m_profile *profile, m_ui_page *parent)
 {
-	m_int_menu_item *item = m_int_malloc(sizeof(m_int_menu_item));
+	m_int_menu_item *item = m_alloc(sizeof(m_int_menu_item));
 	
 	if (!item || !profile)
 		return NULL;
@@ -19,7 +19,7 @@ m_int_menu_item *create_profile_listing_menu_item(char *text, m_int_profile *pro
 	item->data = profile;
 	
 	if (profile)
-		m_int_profile_add_menu_listing(profile, item);
+		m_profile_add_menu_listing(profile, item);
 	
 	item->parent = parent;
 	
@@ -38,7 +38,7 @@ int profile_listing_menu_item_refresh_active(m_int_menu_item *item)
 	if (!item->extra[1])
 		return NO_ERROR;
 	
-	if (item->data && ((m_int_profile*)item->data)->active)
+	if (item->data && ((m_profile*)item->data)->active)
 	{
 		printf("profile is active. going about it\n");
 		lv_label_set_text(item->extra[1], LV_SYMBOL_PLAY);
@@ -72,7 +72,7 @@ int profile_listing_menu_item_change_name(m_int_menu_item *item, char *name)
 	return NO_ERROR;
 }
 
-int init_profile_list(m_int_ui_page *page)
+int init_profile_list(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -88,7 +88,7 @@ int init_profile_list(m_int_ui_page *page)
 
 void profile_list_add_cb(lv_event_t *e)
 {
-	m_int_ui_page *page = lv_event_get_user_data(e);
+	m_ui_page *page = lv_event_get_user_data(e);
 	
 	if (!page)
 		return;
@@ -98,7 +98,7 @@ void profile_list_add_cb(lv_event_t *e)
 	if (!str)
 		return;
 	
-	m_int_profile *new_profile = create_new_profile_with_teensy();
+	m_profile *new_profile = create_new_profile_with_teensy();
 	
 	if (new_profile->view_page)
 		enter_ui_page(new_profile->view_page);
@@ -115,7 +115,7 @@ void profile_list_add_cb(lv_event_t *e)
 	create_menu_item_ui(new_listing, page->container);
 }
 
-int configure_profile_list(m_int_ui_page *page, void *data)
+int configure_profile_list(m_ui_page *page, void *data)
 {
 	printf("Configure profile list\n");
 	if (!page)
@@ -124,7 +124,7 @@ int configure_profile_list(m_int_ui_page *page, void *data)
 	if (page->configured)
 		return NO_ERROR;
 	
-	page->parent = (m_int_ui_page*)data;
+	page->parent = (m_ui_page*)data;
 	
 	m_int_menu_page_str *str = page->data_struct;
 	
@@ -143,7 +143,7 @@ int configure_profile_list(m_int_ui_page *page, void *data)
 	
 	profile_ll *current = global_cxt.profiles;
 	printf("current = global_cxt.profiles = %p\n", current);
-	menu_item_ll *nl;
+	m_int_menu_item_pll *nl;
 	
 	int i = 0;
 	while (current)
@@ -166,7 +166,7 @@ int configure_profile_list(m_int_ui_page *page, void *data)
 	return NO_ERROR;
 }
 
-int free_profile_list_ui(m_int_ui_page *page)
+int free_profile_list_ui(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -183,7 +183,7 @@ void profile_listing_delete_button_cb(lv_event_t *e)
 	if (!item)
 		return;
 	
-	m_int_profile *profile = (m_int_profile*)item->data;
+	m_profile *profile = (m_profile*)item->data;
 	
 	if (!profile)
 		return;
@@ -212,7 +212,7 @@ void menu_item_profile_listing_released_cb(lv_event_t *e)
 	if (!item)
 		return;
 	
-	m_int_profile *profile = item->data;
+	m_profile *profile = item->data;
 	
 	if (!item->long_pressed)
 	{
@@ -244,7 +244,7 @@ void menu_item_profile_listing_long_pressed_cb(lv_event_t *e)
 	
 	item->long_pressed = 1;
 	
-	m_int_profile *profile = item->data;
+	m_profile *profile = item->data;
 	
 	if (profile && !profile->active)
 	{
@@ -256,7 +256,7 @@ void menu_item_profile_listing_long_pressed_cb(lv_event_t *e)
 	}
 }
 
-int profile_list_add_profile(m_int_ui_page *page, m_int_profile *profile)
+int profile_list_add_profile(m_ui_page *page, m_profile *profile)
 {
 	printf("profile_list_add_profile\n");
 	if (!page)
@@ -272,7 +272,7 @@ int profile_list_add_profile(m_int_ui_page *page, m_int_profile *profile)
 	if (!item)
 		return ERR_ALLOC_FAIL;
 	
-	m_int_profile_add_menu_listing(profile, item);
+	m_profile_add_menu_listing(profile, item);
 	
 	menu_page_add_item(str, item);
 	

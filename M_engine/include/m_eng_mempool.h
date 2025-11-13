@@ -4,7 +4,12 @@
 #define MAX_AUDIO_MEMORY 229376
 
 #define MEM_SIZE 48
-#define M_ENG_BUFFER_POOL_SIZE 96
+
+#ifdef M_SIMULATED
+#define M_BUFFER_POOL_SIZE 8192
+#else
+#define M_BUFFER_POOL_SIZE 96
+#endif
 
 float *allocate_buffer();
 void release_buffer(float *buffer);

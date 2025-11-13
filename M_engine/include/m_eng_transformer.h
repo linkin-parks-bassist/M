@@ -1,10 +1,10 @@
-#ifndef M_TRANSFORMER_H_
-#define M_TRANSFORMER_H_
+#ifndef M_ENG_TRANSFORMER_H_
+#define M_ENG_TRANSFORMER_H_
 
 #include "m_transformer_enum.h"
 #include "m_vec2i.h"
 
-#include "m_eng_parameter.h"
+#include "m_parameter.h"
 
 #define TRANSFORMER_MAX_INPUTS		4
 #define TRANSFORMER_MAX_OUTPUTS		4
@@ -27,67 +27,25 @@
 
 #include "m_eng_linkowitz_riley.h"
 
-typedef struct
-{
-	uint16_t type;
-	uint16_t id;
-	
-	unsigned int n_inputs, n_outputs;
-	
-	int bypass;
-	
-	vec2i inputs [TRANSFORMER_MAX_INPUTS ];
-	vec2i outputs[TRANSFORMER_MAX_OUTPUTS];
+#include "m_transformer.h"
 
-	int n_settings;
-	int setting_array_size;
-	m_eng_setting **settings;
-	
-	m_eng_setting band_mode;
+int transformer_add_setting(m_transformer *trans, m_setting *setting);
+int transformer_add_parameter(m_transformer *trans, m_parameter *param);
 
-	int n_parameters;
-	int parameter_array_size;
-	m_eng_parameter **parameters;
-	
-	m_eng_parameter wet_mix;
-	m_eng_parameter band_lp_cutoff;
-	m_eng_parameter band_hp_cutoff;
-	m_eng_parameter band_center;
-	m_eng_parameter band_width;
-	
-	m_eng_lr_low_pass_filter_str  input_lpf;
-	m_eng_lr_high_pass_filter_str input_hpf;
-	
-	void *data_struct;
-	int (*compute_transformer)(void *data_struct, float *dest, float *src, int n_samples);
-	int (*compute_transformer_nl)(void *data_struct, float **dest, float **src, int n_samples);
-	
-	int (*reconfigure)(void *data_struct);
-	int (*clone_struct)(void *dest, void *src);
-	int (*free_struct)(void *data_struct);
-	
-	int runs;
-	size_t struct_size;
-	int transition_policy;
-} m_eng_transformer;
+m_parameter *transformer_get_parameter(m_transformer *trans, uint16_t ppid);
+m_setting   *transformer_get_setting  (m_transformer *trans, uint16_t sid );
 
-int transformer_add_setting(m_eng_transformer *trans, m_eng_setting *setting);
-int transformer_add_parameter(m_eng_transformer *trans, m_eng_parameter *param);
+int transformer_init_parameter_array(m_transformer *trans, int n);
+int transformer_init_setting_array(m_transformer *trans, int n);
 
-m_eng_parameter *transformer_get_parameter(m_eng_transformer *trans, uint16_t ppid);
-m_eng_setting   *transformer_get_setting  (m_eng_transformer *trans, uint16_t sid );
+int run_transformer(m_transformer *trans, float *dest, float *src);
 
-int transformer_init_parameter_array(m_eng_transformer *trans, int n);
-int transformer_init_setting_array(m_eng_transformer *trans, int n);
+void free_transformer(m_transformer *trans);
 
-int run_transformer(m_eng_transformer *trans, float *dest, float *src);
-
-void free_transformer(m_eng_transformer *trans);
-
-int clone_transformer(m_eng_transformer **dest_ptr, m_eng_transformer *src);
+int clone_transformer(m_transformer **dest_ptr, m_transformer *src);
 
 const char *transformer_type_to_string(uint16_t type);
 
-int transformer_init_controls(m_eng_transformer *trans);
+int transformer_init_controls(m_transformer *trans);
 
 #endif

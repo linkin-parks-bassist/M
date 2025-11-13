@@ -2,7 +2,7 @@
 
 static const char *FNAME = "m_int_transformer_table.c";
 
-const int N_TRANSFORMER_TYPES = 12;
+const int N_TRANSFORMER_TYPES = 13;
 
 m_int_trans_desc transformer_table[] = {
 	(m_int_trans_desc){"3 Band Eq",          TRANSFORMER_3_BAND_EQ},
@@ -12,6 +12,7 @@ m_int_trans_desc transformer_table[] = {
 	(m_int_trans_desc){"Dirty Octave",       TRANSFORMER_DIRTY_OCTAVE},
 	(m_int_trans_desc){"Distortion",         TRANSFORMER_DISTORTION},
 	(m_int_trans_desc){"Envelope",           TRANSFORMER_ENVELOPE},
+	(m_int_trans_desc){"Flanger",            TRANSFORMER_FLANGER},
 	(m_int_trans_desc){"High Pass Filter",   TRANSFORMER_HIGH_PASS_FILTER},
 	(m_int_trans_desc){"Low End Compressor", TRANSFORMER_LOW_END_COMPRESSOR},
 	(m_int_trans_desc){"Low Pass Filter",    TRANSFORMER_LOW_PASS_FILTER},

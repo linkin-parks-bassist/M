@@ -3,12 +3,12 @@
 
 typedef struct
 {
-	m_eng_parameter min_center;
-	m_eng_parameter max_center;
-	m_eng_parameter width;
-	m_eng_parameter speed;
-	m_eng_parameter sensitivity;
-	m_eng_parameter smoothness;
+	m_parameter min_center;
+	m_parameter max_center;
+	m_parameter width;
+	m_parameter speed;
+	m_parameter sensitivity;
+	m_parameter smoothness;
 	
 	float alpha;
 	float e;

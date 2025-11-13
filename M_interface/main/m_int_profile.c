@@ -1,17 +1,17 @@
 #include "m_int.h"
 
-static const char *TAG = "m_int_profile.c";
+static const char *TAG = "m_profile.c";
 
-IMPLEMENT_LINKED_PTR_LIST(m_int_profile);
+IMPLEMENT_LINKED_PTR_LIST(m_profile);
 
-int init_m_int_profile(m_int_profile *profile)
+int init_m_profile(m_profile *profile)
 {
 	if (!profile)
 		return ERR_NULL_PTR;
 	
 	profile->id = 0;
 	
-	int ret_val = init_m_int_pipeline(&profile->pipeline);
+	int ret_val = init_m_pipeline(&profile->pipeline);
 	
 	profile->view_page = NULL;
 	profile->name = NULL;
@@ -31,44 +31,45 @@ int init_m_int_profile(m_int_profile *profile)
 	
 	init_parameter(&profile->volume, "Volume", 0.0, -12.0, 12.0);
 	profile->volume.units = " dB";
-	profile->volume.id = (m_int_parameter_id){.profile_id = 0, .transformer_id = 0xFFFF, .parameter_id = 0};
+	profile->volume.id = (m_parameter_id){.profile_id = 0, .transformer_id = 0xFFFF, .parameter_id = 0};
 	
 	return NO_ERROR;
 }
 
-int profile_set_id(m_int_profile *profile, uint16_t id)
+int profile_set_id(m_profile *profile, uint16_t id)
 {
 	if (!profile)
 		return ERR_NULL_PTR;
 	
 	profile->id = id;
-	profile->volume.id.profile_id = id;
 	
+	/*
 	if (profile->pipeline.transformers)
 	{
-		transformer_ll *current = profile->pipeline.transformers;
+		m_transformer_pll *current = profile->pipeline.transformers;
 		
 		while (current)
 		{
 			if (current->data)
 			{
-				current->data->profile_id = id;
+				current->data->profile->id = id;
 			}
 			current = current->next;
 		}
 	}
+	*/
 	
 	return NO_ERROR;
 }
 
-int m_int_profile_set_active(m_int_profile *profile)
+int m_profile_set_active(m_profile *profile)
 {
 	if (!profile)
 		return ERR_NULL_PTR;
 	
 	profile->active = 1;
 	
-	menu_item_ll *current = profile->listings;
+	m_int_menu_item_pll *current = profile->listings;
 	
 	while (current)
 	{
@@ -79,14 +80,14 @@ int m_int_profile_set_active(m_int_profile *profile)
 	return NO_ERROR;
 }
 
-int m_int_profile_set_inactive(m_int_profile *profile)
+int m_profile_set_inactive(m_profile *profile)
 {
 	if (!profile)
 		return ERR_NULL_PTR;
 	
 	profile->active = 0;
 	
-	menu_item_ll *current = profile->listings;
+	m_int_menu_item_pll *current = profile->listings;
 	
 	while (current)
 	{
@@ -97,12 +98,12 @@ int m_int_profile_set_inactive(m_int_profile *profile)
 	return NO_ERROR;
 }
 
-int m_int_profile_add_menu_listing(m_int_profile *profile, m_int_menu_item *listing)
+int m_profile_add_menu_listing(m_profile *profile, m_int_menu_item *listing)
 {
 	if (!profile || !listing)
 		return ERR_NULL_PTR;
 	
-	menu_item_ll *nl = m_int_menu_item_ptr_linked_list_append(profile->listings, listing);
+	m_int_menu_item_pll *nl = m_int_menu_item_pll_append(profile->listings, listing);
 	
 	if (nl)
 		profile->listings = nl;
@@ -112,12 +113,12 @@ int m_int_profile_add_menu_listing(m_int_profile *profile, m_int_menu_item *list
 	return NO_ERROR;
 }
 
-int profile_add_gb_reference(m_int_profile *profile, m_int_glide_button *gb)
+int profile_add_gb_reference(m_profile *profile, m_int_glide_button *gb)
 {
 	if (!profile || !gb)
 		return ERR_NULL_PTR;
 	
-	glide_button_ll *nl = m_int_glide_button_ptr_linked_list_append(profile->gbs, gb);
+	m_int_glide_button_pll *nl = m_int_glide_button_pll_append(profile->gbs, gb);
 	
 	if (nl)
 		profile->gbs = nl;
@@ -128,9 +129,9 @@ int profile_add_gb_reference(m_int_profile *profile, m_int_glide_button *gb)
 }
 
 
-int m_int_profile_set_default_name_from_id(m_int_profile *profile)
+int m_profile_set_default_name_from_id(m_profile *profile)
 {
-	printf("m_int_profile_set_default_name_from_id\n");
+	printf("m_profile_set_default_name_from_id\n");
 	if (!profile)
 		return ERR_NULL_PTR;
 	
@@ -144,9 +145,9 @@ int m_int_profile_set_default_name_from_id(m_int_profile *profile)
 		id_digits++;
 	
 	if (profile->name)
-		m_int_free(profile->name);
+		m_free(profile->name);
 	
-	profile->name = m_int_malloc(9 + id_digits);
+	profile->name = m_alloc(9 + id_digits);
 	
 	if (!profile->name)
 		return ERR_ALLOC_FAIL;
@@ -158,36 +159,35 @@ int m_int_profile_set_default_name_from_id(m_int_profile *profile)
 	return NO_ERROR;
 }
 
-m_int_transformer *m_int_profile_append_transformer_type(m_int_profile *profile, uint16_t type)
+m_transformer *m_profile_append_transformer_type(m_profile *profile, uint16_t type)
 {
 	if (!profile)
 		return NULL;
 	
-	m_int_transformer *trans = m_int_pipeline_append_transformer_type(&profile->pipeline, type);
+	m_transformer *trans = m_pipeline_append_transformer_type(&profile->pipeline, type);
 	
 	if (!trans)
 		return NULL;
 	
-	trans->profile_id = profile->id;
 	trans->profile = profile;
 	
 	return trans;
 }
 
 
-int m_int_profile_remove_transformer(m_int_profile *profile, uint16_t id)
+int m_profile_remove_transformer(m_profile *profile, uint16_t id)
 {
 	printf("cxt_remove_transformer\n");
 	if (!profile)
 		return ERR_NULL_PTR;
 	
-	int ret_val = m_int_pipeline_remove_transformer(&profile->pipeline, id);
+	int ret_val = m_pipeline_remove_transformer(&profile->pipeline, id);
 	
 	printf("cxt_remove_transformer done. ret_val = %s\n", m_error_code_to_string(ret_val));
 	return ret_val;
 }
 
-int clone_profile(m_int_profile *dest, m_int_profile *src)
+int clone_profile(m_profile *dest, m_profile *src)
 {
 	if (!src || !dest)
 		return ERR_NULL_PTR;
@@ -208,7 +208,7 @@ int clone_profile(m_int_profile *dest, m_int_profile *src)
 	return NO_ERROR;
 }
 
-void gut_profile(m_int_profile *profile)
+void gut_profile(m_profile *profile)
 {
 	if (!profile)
 		return;
@@ -221,7 +221,7 @@ void gut_profile(m_int_profile *profile)
 	
 	printf("Gut name %p...\n", profile->name);
 	if (profile->name)
-		m_int_free(profile->name);
+		m_free(profile->name);
 	
 	profile->name = NULL;
 	
@@ -230,17 +230,17 @@ void gut_profile(m_int_profile *profile)
 	printf("Done!\n");
 }
 
-void free_profile(m_int_profile *profile)
+void free_profile(m_profile *profile)
 {
 	if (!profile)
 		return;
 		
 	gut_profile(profile);
 	
-	m_int_free(profile);
+	m_free(profile);
 }
 
-int profile_propagate_name_change(m_int_profile *profile)
+int profile_propagate_name_change(m_profile *profile)
 {
 	if (!profile)
 		return ERR_NULL_PTR;
@@ -250,7 +250,7 @@ int profile_propagate_name_change(m_int_profile *profile)
 		profile_view_change_name(profile->view_page, profile->name);
 	}
 	
-	menu_item_ll *current_mi = profile->listings;
+	m_int_menu_item_pll *current_mi = profile->listings;
 	
 	while (current_mi)
 	{
@@ -258,7 +258,7 @@ int profile_propagate_name_change(m_int_profile *profile)
 		current_mi = current_mi->next;
 	}
 	
-	glide_button_ll *current_gb = profile->gbs;
+	m_int_glide_button_pll *current_gb = profile->gbs;
 	
 	while (current_gb)
 	{
@@ -271,7 +271,7 @@ int profile_propagate_name_change(m_int_profile *profile)
 
 void new_profile_receive_id(et_msg msg, te_msg response)
 {
-	m_int_profile *profile = msg.cb_arg;
+	m_profile *profile = msg.cb_arg;
 	
 	if (!profile)
 	{
@@ -285,7 +285,7 @@ void new_profile_receive_id(et_msg msg, te_msg response)
 	printf("New profile recieved its ID: %d\n", id);
 	
 	profile_set_id(profile, id);
-	m_int_profile_set_default_name_from_id(profile);
+	m_profile_set_default_name_from_id(profile);
 	
 	if (lvgl_port_lock(-1))
 	{
@@ -294,9 +294,9 @@ void new_profile_receive_id(et_msg msg, te_msg response)
 	}
 }
 
-m_int_profile *create_new_profile_with_teensy()
+m_profile *create_new_profile_with_teensy()
 {
-	m_int_profile *new_profile = m_int_context_add_profile_rp(&global_cxt);
+	m_profile *new_profile = m_int_context_add_profile_rp(&global_cxt);
 	
 	if (!new_profile)
 	{

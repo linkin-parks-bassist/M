@@ -1,6 +1,6 @@
 #include "m_int.h"
 
-int init_profile_settings_page(m_int_ui_page *page)
+int init_profile_settings_page(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -38,21 +38,21 @@ int init_profile_settings_page(m_int_ui_page *page)
 	return NO_ERROR;
 }
 
-int configure_profile_settings_page(m_int_ui_page *page, void *data)
+int configure_profile_settings_page(m_ui_page *page, void *data)
 {
 	if (!page)
 		return ERR_NULL_PTR;
 	
 	ui_page_add_back_button(page);
 	
-	m_int_profile *profile = (m_int_profile*)data;
+	m_profile *profile = (m_profile*)data;
 	
 	if (!profile)
 		return ERR_BAD_ARGS;
 	
 	if (!profile->name)
 	{
-		m_int_profile_set_default_name_from_id(profile);
+		m_profile_set_default_name_from_id(profile);
 	}
 	
 	char buf[128];
@@ -83,7 +83,7 @@ int configure_profile_settings_page(m_int_ui_page *page, void *data)
 
 void profile_settings_save_button_cb(lv_event_t *e)
 {
-	m_int_ui_page *page = lv_event_get_user_data(e);
+	m_ui_page *page = lv_event_get_user_data(e);
 	
 	if (!page)
 		return;
@@ -100,7 +100,7 @@ void profile_settings_save_button_cb(lv_event_t *e)
 
 void default_profile_button_cb(lv_event_t *e)
 {
-	m_int_ui_page *page = lv_event_get_user_data(e);
+	m_ui_page *page = lv_event_get_user_data(e);
 	
 	if (!page)
 		return;
@@ -115,7 +115,7 @@ void default_profile_button_cb(lv_event_t *e)
 	lv_obj_add_flag(str->default_button, LV_OBJ_FLAG_HIDDEN);
 }
 
-int create_profile_settings_page_ui(m_int_ui_page *page)
+int create_profile_settings_page_ui(m_ui_page *page)
 {
 	printf("create_profile_settings_page_ui\n");
 	if (!page)
@@ -186,7 +186,7 @@ int create_profile_settings_page_ui(m_int_ui_page *page)
 }
 
 
-int free_profile_settings_page_ui(m_int_ui_page *page)
+int free_profile_settings_page_ui(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -194,7 +194,7 @@ int free_profile_settings_page_ui(m_int_ui_page *page)
 	return NO_ERROR;
 }
 
-int profile_settings_page_free_all(m_int_ui_page *page)
+int profile_settings_page_free_all(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -202,7 +202,7 @@ int profile_settings_page_free_all(m_int_ui_page *page)
 	return NO_ERROR;
 }
 
-int enter_profile_settings_page(m_int_ui_page *page)
+int enter_profile_settings_page(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -210,7 +210,7 @@ int enter_profile_settings_page(m_int_ui_page *page)
 	return NO_ERROR;
 }
 
-int enter_profile_settings_page_forward(m_int_ui_page *page)
+int enter_profile_settings_page_forward(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -218,7 +218,7 @@ int enter_profile_settings_page_forward(m_int_ui_page *page)
 	return NO_ERROR;
 }
 
-int enter_profile_settings_page_back(m_int_ui_page *page)
+int enter_profile_settings_page_back(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -226,7 +226,7 @@ int enter_profile_settings_page_back(m_int_ui_page *page)
 	return NO_ERROR;
 }
 
-int refresh_profile_settings_page(m_int_ui_page *page)
+int refresh_profile_settings_page(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;

@@ -19,13 +19,13 @@
 #define LEFT_BUTTON_MENU 0
 #define LEFT_BUTTON_BACK 1
 
-typedef m_int_transformer_widget_ptr_linked_list transformer_widget_ll;
+typedef m_transformer_widget_pll transformer_widget_ll;
 
-typedef m_int_transformer_widget_ptr_linked_list tw_ll;
+typedef m_transformer_widget_pll tw_ll;
 
-typedef struct m_int_profile_view_str
+typedef struct m_profile_view_str
 {
-	m_int_profile *profile;
+	m_profile *profile;
 	
 	m_int_button *play;
 	m_int_button *plus;
@@ -34,48 +34,48 @@ typedef struct m_int_profile_view_str
 	lv_obj_t *menu_button;
 	lv_obj_t *menu_button_label;
 	
-	m_int_transformer_widget *add_button;
+	m_transformer_widget *add_button;
 	
 	lv_coord_t plus_button_x;
 	lv_coord_t plus_button_y;
 	
 	char *name_saved;
 	int n_transformer_widgets;
-	m_int_transformer_widget_ptr_linked_list *tws;
+	m_transformer_widget_pll *tws;
 	
 	int left_button_mode;
 	
-	m_int_ui_page *accessed_from;
+	m_ui_page *accessed_from;
 	
-	m_int_ui_page *settings_page;
-} m_int_profile_view_str;
+	m_ui_page *settings_page;
+} m_profile_view_str;
 
-m_int_ui_page *create_profile_view_for(m_int_profile *profile);
+m_ui_page *create_profile_view_for(m_profile *profile);
 
-int init_profile_view(m_int_ui_page *page);
-int configure_profile_view(m_int_ui_page *page, void *data);
-int create_profile_view_ui(m_int_ui_page *page);
-int free_profile_view_ui(m_int_ui_page *page);
-int free_profile_view(m_int_ui_page *page);
-int enter_profile_view(m_int_ui_page *page);
-int enter_profile_view_forward(m_int_ui_page *page);
-int enter_profile_view_back(m_int_ui_page *page);
-int refresh_profile_view(m_int_ui_page *page);
+int init_profile_view(m_ui_page *page);
+int configure_profile_view(m_ui_page *page, void *data);
+int create_profile_view_ui(m_ui_page *page);
+int free_profile_view_ui(m_ui_page *page);
+int free_profile_view(m_ui_page *page);
+int enter_profile_view(m_ui_page *page);
+int enter_profile_view_forward(m_ui_page *page);
+int enter_profile_view_back(m_ui_page *page);
+int refresh_profile_view(m_ui_page *page);
 
-int profile_view_remove_tw_from_list(m_int_ui_page *page, m_int_transformer_widget *tw);
-int profile_view_recalculate_indices(m_int_ui_page *page);
+int profile_view_remove_tw_from_list(m_ui_page *page, m_transformer_widget *tw);
+int profile_view_recalculate_indices(m_ui_page *page);
 
-int profile_view_append_transformer(m_int_ui_page *page, m_int_transformer *trans);
-int profile_view_reorder_tw_list(m_int_ui_page *page);
-int profile_view_populate_index_pos_array(m_int_ui_page *page);
+int profile_view_append_transformer(m_ui_page *page, m_transformer *trans);
+int profile_view_reorder_tw_list(m_ui_page *page);
+int profile_view_populate_index_pos_array(m_ui_page *page);
 
 int profile_view_index_y_position(int index);
 
-int profile_view_refresh_play_button(m_int_ui_page *page);
-int profile_view_refresh_save_button(m_int_ui_page *page);
+int profile_view_refresh_play_button(m_ui_page *page);
+int profile_view_refresh_save_button(m_ui_page *page);
 
-int profile_view_change_name(m_int_ui_page *page, char *name);
+int profile_view_change_name(m_ui_page *page, char *name);
 
-int profile_view_set_left_button_mode(m_int_ui_page *page, int mode);
+int profile_view_set_left_button_mode(m_ui_page *page, int mode);
 
 #endif

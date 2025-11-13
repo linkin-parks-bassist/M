@@ -6,16 +6,16 @@
 
 typedef struct
 {
-	m_eng_parameter gain;
+	m_parameter gain;
 	float g;
 		
-	m_eng_setting mode;
+	m_setting mode;
 	int db;
 } m_eng_amplifier_str;
 
 typedef struct
 {
-	m_eng_parameter ratio;
+	m_parameter ratio;
 } m_eng_mixer_str;
 
 

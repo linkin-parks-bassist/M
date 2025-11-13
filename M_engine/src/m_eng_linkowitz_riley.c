@@ -2,7 +2,7 @@
 
 static const char *FNAME = "m_eng_linkowitz_riley.c";
 
-int init_lr_low_pass_filter_str(m_eng_lr_low_pass_filter_str *str)
+int init_lr_low_pass_filter_str(m_lr_low_pass_filter_str *str)
 {
 	FUNCTION_START();
 
@@ -33,7 +33,7 @@ int reconfigure_lr_low_pass_filter(void *data_struct)
 		RETURN_ERR_CODE(ERR_NULL_PTR);
 	}
 	
-	m_eng_lr_low_pass_filter_str *str = (m_eng_lr_low_pass_filter_str*)data_struct;
+	m_lr_low_pass_filter_str *str = (m_lr_low_pass_filter_str*)data_struct;
 	
 	float omega, sin_omega, cos_omega, alpha;
     float b0, b1, b2, a0, a1, a2;
@@ -73,14 +73,14 @@ int calc_lr_low_pass_filter(void *data_struct, float *dest, float *src, int n_sa
 		RETURN_ERR_CODE(ERR_NULL_PTR);
 	}
 	
-	m_eng_lr_low_pass_filter_str *str = (m_eng_lr_low_pass_filter_str*)data_struct;
+	m_lr_low_pass_filter_str *str = (m_lr_low_pass_filter_str*)data_struct;
 	
 	float *in_buffer  =  src ? src  : zero_buffer;
 	float *out_buffer = dest ? dest : sink_buffer;
 
 	float intermediate;
 	
-	/*m_eng_printf("LR low pass. State: [%.03f, %.03f, %.03f, %.03f], [%.03f, %.03f, %.03f, %.03f]\n",
+	/*m_printf("LR low pass. State: [%.03f, %.03f, %.03f, %.03f], [%.03f, %.03f, %.03f, %.03f]\n",
 		str->x_11, str->x_12, str->y_11, str->y_12,
 		str->x_21, str->x_22, str->y_21, str->y_22);*/
 
@@ -114,7 +114,7 @@ int calc_lr_low_pass_filter(void *data_struct, float *dest, float *src, int n_sa
 	RETURN_ERR_CODE(NO_ERROR);
 }
 
-int init_lr_high_pass_filter_str(m_eng_lr_high_pass_filter_str *str)
+int init_lr_high_pass_filter_str(m_lr_high_pass_filter_str *str)
 {
 	FUNCTION_START();
 
@@ -145,7 +145,7 @@ int reconfigure_lr_high_pass_filter(void *data_struct)
 		RETURN_ERR_CODE(ERR_NULL_PTR);
 	}
 	
-	m_eng_lr_high_pass_filter_str *str = (m_eng_lr_high_pass_filter_str*)data_struct;
+	m_lr_high_pass_filter_str *str = (m_lr_high_pass_filter_str*)data_struct;
 	
 	float omega, sin_omega, cos_omega, alpha;
     float b0, b1, b2, a0, a1, a2;
@@ -185,14 +185,14 @@ int calc_lr_high_pass_filter(void *data_struct, float *dest, float *src, int n_s
 		RETURN_ERR_CODE(ERR_NULL_PTR);
 	}
 	
-	m_eng_lr_high_pass_filter_str *str = (m_eng_lr_high_pass_filter_str*)data_struct;
+	m_lr_high_pass_filter_str *str = (m_lr_high_pass_filter_str*)data_struct;
 	
 	float *in_buffer  =  src ? src  : zero_buffer;
 	float *out_buffer = dest ? dest : sink_buffer;
 
 	float intermediate;
 	
-	/*m_eng_printf("LR high pass. State: [%.03f, %.03f, %.03f, %.03f], [%.03f, %.03f, %.03f, %.03f]\n",
+	/*m_printf("LR high pass. State: [%.03f, %.03f, %.03f, %.03f], [%.03f, %.03f, %.03f, %.03f]\n",
 		str->x_11, str->x_12, str->y_11, str->y_12,
 		str->x_21, str->x_22, str->y_21, str->y_22);*/
 

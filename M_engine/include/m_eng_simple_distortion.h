@@ -3,8 +3,8 @@
 
 typedef struct
 {
-	m_eng_parameter pregain;
-	m_eng_parameter postgain;
+	m_parameter pregain;
+	m_parameter postgain;
 	
 } m_eng_simple_distortion_str;
 

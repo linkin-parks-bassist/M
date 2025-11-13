@@ -25,8 +25,12 @@ double cycles_to_seconds(uint64_t cycles)
 	return (float)cycles / 6e8f;
 }
 
-inline uint64_t current_cycle()
+#ifndef M_SIMULATED
+inline
+#endif
+uint64_t current_cycle()
 {
+	#ifndef M_SIMULATED
 	static uint32_t prev_cycles = 0;
 	
 	if (!prev_cycles)
@@ -40,4 +44,9 @@ inline uint64_t current_cycle()
 	prev_cycles = cycle;
 	
 	return (((uint64_t)cycles_upper << 32) | ARM_DWT_CYCCNT);
+	#else
+	static uint64_t count = 0;
+	
+	return count++;
+	#endif
 }

@@ -57,7 +57,7 @@ int calc_percussifier(void *data_struct, float *dest, float *src, int n_samples)
 		
 		/*if (i == 127 && str->r % 64 == 0)
 		{
-			m_eng_printf("Percussifier: rms_short = %f, rms_long = %f, (rms_short / (rms_long + 1e-12f)) = %f, state = %s\n",
+			m_printf("Percussifier: rms_short = %f, rms_long = %f, (rms_short / (rms_long + 1e-12f)) = %f, state = %s\n",
 				rms_short, rms_long, (rms_short / (rms_long + 1e-12f)),
 				(str->state == PERCUSSIFIER_MUTE) ? "PERCUSSIFIER_MUTE" : ((str->state == PERCUSSIFIER_FADE_IN) ? "PERCUSSIFIER_FADE_IN" :
 				((str->state == PERCUSSIFIER_HOLD) ? "PERCUSSIFIER_HOLD" : "PERCUSSIFIER_FADE_OUT")));

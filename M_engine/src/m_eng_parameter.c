@@ -1,8 +1,8 @@
 #include "m_eng.h"
 
-static const char *FNAME = "m_eng_parameter.c";
+static const char *FNAME = "m_parameter.c";
 
-void init_parameter(m_eng_parameter *param, float initial, float min, float max, float max_jump, int scale)
+void init_parameter(m_parameter *param, float initial, float min, float max, float max_jump, int scale)
 {
 	FUNCTION_START();
 
@@ -23,7 +23,7 @@ void init_parameter(m_eng_parameter *param, float initial, float min, float max,
 	param->scale = scale;
 }
 
-int init_setting(m_eng_setting *setting, int16_t initial)
+int init_setting(m_setting *setting, int16_t initial)
 {
 	FUNCTION_START();
 
@@ -40,7 +40,7 @@ int init_setting(m_eng_setting *setting, int16_t initial)
 	RETURN_ERR_CODE(NO_ERROR);
 }
 
-int update_setting(m_eng_setting *setting, uint16_t new_value)
+int update_setting(m_setting *setting, uint16_t new_value)
 {
 	FUNCTION_START();
 

@@ -3,21 +3,21 @@
 
 typedef struct
 {
-	m_int_parameter global_volume;
+	m_parameter global_volume;
 	
 	const char *default_profile;
 	uint16_t default_profile_id;
 	
 	int changed;
-} m_int_settings;
+} m_settings;
 
-int send_settings(m_int_settings *settings);
+int send_settings(m_settings *settings);
 
 int init_settings_save_task();
 
-int settings_set_default_profile(m_int_profile *profile);
+int settings_set_default_profile(m_profile *profile);
 
-int init_settings(m_int_settings *settings);
+int init_settings(m_settings *settings);
 
 extern SemaphoreHandle_t settings_mutex;
 

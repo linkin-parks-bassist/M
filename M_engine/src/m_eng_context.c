@@ -34,8 +34,6 @@ int init_m_eng_context(m_eng_context *cxt)
 	cxt->active_profile = 0;
 	cxt->profiles[0].active = 1;
 	
-	cxt->unconpfigured_pipeline = NULL;
-	
 	cxt->status_flags = M_STATUS_FRESH_BOOT;
 	
 	cxt->profile_switch_triggered 	= 0;
@@ -139,7 +137,7 @@ int cxt_transformer_id_valid(m_eng_context *cxt, uint16_t pid, uint16_t tid)
 		RETURN_INT(0);
 	}
 	
-	RETURN_INT(pipe_line_get_transformer_by_id(cxt->profiles[pid].back_pipeline, tid) != NULL);
+	RETURN_INT(pipeline_get_transformer_by_id(cxt->profiles[pid].back_pipeline, tid) != NULL);
 }
 
 int pcxt_profile_id_valid(m_eng_context *cxt, uint16_t pid, uint16_t tid, uint16_t ppid)
@@ -151,7 +149,7 @@ int pcxt_profile_id_valid(m_eng_context *cxt, uint16_t pid, uint16_t tid, uint16
 		RETURN_INT(0);
 	}
 	
-	m_eng_transformer *trans = pipe_line_get_transformer_by_id(cxt->profiles[pid].back_pipeline, tid);
+	m_transformer *trans = pipeline_get_transformer_by_id(cxt->profiles[pid].back_pipeline, tid);
 	
 	if (!trans)
 	{
@@ -162,7 +160,7 @@ int pcxt_profile_id_valid(m_eng_context *cxt, uint16_t pid, uint16_t tid, uint16
 }
 
 
-m_eng_parameter *cxt_get_parameter_by_id(m_eng_context *cxt, uint16_t pid, uint16_t tid, uint16_t ppid)
+m_parameter *cxt_get_parameter_by_id(m_eng_context *cxt, uint16_t pid, uint16_t tid, uint16_t ppid)
 {
 	FUNCTION_START();
 	
@@ -208,7 +206,7 @@ m_eng_parameter *cxt_get_parameter_by_id(m_eng_context *cxt, uint16_t pid, uint1
 		}
 	}
 	
-	m_eng_transformer *trans = pipe_line_get_transformer_by_id(cxt->profiles[pid].front_pipeline, tid);
+	m_transformer *trans = pipeline_get_transformer_by_id(cxt->profiles[pid].front_pipeline, tid);
 	
 	if (!trans)
 	{
@@ -223,7 +221,7 @@ m_eng_parameter *cxt_get_parameter_by_id(m_eng_context *cxt, uint16_t pid, uint1
 	RETURN_PTR(trans->parameters[ppid]);
 }
 
-m_eng_parameter *cxt_get_front_parameter_by_id(m_eng_context *cxt, uint16_t pid, uint16_t tid, uint16_t ppid)
+m_parameter *cxt_get_front_parameter_by_id(m_eng_context *cxt, uint16_t pid, uint16_t tid, uint16_t ppid)
 {
 	FUNCTION_START();
 	
@@ -237,7 +235,7 @@ m_eng_parameter *cxt_get_front_parameter_by_id(m_eng_context *cxt, uint16_t pid,
 		RETURN_PTR(NULL);
 	}
 	
-	m_eng_transformer *trans = pipe_line_get_transformer_by_id(cxt->profiles[pid].front_pipeline, tid);
+	m_transformer *trans = pipeline_get_transformer_by_id(cxt->profiles[pid].front_pipeline, tid);
 	
 	if (!trans)
 	{
@@ -252,7 +250,7 @@ m_eng_parameter *cxt_get_front_parameter_by_id(m_eng_context *cxt, uint16_t pid,
 	RETURN_PTR(trans->parameters[ppid]);
 }
 
-m_eng_parameter *cxt_get_back_parameter_by_id(m_eng_context *cxt, uint16_t pid, uint16_t tid, uint16_t ppid)
+m_parameter *cxt_get_back_parameter_by_id(m_eng_context *cxt, uint16_t pid, uint16_t tid, uint16_t ppid)
 {
 	FUNCTION_START();
 	
@@ -266,7 +264,7 @@ m_eng_parameter *cxt_get_back_parameter_by_id(m_eng_context *cxt, uint16_t pid, 
 		RETURN_PTR(NULL);
 	}
 	
-	m_eng_transformer *trans = pipe_line_get_transformer_by_id(cxt->profiles[pid].back_pipeline, tid);
+	m_transformer *trans = pipeline_get_transformer_by_id(cxt->profiles[pid].back_pipeline, tid);
 	
 	if (!trans)
 	{
@@ -292,7 +290,7 @@ int cxt_update_parameter_value_by_id(m_eng_context *cxt, uint16_t pid, uint16_t 
 	
 	if (pid == 0xFFFF || tid == 0xFFFF)
 	{
-		m_eng_parameter *param = cxt_get_parameter_by_id(cxt, pid, tid, ppid);
+		m_parameter *param = cxt_get_parameter_by_id(cxt, pid, tid, ppid);
 		
 		if (!param)
 		{
@@ -310,23 +308,23 @@ int cxt_update_parameter_value_by_id(m_eng_context *cxt, uint16_t pid, uint16_t 
 		RETURN_ERR_CODE(ERR_INVALID_PROFILE_ID);
 	}
 	
-	m_eng_transformer *front_trans = pipe_line_get_transformer_by_id(cxt->profiles[pid].front_pipeline, tid);
+	m_transformer *front_trans = pipeline_get_transformer_by_id(cxt->profiles[pid].front_pipeline, tid);
 	
 	if (!front_trans)
 	{
 		RETURN_ERR_CODE(ERR_INVALID_TRANSFORMER_ID);
 	}
 	
-	m_eng_transformer *back_trans = pipe_line_get_transformer_by_id(cxt->profiles[pid].back_pipeline, tid);
+	m_transformer *back_trans = pipeline_get_transformer_by_id(cxt->profiles[pid].back_pipeline, tid);
 	
-	m_eng_parameter *front_param = transformer_get_parameter(front_trans, ppid);
+	m_parameter *front_param = transformer_get_parameter(front_trans, ppid);
 	
 	if (!front_param)
 	{
 		RETURN_ERR_CODE(ERR_INVALID_PARAMETER_ID);
 	}
 	
-	m_eng_parameter *back_param = transformer_get_parameter(back_trans, ppid);
+	m_parameter *back_param = transformer_get_parameter(back_trans, ppid);
 	
 	if (cxt->profiles[pid].active)
 	{
@@ -366,7 +364,7 @@ int cxt_update_parameter_value_by_id(m_eng_context *cxt, uint16_t pid, uint16_t 
 	RETURN_ERR_CODE(NO_ERROR);
 }
 
-m_eng_setting *cxt_get_setting_by_id(m_eng_context *cxt, uint16_t pid, uint16_t tid, uint16_t sid)
+m_setting *cxt_get_setting_by_id(m_eng_context *cxt, uint16_t pid, uint16_t tid, uint16_t sid)
 {
 	FUNCTION_START();
 	
@@ -380,7 +378,7 @@ m_eng_setting *cxt_get_setting_by_id(m_eng_context *cxt, uint16_t pid, uint16_t 
 		RETURN_PTR(NULL);
 	}
 	
-	m_eng_transformer *trans = pipe_line_get_transformer_by_id(cxt->profiles[pid].back_pipeline, tid);
+	m_transformer *trans = pipeline_get_transformer_by_id(cxt->profiles[pid].back_pipeline, tid);
 	
 	RETURN_PTR(transformer_get_setting(trans, sid));
 }
@@ -399,7 +397,7 @@ int cxt_update_setting_value_by_id(m_eng_context *cxt, uint16_t pid, uint16_t ti
 		RETURN_ERR_CODE(ERR_INVALID_PROFILE_ID);
 	}
 	
-	m_eng_pipe_line_mod mod = create_pipe_line_mod_change_transformer_setting(tid, sid, new_value);
+	m_pipeline_mod mod = create_pipeline_mod_change_transformer_setting(tid, sid, new_value);
 	
 	RETURN_ERR_CODE(profile_apply_pipeline_mod(&cxt->profiles[pid], mod));
 }
@@ -408,8 +406,8 @@ void m_eng_safe_reboot(m_eng_context *cxt)
 {
 	FUNCTION_START();
 
-	m_eng_printf("Rebooting...\n");
-	#ifndef M_ENG_SIMULATED
+	m_printf("Rebooting...\n");
+	#ifndef M_SIMULATED
 	_reboot_Teensyduino_(); //rofl
 	#else
 	
@@ -446,7 +444,7 @@ int cxt_append_transformer_to_profile(m_eng_context *cxt, uint16_t pid, uint16_t
 		RETURN_NEG_ERR_CODE(ERR_BAD_ARGS);
 	}
 	
-	int ret_val = profile_apply_pipeline_mod(&cxt->profiles[pid], create_pipe_line_mod_append_transformer(type));
+	int ret_val = profile_apply_pipeline_mod(&cxt->profiles[pid], create_pipeline_mod_append_transformer(type));
 	
 	if (ret_val < 0)
 	{
@@ -461,7 +459,7 @@ int cxt_remove_transformer_from_profile(m_eng_context *cxt, uint16_t pid, uint16
 {
 	FUNCTION_START();
 
-	m_eng_printf("cxt_remove_transformer_from_profile...\n");
+	m_printf("cxt_remove_transformer_from_profile...\n");
 	if (!cxt)
 	{
 		RETURN_NEG_ERR_CODE(ERR_NULL_PTR);
@@ -472,9 +470,9 @@ int cxt_remove_transformer_from_profile(m_eng_context *cxt, uint16_t pid, uint16
 		RETURN_NEG_ERR_CODE(ERR_BAD_ARGS);
 	}
 	
-	int ret_val = profile_apply_pipeline_mod(&cxt->profiles[cxt->active_profile], create_pipe_line_mod_remove_transformer(tid));
+	int ret_val = profile_apply_pipeline_mod(&cxt->profiles[cxt->active_profile], create_pipeline_mod_remove_transformer(tid));
 	
-	m_eng_printf("cxt_remove_transformer_from_profile done. ret_val = %s\n", m_error_code_to_string(ret_val));
+	m_printf("cxt_remove_transformer_from_profile done. ret_val = %s\n", m_error_code_to_string(ret_val));
 	RETURN_ERR_CODE(ret_val);
 }
 
@@ -487,7 +485,7 @@ int cxt_move_transformer(m_eng_context *cxt, uint16_t tid, uint16_t new_pos)
 		RETURN_NEG_ERR_CODE(ERR_NULL_PTR);
 	}
 	
-	int ret_val = profile_apply_pipeline_mod(&cxt->profiles[cxt->active_profile], create_pipe_line_mod_move_transformer(tid, new_pos));
+	int ret_val = profile_apply_pipeline_mod(&cxt->profiles[cxt->active_profile], create_pipeline_mod_move_transformer(tid, new_pos));
 	
 	RETURN_ERR_CODE(ret_val);
 }
@@ -506,7 +504,7 @@ int cxt_insert_transformer_to_profile(m_eng_context *cxt, uint16_t pid, uint16_t
 		RETURN_NEG_ERR_CODE(ERR_BAD_ARGS);
 	}
 	
-	int ret_val = pipe_line_insert_transformer_type(cxt->profiles[pid].back_pipeline, type, pos);
+	int ret_val = pipeline_insert_transformer_type(cxt->profiles[pid].back_pipeline, type, pos);
 	
 	RETURN_ERR_CODE(ret_val);
 }
@@ -525,7 +523,7 @@ int cxt_prepend_transformer_to_profile(m_eng_context *cxt, uint16_t pid, uint16_
 		RETURN_NEG_ERR_CODE(ERR_BAD_ARGS);
 	}
 	
-	int ret_val = pipe_line_prepend_transformer_type(cxt->profiles[pid].back_pipeline, type);
+	int ret_val = pipeline_prepend_transformer_type(cxt->profiles[pid].back_pipeline, type);
 	
 	RETURN_ERR_CODE(ret_val);
 }
@@ -556,7 +554,7 @@ int cxt_get_n_transformer_params(m_eng_context *cxt, uint16_t pid, uint16_t tid)
 		RETURN_NEG_ERR_CODE(ERR_NULL_PTR);
 	}
 	
-	m_eng_transformer *trans = cxt_get_transformer_by_id(cxt, pid, tid);
+	m_transformer *trans = cxt_get_transformer_by_id(cxt, pid, tid);
 	
 	if (!trans)
 	{
@@ -575,7 +573,7 @@ int cxt_get_n_transformer_settings(m_eng_context *cxt, uint16_t pid, uint16_t ti
 		RETURN_NEG_ERR_CODE(ERR_NULL_PTR);
 	}
 	
-	m_eng_transformer *trans = cxt_get_transformer_by_id(cxt, pid, tid);
+	m_transformer *trans = cxt_get_transformer_by_id(cxt, pid, tid);
 	
 	if (!trans)
 	{
@@ -594,7 +592,7 @@ int cxt_get_transformer_type(m_eng_context *cxt, uint16_t pid, uint16_t tid)
 		RETURN_NEG_ERR_CODE(ERR_NULL_PTR);
 	}
 	
-	m_eng_transformer *trans = cxt_get_transformer_by_id(cxt, pid, tid);
+	m_transformer *trans = cxt_get_transformer_by_id(cxt, pid, tid);
 	
 	if (!trans)
 	{
@@ -632,7 +630,7 @@ int cxt_get_tid_by_pos(m_eng_context *cxt, uint16_t pid, uint16_t pos)
 	RETURN_INT(cxt->profiles[pid].back_pipeline->transformers[pos]->id);
 }
 
-m_eng_transformer *cxt_get_transformer_by_id(m_eng_context *cxt, uint16_t pid, uint16_t tid)
+m_transformer *cxt_get_transformer_by_id(m_eng_context *cxt, uint16_t pid, uint16_t tid)
 {
 	FUNCTION_START();
 	
@@ -646,7 +644,7 @@ m_eng_transformer *cxt_get_transformer_by_id(m_eng_context *cxt, uint16_t pid, u
 		RETURN_PTR(NULL);
 	}
 	
-	RETURN_PTR(pipe_line_get_transformer_by_id(cxt->profiles[pid].back_pipeline, tid));
+	RETURN_PTR(pipeline_get_transformer_by_id(cxt->profiles[pid].back_pipeline, tid));
 }
 
 int cxt_set_active_profile(m_eng_context *cxt, uint16_t pid)
@@ -682,11 +680,11 @@ int cxt_switch_to_profile(m_eng_context *cxt, uint16_t pid)
 		RETURN_ERR_CODE(ERR_BAD_ARGS);
 	}
 	
-	m_eng_printf("Switching to profile %d\n");
+	m_printf("Switching to profile %d\n");
 	cxt->profile_switch_triggered = 1;
 	cxt->new_profile = pid;
 	cxt->profile_switch_progress = 0;
-	cxt->profile_switch_type = cxt->profiles[cxt->n_profiles].transition_policy;
+	cxt->profile_switch_type = binary_max(cxt->profiles[pid].transition_policy, cxt->profiles[cxt->active_profile].transition_policy);
 	
 	switch (cxt->profile_switch_type)
 	{
@@ -711,15 +709,16 @@ int cxt_process(m_eng_context *cxt)
 {
 	FUNCTION_START();
 	
-	#ifndef M_ENG_SIMULATED
+	#ifndef M_SIMULATED
 	static uint32_t last_runtime = 0;
 	uint32_t end_time;
+	
+	if (!last_runtime)
+		last_runtime = micros();
 	#else
 	
 	#endif
 	
-	if (!last_runtime)
-		last_runtime = micros();
 	
 	int16_t block[AUDIO_BLOCK_SAMPLES];
 	uint8_t click_buffer[AUDIO_BLOCK_SAMPLES + DECLICK_BUFSIZE - 1];
@@ -729,10 +728,10 @@ int cxt_process(m_eng_context *cxt)
 	
 	float s1, s2;
 	
-	#ifndef M_ENG_SIMULATED
+	#ifndef M_SIMULATED
 	i2s_input_update();
 	#else
-	tmsim_get_input_block(block);
+	
 	#endif
 	
 	if (cxt->profile_switch_triggered)
@@ -753,18 +752,28 @@ int cxt_process(m_eng_context *cxt)
 	
 	float ratio;
 	
-	#ifndef M_ENG_SIMULATED
+	#ifndef M_SIMULATED
 	uint32_t start_time = micros();
 	#else
 	
 	#endif
 	
-	
 	if (!(src  = allocate_buffer())) goto panic_bypass;
 	if (!(tmp  = allocate_buffer())) goto panic_bypass;
 	if (!(dest = allocate_buffer())) goto panic_bypass;
 	
+	#ifndef M_SIMULATED
 	convert_block_int_to_float(tmp, i2s_input_blocks[1]);
+	#else
+	m_sim_get_input_block(tmp);
+	
+	/*m_printf("Obtained simulated input block:\n");
+	
+	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
+	{
+		m_printf("%s%.04f%s", (tmp[i] >= 0.0) ? " " : "", tmp[i], ((i+1) % 32 == 0) ? "\n" : " ");
+	}*/
+	#endif
 	
 	calc_low_pass_filter(&cxt->input_lpf, src, tmp, AUDIO_BLOCK_SAMPLES);
 	
@@ -881,7 +890,11 @@ int cxt_process(m_eng_context *cxt)
 	
 	run_transformer(&cxt->output_amp, dest, tmp);
 	
-	#ifndef M_ENG_SIMULATED
+	// Finally, clamp the results to [-1, 1]
+	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
+		dest[i] = (dest[i] < -1.0) ? -1.0 : ((dest[i] > 1.0) ? 1.0 : dest[i]);
+	
+	#ifndef M_SIMULATED
 	i2s_output_transmit_mono_float(dest);
 	i2s_output_update();
 	
@@ -894,14 +907,14 @@ int cxt_process(m_eng_context *cxt)
 	if (cxt->runs % 256 == 0)
 	{
 	#ifdef PRINT_TIMES
-		m_eng_printf("compute duration: %6fms. average compute duration: %6fms. average round-trip duration: %6fms. Compute takes %03f%% of round-trip\n",
+		m_printf("compute duration: %6fms. average compute duration: %6fms. average round-trip duration: %6fms. Compute takes %03f%% of round-trip\n",
 			(float)(end_time - start_time) * 0.001, avg_compute_duration_micros * 0.001, avg_roundtrip_duration_micros * 0.001,
 			(avg_roundtrip_duration_micros == 0.0) ? 0 : 100.0 * (avg_compute_duration_micros/avg_roundtrip_duration_micros));
 	#endif
 	}
 
 	#else
-	tmsim_send_output_block(dest);
+	m_sim_get_output_block(dest);
 	#endif
 	
 	memcpy(cxt->prev_block, src, AUDIO_BLOCK_SAMPLES * sizeof(float));
@@ -910,7 +923,7 @@ int cxt_process(m_eng_context *cxt)
 	release_buffer(tmp);
 	release_buffer(dest);
 
-	#ifndef M_ENG_SIMULATED
+	#ifndef M_SIMULATED
 	asm("DSB");
 	#endif
 	
@@ -924,9 +937,9 @@ panic_bypass:
 	if (output_buffers[0]) release_buffer(output_buffers[0]);
 	if (output_buffers[1]) release_buffer(output_buffers[1]);
 	
-	m_eng_printf("cxt_process: alloc fail!!\n");
+	m_printf("cxt_process: alloc fail!!\n");
 	
-	#ifndef M_ENG_SIMULATED
+	#ifndef M_SIMULATED
 	i2s_output_transmit_mono_int(block);
 	asm("DSB");
 	#else

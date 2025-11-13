@@ -1,6 +1,6 @@
 #include "m_int.h"
 
-int init_transformer_settings_page(m_int_ui_page *page)
+int init_transformer_settings_page(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -24,8 +24,8 @@ int init_transformer_settings_page(m_int_ui_page *page)
 	
 	str->text = NULL;
 	
-	nullify_parameter_widget(&str->lp_cutoff_freq);
-	nullify_parameter_widget(&str->hp_cutoff_freq);
+	nullify_parameter_widget(&str->band_lp_cutoff);
+	nullify_parameter_widget(&str->band_hp_cutoff);
 	nullify_setting_widget(&str->band_mode);
 	
 	str->band_control_cont = NULL;
@@ -33,7 +33,7 @@ int init_transformer_settings_page(m_int_ui_page *page)
 	return NO_ERROR;
 }
 
-int configure_transformer_settings_page(m_int_ui_page *page, void *data)
+int configure_transformer_settings_page(m_ui_page *page, void *data)
 {
 	printf("configure_transformer_settings_page\n");
 	
@@ -42,7 +42,7 @@ int configure_transformer_settings_page(m_int_ui_page *page, void *data)
 	
 	ui_page_add_back_button(page);
 	
-	m_int_transformer *trans = (m_int_transformer*)data;
+	m_transformer *trans = (m_transformer*)data;
 	
 	if (!data)
 		return ERR_NULL_PTR;
@@ -57,8 +57,8 @@ int configure_transformer_settings_page(m_int_ui_page *page, void *data)
 	if (!str)
 		return ERR_BAD_ARGS;
 	
-	configure_parameter_widget(&str->lp_cutoff_freq, &trans->lp_cutoff_freq, trans->profile);
-	configure_parameter_widget(&str->hp_cutoff_freq, &trans->hp_cutoff_freq, trans->profile);
+	configure_parameter_widget(&str->band_lp_cutoff, &trans->band_lp_cutoff, trans->profile);
+	configure_parameter_widget(&str->band_hp_cutoff, &trans->band_hp_cutoff, trans->profile);
 	configure_setting_widget(&str->band_mode, &trans->band_mode, trans->profile);
 	
 	page->configured = 1;
@@ -69,7 +69,7 @@ int configure_transformer_settings_page(m_int_ui_page *page, void *data)
 
 void band_control_value_changed_cb(lv_event_t *e)
 {
-	m_int_ui_page *page = lv_event_get_user_data(e);
+	m_ui_page *page = lv_event_get_user_data(e);
 	
 	if (!page)
 		return;
@@ -82,7 +82,7 @@ void band_control_value_changed_cb(lv_event_t *e)
 	if (!str->band_mode.setting || !str->band_mode.setting->options || !str->band_mode.obj)
 		return;
 	
-	m_int_setting *setting = str->band_mode.setting;
+	m_setting *setting = str->band_mode.setting;
 	
 	uint16_t value;
 	char dd_value[128];
@@ -108,16 +108,16 @@ void band_control_value_changed_cb(lv_event_t *e)
 	}
 	
 	printf("The associated value is %d\n", value);
-	setting->val = value;
+	setting->value = value;
 	
 	refresh_transformer_settings_page(page);
 	
-	et_msg msg = create_et_msg(ET_MESSAGE_SET_SETTING_VALUE, "ssss", setting->id.profile_id, setting->id.transformer_id, setting->id.parameter_id, value);
+	et_msg msg = create_et_msg(ET_MESSAGE_SET_SETTING_VALUE, "ssss", setting->id.profile_id, setting->id.transformer_id, setting->id.setting_id, value);
 	
 	queue_msg_to_teensy(msg);
 }
 
-int create_transformer_settings_page_ui(m_int_ui_page *page)
+int create_transformer_settings_page_ui(m_ui_page *page)
 {
 	printf("create_transformer_settings_page_ui\n");
 	if (!page)
@@ -150,8 +150,8 @@ int create_transformer_settings_page_ui(m_int_ui_page *page)
     lv_obj_set_flex_align(str->band_control_cont, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_SPACE_EVENLY);
 	//lv_obj_set_flex_grow(str->band_control_cont, 1);
 	
-	parameter_widget_create_ui(&str->lp_cutoff_freq, global_cxt.ui_cxt.backstage);
-	parameter_widget_create_ui(&str->hp_cutoff_freq, global_cxt.ui_cxt.backstage);
+	parameter_widget_create_ui(&str->band_lp_cutoff, global_cxt.ui_cxt.backstage);
+	parameter_widget_create_ui(&str->band_hp_cutoff, global_cxt.ui_cxt.backstage);
 	
 	refresh_transformer_settings_page(page);
 	
@@ -162,7 +162,7 @@ int create_transformer_settings_page_ui(m_int_ui_page *page)
 }
 
 
-int refresh_transformer_settings_page(m_int_ui_page *page)
+int refresh_transformer_settings_page(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -174,56 +174,56 @@ int refresh_transformer_settings_page(m_int_ui_page *page)
 	
 	if (str->band_mode.setting && str->band_control_cont)
 	{
-		switch (str->band_mode.setting->val)
+		switch (str->band_mode.setting->value)
 		{
 			case TRANSFORMER_MODE_FULL_SPECTRUM:
-				if (str->lp_cutoff_freq.container)
+				if (str->band_lp_cutoff.container)
 				{
-					lv_obj_set_parent(str->lp_cutoff_freq.container, global_cxt.ui_cxt.backstage);
+					lv_obj_set_parent(str->band_lp_cutoff.container, global_cxt.ui_cxt.backstage);
 				}
 				
-				if (str->hp_cutoff_freq.container)
+				if (str->band_hp_cutoff.container)
 				{
-					lv_obj_set_parent(str->hp_cutoff_freq.container, global_cxt.ui_cxt.backstage);
+					lv_obj_set_parent(str->band_hp_cutoff.container, global_cxt.ui_cxt.backstage);
 				}
 				
 				break;
 				
 			case TRANSFORMER_MODE_UPPER_SPECTRUM:
-				if (str->lp_cutoff_freq.container)
+				if (str->band_lp_cutoff.container)
 				{
-					lv_obj_set_parent(str->lp_cutoff_freq.container, global_cxt.ui_cxt.backstage);
+					lv_obj_set_parent(str->band_lp_cutoff.container, global_cxt.ui_cxt.backstage);
 				}
 				
-				if (str->hp_cutoff_freq.container)
+				if (str->band_hp_cutoff.container)
 				{
-					lv_obj_set_parent(str->hp_cutoff_freq.container, str->band_control_cont);
+					lv_obj_set_parent(str->band_hp_cutoff.container, str->band_control_cont);
 				}
 				
 				break;
 			
 			case TRANSFORMER_MODE_LOWER_SPECTRUM:
-				if (str->lp_cutoff_freq.container)
+				if (str->band_lp_cutoff.container)
 				{
-					lv_obj_set_parent(str->lp_cutoff_freq.container, str->band_control_cont);
+					lv_obj_set_parent(str->band_lp_cutoff.container, str->band_control_cont);
 				}
 				
-				if (str->hp_cutoff_freq.container)
+				if (str->band_hp_cutoff.container)
 				{
-					lv_obj_set_parent(str->hp_cutoff_freq.container, global_cxt.ui_cxt.backstage);
+					lv_obj_set_parent(str->band_hp_cutoff.container, global_cxt.ui_cxt.backstage);
 				}
 				
 				break;
 				
 			case TRANSFORMER_MODE_BAND:
-				if (str->hp_cutoff_freq.container)
+				if (str->band_hp_cutoff.container)
 				{
-					lv_obj_set_parent(str->hp_cutoff_freq.container, str->band_control_cont);
+					lv_obj_set_parent(str->band_hp_cutoff.container, str->band_control_cont);
 				}
 				
-				if (str->lp_cutoff_freq.container)
+				if (str->band_lp_cutoff.container)
 				{
-					lv_obj_set_parent(str->lp_cutoff_freq.container, str->band_control_cont);
+					lv_obj_set_parent(str->band_lp_cutoff.container, str->band_control_cont);
 				}
 				
 				
@@ -245,7 +245,7 @@ int refresh_transformer_settings_page(m_int_ui_page *page)
 }
 
 
-int free_transformer_settings_page_ui(m_int_ui_page *page)
+int free_transformer_settings_page_ui(m_ui_page *page)
 {
 	return ERR_UNIMPLEMENTED;
 	
@@ -256,7 +256,7 @@ int free_transformer_settings_page_ui(m_int_ui_page *page)
 }
 
 
-int transformer_settings_page_free_all(m_int_ui_page *page)
+int transformer_settings_page_free_all(m_ui_page *page)
 {
 	return ERR_UNIMPLEMENTED;
 	

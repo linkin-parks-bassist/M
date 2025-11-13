@@ -1,20 +1,20 @@
 #include "m_int.h"
 
-IMPLEMENT_LINKED_PTR_LIST(m_int_parameter);
-IMPLEMENT_LINKED_PTR_LIST(m_int_setting);
+IMPLEMENT_LINKED_PTR_LIST(m_parameter);
+IMPLEMENT_LINKED_PTR_LIST(m_setting);
 
-int init_parameter_str(m_int_parameter *param)
+int init_parameter_str(m_parameter *param)
 {
 	if (!param)
 		return ERR_NULL_PTR;
 	
-	param->val = 0.0;
+	param->value = 0.0;
 	param->min = 0.0;
 	param->max = 1.0;
 	
 	param->factor = 1.0;
 	
-	param->id = (m_int_parameter_id){.profile_id = 0, .transformer_id = 0, .parameter_id = 0};
+	param->id = (m_parameter_id){.profile_id = 0, .transformer_id = 0, .parameter_id = 0};
 	
 	param->name = NULL;
 	
@@ -25,14 +25,14 @@ int init_parameter_str(m_int_parameter *param)
 	return NO_ERROR;
 }
 
-int init_parameter(m_int_parameter *param, const char *name, float level, float min, float max)
+int init_parameter(m_parameter *param, const char *name, float level, float min, float max)
 {
 	if (!param)
 		return ERR_NULL_PTR;
 	
 	param->name = name;
 	param->units = NULL;
-	param->val = level;
+	param->value = level;
 	param->min = min;
 	param->max = max;
 	
@@ -45,13 +45,13 @@ int init_parameter(m_int_parameter *param, const char *name, float level, float 
 	return NO_ERROR;
 }
 
-int init_setting_str(m_int_setting *setting)
+int init_setting_str(m_setting *setting)
 {
 	if (!setting)
 		return ERR_NULL_PTR;
 	
 	setting->name = NULL;
-	setting->val = 0;
+	setting->value = 0;
 	
 	setting->n_options = 0;
 	setting->options = NULL;
@@ -63,13 +63,13 @@ int init_setting_str(m_int_setting *setting)
 	return NO_ERROR;
 }
 
-int init_setting(m_int_setting *setting, const char *name, uint16_t level)
+int init_setting(m_setting *setting, const char *name, uint16_t level)
 {
 	if (!setting)
 		return ERR_NULL_PTR;
 	
 	setting->name = name;
-	setting->val = level;
+	setting->value = level;
 	
 	setting->n_options = 0;
 	setting->options = NULL;
@@ -81,7 +81,7 @@ int init_setting(m_int_setting *setting, const char *name, uint16_t level)
 	return NO_ERROR;
 }
 
-int parameter_set_id(m_int_parameter *param, uint16_t pid, uint16_t tid, uint16_t ppid)
+int parameter_set_id(m_parameter *param, uint16_t pid, uint16_t tid, uint16_t ppid)
 {
 	if (!param)
 		return ERR_NULL_PTR;
@@ -93,14 +93,14 @@ int parameter_set_id(m_int_parameter *param, uint16_t pid, uint16_t tid, uint16_
 	return NO_ERROR;
 }
 
-void clone_parameter(m_int_parameter *dest, m_int_parameter *src)
+void clone_parameter(m_parameter *dest, m_parameter *src)
 {
 	if (!dest || !src)
 		return;
 	
-	m_int_parameter_id id;
+	m_parameter_id id;
 	
-	dest->val = src->val;
+	dest->value = src->value;
 	dest->min = src->min;
 	dest->max = src->max;
 	
@@ -115,14 +115,14 @@ void clone_parameter(m_int_parameter *dest, m_int_parameter *src)
 	dest->group = src->group;
 }
 
-int clone_setting(m_int_setting *dest, m_int_setting *src)
+int clone_setting(m_setting *dest, m_setting *src)
 {
 	if (!dest || !src)
 		return ERR_NULL_PTR;
 	
 	dest->id = src->id;
 	
-	dest->val = src->val;
+	dest->value = src->value;
 	dest->min = src->min;
 	dest->max = src->max;
 	
@@ -130,7 +130,7 @@ int clone_setting(m_int_setting *dest, m_int_setting *src)
 	
 	if (dest->n_options)
 	{
-		dest->options = malloc(sizeof(m_int_setting_option) * dest->n_options);
+		dest->options = malloc(sizeof(m_setting_option) * dest->n_options);
 		
 		if (!dest->options)
 		{
@@ -141,7 +141,7 @@ int clone_setting(m_int_setting *dest, m_int_setting *src)
 		{
 			if (src->options)
 			{
-				memcpy(&dest->options[i], &src->options[i], sizeof(m_int_setting_option));
+				memcpy(&dest->options[i], &src->options[i], sizeof(m_setting_option));
 			}
 			else
 			{
@@ -161,7 +161,7 @@ int clone_setting(m_int_setting *dest, m_int_setting *src)
 	return NO_ERROR;
 }
 
-void gut_setting(m_int_setting *setting)
+void gut_setting(m_setting *setting)
 {
 	if (!setting)
 		return;
@@ -169,5 +169,5 @@ void gut_setting(m_int_setting *setting)
 	if (!setting->n_options || !setting->options)
 		return;
 	
-	m_int_free(setting->options);
+	m_free(setting->options);
 }

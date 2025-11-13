@@ -18,7 +18,7 @@ int calc_biquad(void *data_struct, float *dest, float *src, int n_samples)
 	
 	float in_sample, out_sample;
 	
-	/*m_eng_printf("Biquad coefficients: [%s%3f, %s%3f, %s%3f, %s%3f, %s%3f], state: [[%s%3f, %s%3f], [%s%3f, %s%3f]]\n",
+	/*m_printf("Biquad coefficients: [%s%3f, %s%3f, %s%3f, %s%3f, %s%3f], state: [[%s%3f, %s%3f], [%s%3f, %s%3f]]\n",
 		(biquad->a0 < 0) ? "" : " ", biquad->a0,
 		 (biquad->a1 < 0) ? "" : " ", biquad->a1,
 		 (biquad->a2 < 0) ? "" : " ", biquad->a2,

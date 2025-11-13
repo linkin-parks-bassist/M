@@ -1,7 +1,7 @@
 #include "m_eng.h"
 
-static const char *FNAME = "m_eng_transformer.c";
-int transformer_init_parameter_array(m_eng_transformer *trans, int n)
+static const char *FNAME = "m_transformer.c";
+int transformer_init_parameter_array(m_transformer *trans, int n)
 {
 	FUNCTION_START();
 
@@ -20,7 +20,7 @@ int transformer_init_parameter_array(m_eng_transformer *trans, int n)
 	
 	trans->n_parameters = 0;
 	trans->parameter_array_size = n;
-	trans->parameters 	= (m_eng_parameter**)malloc(sizeof(m_eng_parameter*) * n);
+	trans->parameters 	= (m_parameter**)malloc(sizeof(m_parameter*) * n);
 	
 	if (!trans->parameters)
 	{
@@ -33,7 +33,7 @@ int transformer_init_parameter_array(m_eng_transformer *trans, int n)
 	RETURN_ERR_CODE(NO_ERROR);
 }
 
-int transformer_init_setting_array(m_eng_transformer *trans, int n)
+int transformer_init_setting_array(m_transformer *trans, int n)
 {
 	FUNCTION_START();
 
@@ -52,7 +52,7 @@ int transformer_init_setting_array(m_eng_transformer *trans, int n)
 	
 	trans->n_settings = 0;
 	trans->setting_array_size = n;
-	trans->settings 	= (m_eng_setting**)malloc(sizeof(m_eng_setting*) * n);
+	trans->settings 	= (m_setting**)malloc(sizeof(m_setting*) * n);
 	
 	if (!trans->settings)
 	{
@@ -65,7 +65,7 @@ int transformer_init_setting_array(m_eng_transformer *trans, int n)
 	RETURN_ERR_CODE(NO_ERROR);
 }
 
-int transformer_init_controls(m_eng_transformer *trans)
+int transformer_init_controls(m_transformer *trans)
 {
 	FUNCTION_START();
 	
@@ -132,11 +132,11 @@ static int rectify_block_divider(int divider)
 }
 
 
-int run_transformer(m_eng_transformer *trans, float *dest, float *src)
+int run_transformer(m_transformer *trans, float *dest, float *src)
 {
 	FUNCTION_START();
 	
-	//m_eng_printf("run_transformer\n");
+	//m_printf("run_transformer\n");
 	if (!trans)
 	{
 		RETURN_ERR_CODE(ERR_NULL_PTR);
@@ -158,8 +158,8 @@ int run_transformer(m_eng_transformer *trans, float *dest, float *src)
 	int long_update[n_parameters];
 	float deltas[n_parameters];
 	
-	m_eng_parameter *parameters[n_parameters];
-	m_eng_setting *settings[n_settings];
+	m_parameter *parameters[n_parameters];
+	m_setting *settings[n_settings];
 	
 	for (int i = 0; i < n_settings; i++)
 		settings[i] = NULL;
@@ -188,12 +188,15 @@ int run_transformer(m_eng_transformer *trans, float *dest, float *src)
 	float *local_src = NULL;
 	float *wet_buffer = NULL;
 	
+	float *local_dest;	
+	float *src_saved;
+	
 	if (!(tmp 		 = allocate_buffer())) goto run_transformer_alloc_fail;
 	if (!(local_src  = allocate_buffer())) goto run_transformer_alloc_fail;
 	if (!(wet_buffer = allocate_buffer())) goto run_transformer_alloc_fail;
 
-	float *local_dest = wet_buffer;	
-	float *src_saved = src;
+	local_dest = wet_buffer;	
+	src_saved = src;
 	
 	// First, check for any settings updated. But only bother if the transformer is reconfigurable
 	if (trans->reconfigure)
@@ -311,7 +314,7 @@ int run_transformer(m_eng_transformer *trans, float *dest, float *src)
 	
 	n_samples = AUDIO_BLOCK_SAMPLES / divider;
 	
-	//m_eng_printf("trans->band_mode.value = %d\n", trans->band_mode.value);
+	//m_printf("trans->band_mode.value = %d\n", trans->band_mode.value);
 	// The actual computation!
 	for (int i = 0; i < divider; i++)
 	{
@@ -326,7 +329,7 @@ int run_transformer(m_eng_transformer *trans, float *dest, float *src)
 			trans->reconfigure((void*)trans->data_struct);
 		
 		
-		//m_eng_printf("made it to %s:%s\n", FNAME, XSTR(__LINE__));
+		//m_printf("made it to %s:%s\n", FNAME, XSTR(__LINE__));
 		if (trans->band_mode.value == TRANSFORMER_MODE_FULL_SPECTRUM)
 		{
 			for (int i = 0; i < n_samples; i++)
@@ -334,12 +337,12 @@ int run_transformer(m_eng_transformer *trans, float *dest, float *src)
 		}
 		else
 		{
-			/*m_eng_printf("Input block:\n");
+			/*m_printf("Input block:\n");
 			for (int i = 0; i < n_samples; i++)
 			{
-				m_eng_printf("%s%.03f%s", (src[i] > 0) ? " " : "-", fabsf(src[i]), ((i + 1) % 16 == 0) ? "\n" : " ");
+				m_printf("%s%.03f%s", (src[i] > 0) ? " " : "-", fabsf(src[i]), ((i + 1) % 16 == 0) ? "\n" : " ");
 			}
-			m_eng_printf("\n");*/
+			m_printf("\n");*/
 			
 			if (trans->input_lpf.cutoff_frequency.updated)
 				reconfigure_lr_low_pass_filter(&trans->input_lpf);
@@ -350,15 +353,15 @@ int run_transformer(m_eng_transformer *trans, float *dest, float *src)
 			switch (trans->band_mode.value)
 			{
 				case TRANSFORMER_MODE_LOWER_SPECTRUM:
-					//m_eng_printf("Lower spectrum mode. Cutoff frequencey: %f\n", trans->input_lpf.cutoff_frequency.value);
+					//m_printf("Lower spectrum mode. Cutoff frequencey: %f\n", trans->input_lpf.cutoff_frequency.value);
 					calc_lr_low_pass_filter(&trans->input_lpf, local_src, src, n_samples);
 					break;
 				case TRANSFORMER_MODE_UPPER_SPECTRUM:
-					//m_eng_printf("Upper spectrum mode. Cutoff frequencey: %f\n", trans->input_hpf.cutoff_frequency.value);
+					//m_printf("Upper spectrum mode. Cutoff frequencey: %f\n", trans->input_hpf.cutoff_frequency.value);
 					calc_lr_high_pass_filter(&trans->input_hpf, local_src, src, n_samples);
 					break;
 				case TRANSFORMER_MODE_BAND:
-					//m_eng_printf("Band mode. Cutoff frequenceies: %f, %f\n", trans->input_lpf.cutoff_frequency.value, trans->input_hpf.cutoff_frequency.value);
+					//m_printf("Band mode. Cutoff frequenceies: %f, %f\n", trans->input_lpf.cutoff_frequency.value, trans->input_hpf.cutoff_frequency.value);
 					calc_lr_low_pass_filter(&trans->input_lpf, tmp, src, n_samples);
 					calc_lr_high_pass_filter(&trans->input_hpf, local_src, tmp, n_samples);
 					break;
@@ -382,11 +385,11 @@ int run_transformer(m_eng_transformer *trans, float *dest, float *src)
 		src  = &src [n_samples];
 		local_dest = &local_dest[n_samples];
 		
-		//m_eng_printf("made it to %s:%s\n", FNAME, XSTR(__LINE__));
+		//m_printf("made it to %s:%s\n", FNAME, XSTR(__LINE__));
 	}
 	
 	
-	//m_eng_printf("made it to %s:%s\n", FNAME, XSTR(__LINE__));
+	//m_printf("made it to %s:%s\n", FNAME, XSTR(__LINE__));
 	// After having applied the transformer, if any parameters
 	// had a full update this block, their value will be near .new_value
 	// but not necessarily exactly equal to it, due to floating point
@@ -400,7 +403,7 @@ int run_transformer(m_eng_transformer *trans, float *dest, float *src)
 		}
 	}
 	
-	//m_eng_printf("made it to %s:%s\n", FNAME, XSTR(__LINE__));
+	//m_printf("made it to %s:%s\n", FNAME, XSTR(__LINE__));
 	// Mix the wets with the dries in the dest buffer; done!
 	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
 		dest[i] = trans->wet_mix.value * wet_buffer[i] + (1.0 - trans->wet_mix.value) * src_saved[i];
@@ -409,9 +412,9 @@ int run_transformer(m_eng_transformer *trans, float *dest, float *src)
 	release_buffer(local_src);
 	release_buffer(wet_buffer);
 	
-	//m_eng_printf("made it to %s:%s\n", FNAME, XSTR(__LINE__));
+	//m_printf("made it to %s:%s\n", FNAME, XSTR(__LINE__));
 	
-	//m_eng_printf("run_transformer done\n");
+	//m_printf("run_transformer done\n");
 	RETURN_ERR_CODE(NO_ERROR);
 	
 run_transformer_alloc_fail:
@@ -423,7 +426,8 @@ run_transformer_alloc_fail:
 	RETURN_ERR_CODE(ERR_ALLOC_FAIL);
 }
 
-int propagate_transformer(m_eng_pipeline *pipeline, m_eng_transformer *trans)
+#ifdef GRAPH_PIPELINE
+int propagate_transformer(m_eng_graph *pipeline, m_transformer *trans)
 {
 	FUNCTION_START();
 
@@ -434,8 +438,8 @@ int propagate_transformer(m_eng_pipeline *pipeline, m_eng_transformer *trans)
 	
 	trans->runs++;
 	
-	m_eng_pipeline_node *inputs [TRANSFORMER_MAX_INPUTS ];
-	m_eng_pipeline_node *outputs[TRANSFORMER_MAX_OUTPUTS];
+	m_eng_graph_node *inputs [TRANSFORMER_MAX_INPUTS ];
+	m_eng_graph_node *outputs[TRANSFORMER_MAX_OUTPUTS];
 	
 	float  *src[TRANSFORMER_MAX_INPUTS];
 	float *dest[TRANSFORMER_MAX_INPUTS];
@@ -519,13 +523,13 @@ int propagate_transformer(m_eng_pipeline *pipeline, m_eng_transformer *trans)
 		
 		
 		if (ret_val == NO_ERROR)
-			m_eng_printf("Computed sucessfully\n");
+			m_printf("Computed sucessfully\n");
 		else
-			m_eng_printf("Error %d\n", ret_val);
+			m_printf("Error %d\n", ret_val);
 		
 		float amp_abs_max = 0.0;
 		
-		m_eng_printf("Bypass: %d. Function pointer: 0x%x.\n", trans->bypass, trans->compute_transformer);
+		m_printf("Bypass: %d. Function pointer: 0x%x.\n", trans->bypass, trans->compute_transformer);
 		
 		for (int i = 0; i < TRANSFORMER_MAX_OUTPUTS; i++)
 		{
@@ -538,15 +542,16 @@ int propagate_transformer(m_eng_pipeline *pipeline, m_eng_transformer *trans)
 					amp_abs_max = fabs(dest[i][j]);
 			}
 			
-			m_eng_printf("Output %d peak amplitude: %4f\n", i, amp_abs_max);
+			m_printf("Output %d peak amplitude: %4f\n", i, amp_abs_max);
 		}
 	}
 	#endif
 	
 	RETURN_ERR_CODE(ret_val);
 }
+#endif
 
-int transformer_add_setting(m_eng_transformer *trans, m_eng_setting *setting)
+int transformer_add_setting(m_transformer *trans, m_setting *setting)
 {
 	FUNCTION_START();
 
@@ -571,7 +576,7 @@ int transformer_add_setting(m_eng_transformer *trans, m_eng_setting *setting)
 	RETURN_ERR_CODE(NO_ERROR);
 }
 
-int transformer_add_parameter(m_eng_transformer *trans, m_eng_parameter *param)
+int transformer_add_parameter(m_transformer *trans, m_parameter *param)
 {
 	FUNCTION_START();
 
@@ -596,7 +601,7 @@ int transformer_add_parameter(m_eng_transformer *trans, m_eng_parameter *param)
 	RETURN_ERR_CODE(NO_ERROR);
 }
 
-m_eng_parameter *transformer_get_parameter(m_eng_transformer *trans, uint16_t ppid)
+m_parameter *transformer_get_parameter(m_transformer *trans, uint16_t ppid)
 {
 	if (!trans)
 	{
@@ -629,7 +634,7 @@ m_eng_parameter *transformer_get_parameter(m_eng_transformer *trans, uint16_t pp
 	return trans->parameters[ppid];
 }
 
-m_eng_setting *transformer_get_setting(m_eng_transformer *trans, uint16_t sid)
+m_setting *transformer_get_setting(m_transformer *trans, uint16_t sid)
 {
 	FUNCTION_START();
 	
@@ -658,33 +663,33 @@ m_eng_setting *transformer_get_setting(m_eng_transformer *trans, uint16_t sid)
 	RETURN_PTR(trans->settings[sid]);
 }
 
-void free_transformer(m_eng_transformer *trans)
+void free_transformer(m_transformer *trans)
 {
 	FUNCTION_START();
 
-	m_eng_printf("free_transformer\n");
+	m_printf("free_transformer\n");
 	if (!trans)
 	{
 		RETURN_VOID();
 	}
 	
-	m_eng_printf("trans->parameters = %p, trans->settings = %p, trans->data_struct = %p\n",
+	m_printf("trans->parameters = %p, trans->settings = %p, trans->data_struct = %p\n",
 		trans->parameters, trans->settings, trans->data_struct);
 	
 	if (trans->parameters)
 	{
-		m_eng_printf("Freeing parameter array...\n");
+		m_printf("Freeing parameter array...\n");
 		free(trans->parameters);
 	}
 	if (trans->settings)
 	{
-		m_eng_printf("Freeing setting array...\n");
+		m_printf("Freeing setting array...\n");
 		free(trans->settings);
 	}
 	
 	if (trans->data_struct)
 	{
-		m_eng_printf("Freeing data struct...trans->free_struct = %p\n", trans->free_struct);
+		m_printf("Freeing data struct...trans->free_struct = %p\n", trans->free_struct);
 		if (trans->free_struct)
 			trans->free_struct(trans->data_struct);
 		else
@@ -694,7 +699,7 @@ void free_transformer(m_eng_transformer *trans)
 	free(trans);
 }
 
-int clone_transformer(m_eng_transformer **dest_ptr, m_eng_transformer *src)
+int clone_transformer(m_transformer **dest_ptr, m_transformer *src)
 {
 	FUNCTION_START();
 
@@ -705,14 +710,14 @@ int clone_transformer(m_eng_transformer **dest_ptr, m_eng_transformer *src)
 	
 	if (!*dest_ptr)
 	{
-		*dest_ptr = (m_eng_transformer*)malloc(sizeof(m_eng_transformer));
+		*dest_ptr = (m_transformer*)malloc(sizeof(m_transformer));
 		if (!*dest_ptr)
 		{
 			RETURN_ERR_CODE(ERR_ALLOC_FAIL);
 		}
 	}
 	
-	m_eng_transformer *dest = *dest_ptr;
+	m_transformer *dest = *dest_ptr;
 	
 	int ret_val = init_transformer(dest, src->type);
 	
@@ -723,23 +728,12 @@ int clone_transformer(m_eng_transformer **dest_ptr, m_eng_transformer *src)
 	
 	dest->id = src->id;
 	
-	dest->n_inputs  = src->n_inputs;
-	dest->n_outputs = src->n_outputs;
-	
-	dest->bypass = src->bypass;
-	
-	for (int i = 0; i < TRANSFORMER_MAX_INPUTS; i++)
-		dest->inputs[i] = src->inputs[i];
-	
-	for (int i = 0; i < TRANSFORMER_MAX_OUTPUTS; i++)
-		dest->outputs[i] = src->outputs[i];
-	
 	if (src->settings)
 	{
 		for (int i = 0; i < dest->n_settings; i++)
 		{
 			if (dest->settings[i] && src->settings[i])
-				memcpy(dest->settings[i], src->settings[i], sizeof(m_eng_setting));
+				memcpy(dest->settings[i], src->settings[i], sizeof(m_setting));
 		}
 	}
 	
@@ -748,7 +742,7 @@ int clone_transformer(m_eng_transformer **dest_ptr, m_eng_transformer *src)
 		for (int i = 0; i < dest->n_parameters; i++)
 		{
 			if (dest->parameters[i] && src->parameters[i])
-				memcpy(dest->parameters[i], src->parameters[i], sizeof(m_eng_parameter));
+				memcpy(dest->parameters[i], src->parameters[i], sizeof(m_parameter));
 		}
 	}
 	
@@ -758,7 +752,6 @@ int clone_transformer(m_eng_transformer **dest_ptr, m_eng_transformer *src)
 	dest->free_struct 				= src->free_struct;
 	dest->clone_struct 				= src->clone_struct;
 	
-	dest->runs = src->runs;
 	dest->struct_size = src->struct_size;
 	dest->transition_policy = src->transition_policy;
 	

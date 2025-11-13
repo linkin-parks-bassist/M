@@ -4,7 +4,7 @@ static const char *FNAME = "m_eng_update.c";
 
 void update_all()
 {
-	#ifndef M_ENG_SIMULATED
+	#ifndef M_SIMULATED
 	
 	NVIC_SET_PENDING(IRQ_SOFTWARE);
 	#else
@@ -14,7 +14,7 @@ void update_all()
 
 int update_setup()
 {
-	#ifndef M_ENG_SIMULATED
+	#ifndef M_SIMULATED
 	
 	if (update_scheduled)
 	{
@@ -35,7 +35,7 @@ int update_setup()
 
 void update_stop()
 {
-	#ifndef M_ENG_SIMULATED
+	#ifndef M_SIMULATED
 	NVIC_DISABLE_IRQ(IRQ_SOFTWARE);
 	update_scheduled = 0;
 	#else

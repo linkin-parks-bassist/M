@@ -14,12 +14,12 @@ int mem_pools_initialised = 0;
 #ifdef BUFFER_QUEUE_DMAMEM
 DMAMEM
 #endif
-float   buffer_pool[M_ENG_BUFFER_POOL_SIZE][AUDIO_BLOCK_SAMPLES];
+float   buffer_pool[M_BUFFER_POOL_SIZE][AUDIO_BLOCK_SAMPLES];
 #endif
-float  *buffer_buffer[M_ENG_BUFFER_POOL_SIZE];
+float  *buffer_buffer[M_BUFFER_POOL_SIZE];
 
 int buffer_head = 0;
-int buffer_tail = M_ENG_BUFFER_POOL_SIZE - 1;
+int buffer_tail = M_BUFFER_POOL_SIZE - 1;
 
 float zero_buffer[AUDIO_BLOCK_SAMPLES];
 float sink_buffer[AUDIO_BLOCK_SAMPLES];
@@ -28,13 +28,16 @@ float sink_buffer[AUDIO_BLOCK_SAMPLES];
 
 // Set up the pool of audio data blocks
 // placing them all onto the free list
-FLASHMEM void init_mem_pools()
+#ifndef M_SIMULATED
+FLASHMEM
+#endif
+void init_mem_pools()
 {
 	unsigned int i;
 	
 	__disable_irq();
 	
-	for (int i = 0; i < M_ENG_BUFFER_POOL_SIZE; i++)
+	for (int i = 0; i < M_BUFFER_POOL_SIZE; i++)
 	{
 		#ifdef BUFFER_QUEUE_STATIC
 		buffer_buffer[i] = buffer_pool[i];
@@ -57,7 +60,7 @@ float *allocate_buffer()
 {
 	FUNCTION_START();
 	
-	//m_eng_printf("allocate_buffer. MPI: %d. buffer_head: %d. buffer_tail: %d\n", mem_pools_initialised, buffer_head, buffer_tail);
+	//m_printf("allocate_buffer. MPI: %d. buffer_head: %d. buffer_tail: %d\n", mem_pools_initialised, buffer_head, buffer_tail);
 	if (!mem_pools_initialised)
 	{
 		RETURN_PTR(NULL);
@@ -68,11 +71,11 @@ float *allocate_buffer()
 	if (buffer_head != buffer_tail)
 	{
 		ret_buffer = buffer_buffer[buffer_head];
-		buffer_head = (buffer_head + 1) % M_ENG_BUFFER_POOL_SIZE;
+		buffer_head = (buffer_head + 1) % M_BUFFER_POOL_SIZE;
 	}
 	else
 	{
-		m_eng_printf("BUFFER ALLOCATION FAIL\n");
+		m_printf("BUFFER ALLOCATION FAIL\n");
 	}
 	
 	RETURN_PTR(ret_buffer);
@@ -87,7 +90,7 @@ void release_buffer(float *buffer)
 		RETURN_VOID();
 	}
 	
-	buffer_tail = (buffer_tail + 1) % M_ENG_BUFFER_POOL_SIZE;
+	buffer_tail = (buffer_tail + 1) % M_BUFFER_POOL_SIZE;
 	buffer_buffer[buffer_tail] = buffer;
 	
 	RETURN_VOID();
@@ -97,11 +100,11 @@ void print_mempool_info()
 {
 	FUNCTION_START();
 
-	m_eng_printf("MEMPOOL\n");
+	m_printf("MEMPOOL\n");
 	
-	int available_buffers = buffer_tail - buffer_head + ((buffer_tail < buffer_head) ? M_ENG_BUFFER_POOL_SIZE : 0);
-	int used_buffers = M_ENG_BUFFER_POOL_SIZE - available_buffers;
-	m_eng_printf("Used buffers: %d. Available buffers: %d\n", used_buffers, available_buffers);
+	int available_buffers = buffer_tail - buffer_head + ((buffer_tail < buffer_head) ? M_BUFFER_POOL_SIZE : 0);
+	int used_buffers = M_BUFFER_POOL_SIZE - available_buffers;
+	m_printf("Used buffers: %d. Available buffers: %d\n", used_buffers, available_buffers);
 	
 	RETURN_VOID();
 }

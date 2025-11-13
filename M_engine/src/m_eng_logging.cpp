@@ -1,4 +1,6 @@
+#ifndef M_SIMULATED
 #include <Arduino.h>
+#endif
 #include "m_eng.h"
 
 
@@ -295,9 +297,19 @@ log_bufferize:
 		buf[LOG_ENTRIES_PRINT_BUF_LEN - 1] = 0;
 	}
 	
+	#ifndef M_SIMULATED
 	Serial.print(buf);
+	#else
+	puts(buf);
+	#endif
 	if (buf[(i < LOG_ENTRIES_PRINT_BUF_LEN) ? i - 1 : LOG_ENTRIES_PRINT_BUF_LEN - 2] != '\n')
+	{
+		#ifndef M_SIMULATED
 		Serial.print("\n");
+		#else
+		printf("\n");
+		#endif
+	}
 	
 	log_entries_index = 0;
 	log_entries_wrapped = 0;
@@ -405,13 +417,13 @@ void m_eng_profiler_sort()
 
 void m_eng_profiler_print()
 {
-	m_eng_printf("Profiler data\n\n");
+	m_printf("Profiler data\n\n");
 	
 	m_eng_profiler_sort();
 	
 	for (int i = 0; i < profiler_entries_used; i++)
 	{
-		m_eng_printf("Function: %s\n\tTotal calls: %d\n\tTotal cycles: %llu\n\tTotal time: %.3fms\n\tAverage cycles: %.3f\n\tAverage time: %.3fus\n\tRunning average cycles: %.3f\n\tRunning average time: %.3fus\n\n",
+		m_printf("Function: %s\n\tTotal calls: %d\n\tTotal cycles: %llu\n\tTotal time: %.3fms\n\tAverage cycles: %.3f\n\tAverage time: %.3fus\n\tRunning average cycles: %.3f\n\tRunning average time: %.3fus\n\n",
 			profiler_entries[i].function_name, profiler_entries[i].calls, profiler_entries[i].total_cycles,
 			CYCLES_TO_SECONDS(profiler_entries[i].total_cycles) * 1000.0, (double)profiler_entries[i].total_cycles / (double)profiler_entries[i].calls,
 			CYCLES_TO_SECONDS((double)profiler_entries[i].total_cycles / (double)profiler_entries[i].calls) * 1000000.0,

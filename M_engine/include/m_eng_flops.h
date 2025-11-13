@@ -1,7 +1,17 @@
 #ifndef M_ENG_FLOPS_H_
 #define M_ENG_FLOPS_H_
 
-static inline void m_add_f32(float *dest, float *restrict x, float *restrict y, uint32_t n)
+#ifndef RESTRICT
+#  if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
+#    define RESTRICT restrict
+#  elif defined(__GNUC__) || defined(__clang__)
+#    define RESTRICT __restrict__
+#  else
+#    define RESTRICT
+#  endif
+#endif
+
+static inline void m_add_f32(float *dest, float *RESTRICT x, float *RESTRICT y, uint32_t n)
 {
 	if (dest && x && y)
 	{
@@ -21,7 +31,7 @@ static inline void m_add_f32(float *dest, float *restrict x, float *restrict y, 
 	}
 }
 
-static inline void m_sub_f32(float *dest, float *restrict x, float *restrict y, uint32_t n)
+static inline void m_sub_f32(float *dest, float *RESTRICT x, float *RESTRICT y, uint32_t n)
 {
 	if (dest && x && y)
 	{
@@ -83,7 +93,7 @@ static inline void m_sub_from_f32(float *dest, float *x, uint32_t n)
 }
 
 
-static inline void m_mul_and_add_f32(float *dest, float *restrict x, float *restrict y, uint32_t n)
+static inline void m_mul_and_add_f32(float *dest, float *RESTRICT x, float *RESTRICT y, uint32_t n)
 {
 	if (dest && x && y)
 	{
@@ -105,7 +115,7 @@ static inline void m_mul_and_add_f32(float *dest, float *restrict x, float *rest
 	}
 }
 
-static inline void m_scale_and_add_to_f32(float *restrict dest, float *restrict x, float s, uint32_t n)
+static inline void m_scale_and_add_to_f32(float *RESTRICT dest, float *RESTRICT x, float s, uint32_t n)
 {
 	if (dest && x)
 	{

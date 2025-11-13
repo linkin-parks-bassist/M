@@ -16,7 +16,7 @@ int begin_m_int_comms();
 
 int queue_msg_to_teensy(et_msg msg);
 
-int send_parameter_change  (m_int_parameter_id id, float new_value);
-int request_parameter_value(m_int_parameter_id id, void *widget);
+int send_parameter_change  (m_parameter_id id, float new_value);
+int request_parameter_value(m_parameter_id id, void *widget);
 
 #endif

@@ -59,14 +59,12 @@ typedef struct m_int_glide_button
 
 DECLARE_LINKED_PTR_LIST(m_int_glide_button);
 
-typedef m_int_glide_button_ptr_linked_list glide_button_ll;
-
 typedef struct m_int_glide_button_array
 {
 	int n_buttons;
-	glide_button_ll *buttons;
+	m_int_glide_button_pll *buttons;
 	
-	m_int_ui_page *parent;
+	m_ui_page *parent;
 	
 	int base_y_pos;
 	

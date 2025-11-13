@@ -3,10 +3,10 @@
 
 typedef struct
 {
-	m_eng_parameter ratio;
-	m_eng_parameter threshold;
-	m_eng_parameter attack;
-	m_eng_parameter release;
+	m_parameter ratio;
+	m_parameter threshold;
+	m_parameter attack;
+	m_parameter release;
 	
 	float alpha;
 	float rho;

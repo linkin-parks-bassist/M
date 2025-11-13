@@ -1,8 +1,8 @@
 #include "m_int.h"
 
-m_int_menu_item *create_sequence_listing_menu_item(char *text, m_int_sequence *sequence, m_int_ui_page *parent)
+m_int_menu_item *create_sequence_listing_menu_item(char *text, m_int_sequence *sequence, m_ui_page *parent)
 {
-	m_int_menu_item *item = m_int_malloc(sizeof(m_int_menu_item));
+	m_int_menu_item *item = m_alloc(sizeof(m_int_menu_item));
 	
 	if (!item || !sequence)
 		return NULL;
@@ -79,7 +79,7 @@ int sequence_listing_menu_item_change_name(m_int_menu_item *item, char *name)
 	return NO_ERROR;
 }
 
-int init_sequence_list(m_int_ui_page *page)
+int init_sequence_list(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -95,7 +95,7 @@ int init_sequence_list(m_int_ui_page *page)
 
 void sequence_list_add_cb(lv_event_t *e)
 {
-	m_int_ui_page *page = lv_event_get_user_data(e);
+	m_ui_page *page = lv_event_get_user_data(e);
 	
 	if (!page)
 		return;
@@ -134,7 +134,7 @@ void sequence_list_add_cb(lv_event_t *e)
 	sequence_listing_menu_item_refresh_active(new_listing);
 }
 
-int configure_sequence_list(m_int_ui_page *page, void *data)
+int configure_sequence_list(m_ui_page *page, void *data)
 {
 	printf("Configure sequence list\n");
 	if (!page)
@@ -143,7 +143,7 @@ int configure_sequence_list(m_int_ui_page *page, void *data)
 	if (page->configured)
 		return NO_ERROR;
 	
-	page->parent = (m_int_ui_page*)data;
+	page->parent = (m_ui_page*)data;
 	
 	m_int_menu_page_str *str = page->data_struct;
 	
@@ -162,7 +162,7 @@ int configure_sequence_list(m_int_ui_page *page, void *data)
 	
 	sequence_ll *current = global_cxt.sequences;
 	printf("current = global_cxt.sequences = %p\n", current);
-	menu_item_ll *nl;
+	m_int_menu_item_pll *nl;
 	
 	int i = 0;
 	while (current)
@@ -185,7 +185,7 @@ int configure_sequence_list(m_int_ui_page *page, void *data)
 	return NO_ERROR;
 }
 
-int free_sequence_list_ui(m_int_ui_page *page)
+int free_sequence_list_ui(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;

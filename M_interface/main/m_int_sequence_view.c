@@ -5,7 +5,7 @@ int create_sequence_view_for(m_int_sequence *seq)
 	if (!seq)
 		return ERR_NULL_PTR;
 	
-	seq->view_page = malloc(sizeof(m_int_ui_page));
+	seq->view_page = malloc(sizeof(m_ui_page));
 	
 	if (!seq->view_page)
 		return ERR_ALLOC_FAIL;
@@ -16,7 +16,7 @@ int create_sequence_view_for(m_int_sequence *seq)
 	return NO_ERROR;
 }
 
-int init_sequence_view(m_int_ui_page *page)
+int init_sequence_view(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -45,7 +45,7 @@ int init_sequence_view(m_int_ui_page *page)
 
 void seq_play_button_cb(lv_event_t *e)
 {
-	m_int_ui_page *page = lv_event_get_user_data(e);
+	m_ui_page *page = lv_event_get_user_data(e);
 	
 	if (!page)
 		return;
@@ -66,7 +66,7 @@ void seq_play_button_cb(lv_event_t *e)
 
 void seq_plus_button_cb(lv_event_t *e)
 {
-	m_int_ui_page *page = lv_event_get_user_data(e);
+	m_ui_page *page = lv_event_get_user_data(e);
 	
 	if (!page)
 		return;
@@ -76,7 +76,7 @@ void seq_plus_button_cb(lv_event_t *e)
 	if (!str)
 		return;
 	
-	m_int_profile *new_profile = create_new_profile_with_teensy();
+	m_profile *new_profile = create_new_profile_with_teensy();
 	
 	if (!new_profile)
 		return;
@@ -138,7 +138,7 @@ int seq_view_gb_clicked_cb(m_int_glide_button *button)
 	if (!button)
 		return ERR_NULL_PTR;
 	
-	m_int_profile *profile = button->data;
+	m_profile *profile = button->data;
 	
 	if (!profile)
 		return ERR_BAD_ARGS;
@@ -172,13 +172,13 @@ int seq_view_gb_moved_cb(m_int_glide_button *button)
 
 void sequence_view_set_name(lv_event_t *e)
 {
-	m_int_ui_page *page = (m_int_ui_page*)lv_event_get_user_data(e);
+	m_ui_page *page = (m_ui_page*)lv_event_get_user_data(e);
 	m_int_sequence_view_str *str = (m_int_sequence_view_str*)page->data_struct;
 	
 	const char *new_name = lv_textarea_get_text(page->panel->title);
 	
 	if (str->seq->name)
-		m_int_free(str->seq->name);
+		m_free(str->seq->name);
 	
 	str->seq->name = m_int_strndup(new_name, PROFILE_NAM_ENG_MAX_LEN);
 	
@@ -193,7 +193,7 @@ void sequence_view_set_name(lv_event_t *e)
 
 void sequence_view_revert_name(lv_event_t *e)
 {
-	m_int_ui_page *page = (m_int_ui_page*)lv_event_get_user_data(e);
+	m_ui_page *page = (m_ui_page*)lv_event_get_user_data(e);
 	m_int_sequence_view_str *str = (m_int_sequence_view_str*)page->data_struct;
 	
 	lv_textarea_set_text(page->panel->title, str->seq->name);
@@ -204,7 +204,7 @@ void sequence_view_revert_name(lv_event_t *e)
 	hide_keyboard();
 }
 
-int configure_sequence_view(m_int_ui_page *page, void *data)
+int configure_sequence_view(m_ui_page *page, void *data)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -260,7 +260,7 @@ int configure_sequence_view(m_int_ui_page *page, void *data)
 	return NO_ERROR;
 }
 
-int create_sequence_view_ui(m_int_ui_page *page)
+int create_sequence_view_ui(m_ui_page *page)
 {
 	printf("create_sequence_view_ui\n");
 	if (!page)
@@ -279,7 +279,7 @@ int create_sequence_view_ui(m_int_ui_page *page)
 	return NO_ERROR;
 }
 
-int refresh_sequence_view(m_int_ui_page *page)
+int refresh_sequence_view(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -289,7 +289,7 @@ int refresh_sequence_view(m_int_ui_page *page)
 	return NO_ERROR;
 }
 
-int free_sequence_view_ui(m_int_ui_page *page)
+int free_sequence_view_ui(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
@@ -299,7 +299,7 @@ int free_sequence_view_ui(m_int_ui_page *page)
 	return NO_ERROR;
 }
 
-int sequence_view_free_all (m_int_ui_page *page)
+int sequence_view_free_all (m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;

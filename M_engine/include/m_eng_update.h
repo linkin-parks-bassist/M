@@ -1,7 +1,7 @@
 #ifndef M_UPDATE_H_
 #define M_UPDATE_H_
 
-#ifndef M_ENG_SIMULATED
+#ifndef M_SIMULATED
 #define m_eng_disable_software_interrupts() 			(NVIC_DISABLE_IRQ(IRQ_SOFTWARE))
 #define m_eng_enable_software_interrupts()   			(NVIC_ENABLE_IRQ(IRQ_SOFTWARE))
 #else

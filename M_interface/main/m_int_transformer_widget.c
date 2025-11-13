@@ -1,10 +1,10 @@
 #include "m_int.h"
 
-static const char *TAG = "m_int_transformer_widget.c";
+static const char *TAG = "m_transformer_widget.c";
 
-IMPLEMENT_LINKED_PTR_LIST(m_int_transformer_widget);
+IMPLEMENT_LINKED_PTR_LIST(m_transformer_widget);
 
-int init_transformer_widget(m_int_transformer_widget *tw, m_int_ui_page *parent, m_int_transformer *trans, int index)
+int init_transformer_widget(m_transformer_widget *tw, m_ui_page *parent, m_transformer *trans, int index)
 {
 	if (!tw || !parent)
 		return ERR_NULL_PTR;
@@ -37,7 +37,7 @@ int init_transformer_widget(m_int_transformer_widget *tw, m_int_ui_page *parent,
 
 void transformer_widget_scale_cb(void *data, int32_t value)
 {
-	m_int_transformer_widget *tw = (m_int_transformer_widget*)data;
+	m_transformer_widget *tw = (m_transformer_widget*)data;
 	
 	int32_t new_height = ((float)value / 1000.0) * TRANSFORMER_WIDGET_HEIGHT;
 	int32_t new_width  = ((float)value / 1000.0) * TRANSFORMER_WIDGET_WIDTH;
@@ -51,7 +51,7 @@ void transformer_widget_scale_cb(void *data, int32_t value)
 
 void transformer_widget_glide_cb(void *data, int32_t value)
 {
-	m_int_transformer_widget *tw = (m_int_transformer_widget*)data;
+	m_transformer_widget *tw = (m_transformer_widget*)data;
 	
 	lv_obj_set_y(tw->obj, value);
 	tw->pos_y = value;
@@ -59,26 +59,26 @@ void transformer_widget_glide_cb(void *data, int32_t value)
 
 void transformer_widget_del_button_fade_cb(void *data, int32_t value)
 {
-	m_int_transformer_widget *tw = (m_int_transformer_widget*)data;
+	m_transformer_widget *tw = (m_transformer_widget*)data;
 	
 	lv_obj_set_style_opa(tw->del_button, value, 0);
 }
 
 void transformer_widget_del_button_faded_out_cb(lv_anim_t *anim)
 {
-	m_int_transformer_widget *tw = (m_int_transformer_widget*)anim->user_data;
+	m_transformer_widget *tw = (m_transformer_widget*)anim->user_data;
 	
 	lv_obj_add_flag(tw->del_button, LV_OBJ_FLAG_HIDDEN);
 }
 
 void free_transformer_widget_anim_cb(void *data, int32_t value)
 {
-	m_int_transformer_widget *tw = (m_int_transformer_widget*)data;
+	m_transformer_widget *tw = (m_transformer_widget*)data;
 	
 	lv_obj_set_style_opa(tw->obj, 255 * ((float)value / 100.0), 0);
 }
 
-void transformer_widget_trigger_scale_anim(m_int_transformer_widget *tw, int direction)
+void transformer_widget_trigger_scale_anim(m_transformer_widget *tw, int direction)
 {
 	if (!tw)
 		return;
@@ -97,7 +97,7 @@ void transformer_widget_trigger_scale_anim(m_int_transformer_widget *tw, int dir
 	lv_anim_start(&tw->scale_anim);
 }
 
-void transformer_widget_trigger_glide_anim(m_int_transformer_widget *tw, int32_t new_pos_y)
+void transformer_widget_trigger_glide_anim(m_transformer_widget *tw, int32_t new_pos_y)
 {
 	//printf("Triggering glide of %p from %d to %d\n", tw, (int)tw->pos_y, (int)new_pos_y);
 	lv_anim_init			(&tw->glide_anim);
@@ -110,7 +110,7 @@ void transformer_widget_trigger_glide_anim(m_int_transformer_widget *tw, int32_t
 	lv_anim_start(&tw->glide_anim);
 }
 
-void transformer_widget_trigger_del_button_fade_in(m_int_transformer_widget *tw)
+void transformer_widget_trigger_del_button_fade_in(m_transformer_widget *tw)
 {
 	//printf("button fade in...\n");
 	lv_anim_init			(&tw->del_button_fade);
@@ -123,7 +123,7 @@ void transformer_widget_trigger_del_button_fade_in(m_int_transformer_widget *tw)
 	lv_anim_start(&tw->del_button_fade);
 }
 
-void transformer_widget_trigger_del_button_fade_out(m_int_transformer_widget *tw)
+void transformer_widget_trigger_del_button_fade_out(m_transformer_widget *tw)
 {
 	lv_anim_init			(&tw->del_button_fade);
 	lv_anim_set_var			(&tw->del_button_fade, tw);
@@ -139,11 +139,11 @@ void transformer_widget_trigger_del_button_fade_out(m_int_transformer_widget *tw
 
 void free_transformer_widget_anim_ready_cb(lv_anim_t *anim)
 {
-	m_int_transformer_widget *tw = (m_int_transformer_widget*)anim->user_data;
+	m_transformer_widget *tw = (m_transformer_widget*)anim->user_data;
 	free_transformer_widget(tw);
 }
 
-void transformer_widget_trigger_del_anim(m_int_transformer_widget *tw)
+void transformer_widget_trigger_del_anim(m_transformer_widget *tw)
 {
 	lv_anim_init			(&tw->delete_anim);
 	lv_anim_set_var			(&tw->delete_anim, tw);
@@ -157,7 +157,7 @@ void transformer_widget_trigger_del_anim(m_int_transformer_widget *tw)
 	lv_anim_start(&tw->delete_anim);
 }
 
-int transformer_widget_force_index(m_int_transformer_widget *tw, int i)
+int transformer_widget_force_index(m_transformer_widget *tw, int i)
 {
 	if (!tw)
 		return ERR_NULL_PTR;
@@ -171,7 +171,7 @@ int transformer_widget_force_index(m_int_transformer_widget *tw, int i)
 	return NO_ERROR;
 }
 
-int transformer_widget_set_index(m_int_transformer_widget *tw, int i)
+int transformer_widget_set_index(m_transformer_widget *tw, int i)
 {
 	printf("Set transformer widget index (%p, %d)\n", tw, i);
 	if (!tw)
@@ -191,7 +191,7 @@ int transformer_widget_set_index(m_int_transformer_widget *tw, int i)
 
 void transformer_widget_del_button_remain_timer_cb(lv_timer_t *timer)
 {
-	m_int_transformer_widget *tw = (m_int_transformer_widget*)timer->user_data;
+	m_transformer_widget *tw = (m_transformer_widget*)timer->user_data;
 	
 	transformer_widget_trigger_del_button_fade_out(tw);
 	tw->del_button_remain_timer = NULL;
@@ -199,7 +199,7 @@ void transformer_widget_del_button_remain_timer_cb(lv_timer_t *timer)
 
 void transformer_widget_long_pressed_cb(lv_event_t *e)
 {
-	m_int_transformer_widget *tw = (m_int_transformer_widget*)lv_event_get_user_data(e);
+	m_transformer_widget *tw = (m_transformer_widget*)lv_event_get_user_data(e);
 	
 	if (!tw)
 	{
@@ -237,7 +237,7 @@ void transformer_widget_long_pressed_cb(lv_event_t *e)
 
 void transformer_widget_pressing_cb(lv_event_t *e)
 {
-	m_int_transformer_widget *tw = (m_int_transformer_widget*)lv_event_get_user_data(e);
+	m_transformer_widget *tw = (m_transformer_widget*)lv_event_get_user_data(e);
 	
 	if (!tw)
 	{
@@ -264,19 +264,19 @@ void transformer_widget_pressing_cb(lv_event_t *e)
 		tw->pos_y = local_point.y - tw->relative_touch_y;
 		lv_obj_set_y(tw->obj, tw->pos_y);
 		
-		m_int_transformer_widget *index_array[((m_int_profile_view_str*)tw->parent->data_struct)->n_transformer_widgets];
+		m_transformer_widget *index_array[((m_profile_view_str*)tw->parent->data_struct)->n_transformer_widgets];
 		
-		for (int i = 0; i < ((m_int_profile_view_str*)tw->parent->data_struct)->n_transformer_widgets; i++)
+		for (int i = 0; i < ((m_profile_view_str*)tw->parent->data_struct)->n_transformer_widgets; i++)
 			index_array[i] = NULL;
 		
-		m_int_transformer_widget_ptr_linked_list *current = ((m_int_profile_view_str*)tw->parent->data_struct)->tws;
-		m_int_transformer_widget_ptr_linked_list *other;
+		m_transformer_widget_pll *current = ((m_profile_view_str*)tw->parent->data_struct)->tws;
+		m_transformer_widget_pll *other;
 		
 		int j = 0;
 		while (current)
 		{
 			int i = 0;
-			other = ((m_int_profile_view_str*)tw->parent->data_struct)->tws;
+			other = ((m_profile_view_str*)tw->parent->data_struct)->tws;
 			
 			while (other)
 			{
@@ -300,7 +300,7 @@ void transformer_widget_pressing_cb(lv_event_t *e)
 
 void transformer_widget_release_cb(lv_event_t *e)
 {
-	m_int_transformer_widget *tw = (m_int_transformer_widget*)lv_event_get_user_data(e);
+	m_transformer_widget *tw = (m_transformer_widget*)lv_event_get_user_data(e);
 	
 	if (!tw)
 	{
@@ -330,13 +330,21 @@ void transformer_widget_release_cb(lv_event_t *e)
 			}
 			
 			
-			printf("Send message to move transformer %d to position %d\n", tw->trans->transformer_id, tw->index);
-			queue_msg_to_teensy(create_et_msg(ET_MESSAGE_MOVE_TRANSFORMER, "sss", tw->trans->profile_id, tw->trans->transformer_id, tw->index));
+			printf("Send message to move transformer %d to position %d\n", tw->trans->id, tw->index);
+			
+			if (!tw->trans->profile)
+			{
+				printf("However, the transformer has no profile !\n");
+			}
+			else
+			{
+				queue_msg_to_teensy(create_et_msg(ET_MESSAGE_MOVE_TRANSFORMER, "sss", tw->trans->profile->id, tw->trans->id, tw->index));
+			}
 			tw->prev_index = tw->index;
 			
-			if (tw->parent && tw->parent->data_struct && ((m_int_profile_view_str*)tw->parent->data_struct)->profile)
+			if (tw->parent && tw->parent->data_struct && ((m_profile_view_str*)tw->parent->data_struct)->profile)
 			{
-				((m_int_profile_view_str*)tw->parent->data_struct)->profile->unsaved_changes = 1;
+				((m_profile_view_str*)tw->parent->data_struct)->profile->unsaved_changes = 1;
 				profile_view_refresh_save_button(tw->parent);
 			}
 		}
@@ -361,27 +369,27 @@ void transformer_widget_release_cb(lv_event_t *e)
 void tw_del_button_cb(lv_event_t *e)
 {
 	//printf("tw_del_button_cb\n");
-	m_int_transformer_widget *tw = (m_int_transformer_widget*)lv_event_get_user_data(e);
+	m_transformer_widget *tw = (m_transformer_widget*)lv_event_get_user_data(e);
 	
 	transformer_widget_trigger_del_anim(tw);
 	
 	lv_obj_clear_flag(tw->obj, LV_OBJ_FLAG_CLICKABLE);
 	
-	if (tw->trans)
+	if (tw->trans && tw->trans->profile)
 	{
-		cxt_remove_transformer(&global_cxt, tw->trans->profile_id, tw->trans->transformer_id);
+		cxt_remove_transformer(&global_cxt, tw->trans->profile->id, tw->trans->id);
 	}
 	//printf("tw_del_button_cb done\n");
 	
 	if (tw->parent && tw->parent->data_struct)
 	{
-		if (((m_int_profile_view_str*)tw->parent->data_struct)->profile)
-			((m_int_profile_view_str*)tw->parent->data_struct)->profile->unsaved_changes = 1;
+		if (((m_profile_view_str*)tw->parent->data_struct)->profile)
+			((m_profile_view_str*)tw->parent->data_struct)->profile->unsaved_changes = 1;
 		profile_view_refresh_save_button(tw->parent);
 	}
 }
 
-int create_transformer_widget_ui(m_int_transformer_widget *tw, lv_obj_t *parent)
+int create_transformer_widget_ui(m_transformer_widget *tw, lv_obj_t *parent)
 {
 	//printf("create_transformer_widget_ui...\n");
 	if (!tw)
@@ -422,7 +430,7 @@ int create_transformer_widget_ui(m_int_transformer_widget *tw, lv_obj_t *parent)
 	return NO_ERROR;
 }
 
-void free_transformer_widget(m_int_transformer_widget *tw)
+void free_transformer_widget(m_transformer_widget *tw)
 {
 	if (!tw)
 		return;
@@ -443,5 +451,5 @@ void free_transformer_widget(m_int_transformer_widget *tw)
 		profile_view_remove_tw_from_list(tw->parent, tw);
 	}
 	
-	m_int_free(tw);
+	m_free(tw);
 }

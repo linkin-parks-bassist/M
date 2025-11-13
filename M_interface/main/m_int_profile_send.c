@@ -2,11 +2,11 @@
 
 IMPLEMENT_LINKED_PTR_LIST(m_int_trans_send_job);
 
-static const char *TAG = "m_int_profile_send.c";
+static const char *TAG = "m_profile_send.c";
 
 void transformer_job_recieve_parameter_value_response(et_msg msg, te_msg response);
-void send_profile_job_discard_tsj(m_int_profile_send_job *job);
-void send_profile_job_dispatch_tsj(m_int_profile_send_job *job);
+void send_profile_job_discard_tsj(m_profile_send_job *job);
+void send_profile_job_dispatch_tsj(m_profile_send_job *job);
 
 void send_all_profiles_to_teensy(m_int_context *cxt)
 {
@@ -38,7 +38,7 @@ void transformer_job_send_parameter_value(m_int_trans_send_job *job)
 	if (!job || !job->current_param)
 		return;
 	
-	m_int_parameter *param = job->current_param->data;
+	m_parameter *param = job->current_param->data;
 		
 	if (!param)
 	{
@@ -47,7 +47,7 @@ void transformer_job_send_parameter_value(m_int_trans_send_job *job)
 	}
 	
 	et_msg msg = create_et_msg(ET_MESSAGE_SET_PARAM_VALUE, "sssf",
-		job->trans->profile_id, job->trans->transformer_id, job->parameter_index, param->val);
+		job->trans->profile->id, job->trans->id, job->parameter_index, param->value);
 	
 	msg.callback = transformer_job_recieve_parameter_value_response;
 	msg.cb_arg = job;
@@ -75,7 +75,7 @@ void transformer_job_recieve_parameter_value_response(et_msg msg, te_msg respons
 		printf("Once more, that is, job = %p\n", job->profile_job);
 		send_profile_job_dispatch_tsj(job->profile_job);
 		
-		m_int_free(job);
+		m_free(job);
 	}	
 }
 
@@ -121,7 +121,7 @@ void transformer_send_job_recieve_transformer_id(et_msg msg, te_msg response)
 	transformer_job_send_parameter_value(job);
 }
 
-void send_profile_job_discard_tsj(m_int_profile_send_job *job)
+void send_profile_job_discard_tsj(m_profile_send_job *job)
 {
 	if (!job)
 		return;
@@ -131,13 +131,13 @@ void send_profile_job_discard_tsj(m_int_profile_send_job *job)
 	
 	printf("send_profile_job_discard_tsj. job = %p. job->tsjs = %p. job->tsjs->next = %p\n", job, job->tsjs, (job->tsjs ? job->tsjs->next : NULL));
 	
-	m_int_trans_send_job_ptr_linked_list *next = job->tsjs->next;
+	m_int_trans_send_job_pll *next = job->tsjs->next;
 	
-	m_int_free(job->tsjs);
+	m_free(job->tsjs);
 	job->tsjs = next;
 }
 
-void send_profile_job_dispatch_tsj(m_int_profile_send_job *job)
+void send_profile_job_dispatch_tsj(m_profile_send_job *job)
 {
 	if (!job)
 		return;
@@ -162,13 +162,13 @@ void send_profile_job_dispatch_tsj(m_int_profile_send_job *job)
 	else
 	{
 		printf("All out of transformers! Job done\n");
-		m_int_free(job);
+		m_free(job);
 	}
 }
 
 void profile_send_job_recieve_profile_id(et_msg msg, te_msg response)
 {
-	m_int_profile_send_job *job = (m_int_profile_send_job*)msg.cb_arg;
+	m_profile_send_job *job = (m_profile_send_job*)msg.cb_arg;
 	
 	if (!job)
 	{
@@ -199,7 +199,7 @@ void profile_send_job_recieve_profile_id(et_msg msg, te_msg response)
 			#ifndef M_SIMULATED
 			ESP_LOGE(TAG, "Transformer send job has no transformer");
 			#endif
-			free_m_int_trans_send_job_ptr_linked_list(job->tsjs);
+			free_m_int_trans_send_job_pll(job->tsjs);
 			return;
 		}
 		
@@ -208,17 +208,17 @@ void profile_send_job_recieve_profile_id(et_msg msg, te_msg response)
 	}
 	else
 	{
-		m_int_free(job);
+		m_free(job);
 	}
 }
 
-void send_profile_to_teensy(m_int_profile *profile)
+void send_profile_to_teensy(m_profile *profile)
 {
 	if (!profile)
 		return;
 	
 	printf("Sending profile to Teensy!\n");
-	m_int_profile_send_job *job = m_int_malloc(sizeof(m_int_profile_send_job));
+	m_profile_send_job *job = m_alloc(sizeof(m_profile_send_job));
 	
 	if (!job)
 		return;
@@ -226,18 +226,18 @@ void send_profile_to_teensy(m_int_profile *profile)
 	job->tsjs = NULL;
 	job->profile = profile;
 	
-	m_int_transformer_ll *current = profile->pipeline.transformers;
+	m_transformer_pll *current = profile->pipeline.transformers;
 	
 	m_int_trans_send_job *tsj;
 	
 	int i = 0;
 	while (current)
 	{
-		tsj = m_int_malloc(sizeof(m_int_trans_send_job));
+		tsj = m_alloc(sizeof(m_int_trans_send_job));
 		
 		if (!tsj)
 		{
-			free_m_int_trans_send_job_ptr_linked_list(job->tsjs);
+			free_m_int_trans_send_job_pll(job->tsjs);
 			#ifndef M_SIMULATED
 			ESP_LOGE(TAG, "Alloc fail in \'send_new_profile_to_teensy\'");
 			#endif
@@ -247,20 +247,20 @@ void send_profile_to_teensy(m_int_profile *profile)
 		tsj->trans = current->data;
 		tsj->profile_job = job;
 		tsj->parameter_index = 0;
-		job->tsjs = m_int_trans_send_job_ptr_linked_list_append(job->tsjs, tsj);
+		job->tsjs = m_int_trans_send_job_pll_append(job->tsjs, tsj);
 		current = current->next;
 	}
 	
 	send_profile_job_dispatch_tsj(job);
 }
 
-void send_new_profile_to_teensy(m_int_profile *profile)
+void send_new_profile_to_teensy(m_profile *profile)
 {
 	if (!profile)
 		return;
 	
 	printf("Sending profile to Teensy!\n");
-	m_int_profile_send_job *job = m_int_malloc(sizeof(m_int_profile_send_job));
+	m_profile_send_job *job = m_alloc(sizeof(m_profile_send_job));
 	
 	if (!job)
 		return;
@@ -268,7 +268,7 @@ void send_new_profile_to_teensy(m_int_profile *profile)
 	job->tsjs = NULL;
 	job->profile = profile;
 	
-	m_int_transformer_ll *current = profile->pipeline.transformers;
+	m_transformer_pll *current = profile->pipeline.transformers;
 	
 	m_int_trans_send_job *tsj;
 	
@@ -277,11 +277,11 @@ void send_new_profile_to_teensy(m_int_profile *profile)
 	int i = 0;
 	while (current)
 	{
-		tsj = m_int_malloc(sizeof(m_int_trans_send_job));
+		tsj = m_alloc(sizeof(m_int_trans_send_job));
 		
 		if (!tsj)
 		{
-			free_m_int_trans_send_job_ptr_linked_list(job->tsjs);
+			free_m_int_trans_send_job_pll(job->tsjs);
 			#ifndef M_SIMULATED
 			ESP_LOGE(TAG, "Alloc fail in \'send_new_profile_to_teensy\'");
 			#endif
@@ -291,7 +291,7 @@ void send_new_profile_to_teensy(m_int_profile *profile)
 		tsj->trans = current->data;
 		tsj->profile_job = job;
 		tsj->parameter_index = 0;
-		job->tsjs = m_int_trans_send_job_ptr_linked_list_append(job->tsjs, tsj);
+		job->tsjs = m_int_trans_send_job_pll_append(job->tsjs, tsj);
 		current = current->next;
 	}
 	

@@ -3,7 +3,7 @@
 
 static const char *FNAME = "m_eng_transformer_init.c";
 
-int init_3_band_eq(m_eng_transformer *trans)
+int init_3_band_eq(m_transformer *trans)
 {
 	if (!trans)
 	{
@@ -20,11 +20,7 @@ int init_3_band_eq(m_eng_transformer *trans)
 
 	trans->compute_transformer    = calc_3_band_eq;
 	trans->compute_transformer_nl = NULL;
-	trans->bypass = 0;
 	trans->transition_policy = TRANSFORMER_TRANSITION_MONOBLOCK_LINEAR;
-
-	trans->n_inputs  = 1;
-	trans->n_inputs  = 1;
 
 	ret_val = transformer_init_parameter_array(trans, 3);
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
@@ -65,7 +61,7 @@ int init_3_band_eq(m_eng_transformer *trans)
 	RETURN_ERR_CODE(ret_val);
 }
 
-int init_amplifier(m_eng_transformer *trans)
+int init_amplifier(m_transformer *trans)
 {
 	if (!trans)
 	{
@@ -82,11 +78,7 @@ int init_amplifier(m_eng_transformer *trans)
 
 	trans->compute_transformer    = calc_amplifier;
 	trans->compute_transformer_nl = NULL;
-	trans->bypass = 0;
 	trans->transition_policy = TRANSFORMER_TRANSITION_MONOBLOCK_LINEAR;
-
-	trans->n_inputs  = 1;
-	trans->n_inputs  = 1;
 
 	ret_val = transformer_init_parameter_array(trans, 1);
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
@@ -121,7 +113,7 @@ int init_amplifier(m_eng_transformer *trans)
 	RETURN_ERR_CODE(ret_val);
 }
 
-int init_band_pass_filter(m_eng_transformer *trans)
+int init_band_pass_filter(m_transformer *trans)
 {
 	if (!trans)
 	{
@@ -138,11 +130,7 @@ int init_band_pass_filter(m_eng_transformer *trans)
 
 	trans->compute_transformer    = calc_band_pass_filter;
 	trans->compute_transformer_nl = NULL;
-	trans->bypass = 0;
 	trans->transition_policy = TRANSFORMER_TRANSITION_MONOBLOCK_LINEAR;
-
-	trans->n_inputs  = 1;
-	trans->n_inputs  = 1;
 
 	ret_val = transformer_init_parameter_array(trans, 2);
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
@@ -177,7 +165,7 @@ int init_band_pass_filter(m_eng_transformer *trans)
 	RETURN_ERR_CODE(ret_val);
 }
 
-int init_compressor(m_eng_transformer *trans)
+int init_compressor(m_transformer *trans)
 {
 	if (!trans)
 	{
@@ -194,11 +182,7 @@ int init_compressor(m_eng_transformer *trans)
 
 	trans->compute_transformer    = calc_compressor;
 	trans->compute_transformer_nl = NULL;
-	trans->bypass = 0;
 	trans->transition_policy = TRANSFORMER_TRANSITION_MONOBLOCK_LINEAR;
-
-	trans->n_inputs  = 1;
-	trans->n_inputs  = 1;
 
 	ret_val = transformer_init_parameter_array(trans, 4);
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
@@ -245,7 +229,7 @@ int init_compressor(m_eng_transformer *trans)
 	RETURN_ERR_CODE(ret_val);
 }
 
-int init_dirty_octave(m_eng_transformer *trans)
+int init_dirty_octave(m_transformer *trans)
 {
 	if (!trans)
 	{
@@ -262,11 +246,7 @@ int init_dirty_octave(m_eng_transformer *trans)
 
 	trans->compute_transformer    = calc_dirty_octave;
 	trans->compute_transformer_nl = NULL;
-	trans->bypass = 0;
 	trans->transition_policy = TRANSFORMER_TRANSITION_MONOBLOCK_LINEAR;
-
-	trans->n_inputs  = 1;
-	trans->n_inputs  = 1;
 
 	ret_val = transformer_init_parameter_array(trans, 1);
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
@@ -295,7 +275,7 @@ int init_dirty_octave(m_eng_transformer *trans)
 	RETURN_ERR_CODE(ret_val);
 }
 
-int init_distortion(m_eng_transformer *trans)
+int init_distortion(m_transformer *trans)
 {
 	if (!trans)
 	{
@@ -312,11 +292,7 @@ int init_distortion(m_eng_transformer *trans)
 
 	trans->compute_transformer    = calc_distortion;
 	trans->compute_transformer_nl = NULL;
-	trans->bypass = 0;
 	trans->transition_policy = TRANSFORMER_TRANSITION_MONOBLOCK_LINEAR;
-
-	trans->n_inputs  = 1;
-	trans->n_inputs  = 1;
 
 	ret_val = transformer_init_parameter_array(trans, 4);
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
@@ -363,7 +339,7 @@ int init_distortion(m_eng_transformer *trans)
 	RETURN_ERR_CODE(ret_val);
 }
 
-int init_envelope(m_eng_transformer *trans)
+int init_envelope(m_transformer *trans)
 {
 	if (!trans)
 	{
@@ -380,11 +356,7 @@ int init_envelope(m_eng_transformer *trans)
 
 	trans->compute_transformer    = calc_envelope;
 	trans->compute_transformer_nl = NULL;
-	trans->bypass = 0;
 	trans->transition_policy = TRANSFORMER_TRANSITION_MONOBLOCK_LINEAR;
-
-	trans->n_inputs  = 1;
-	trans->n_inputs  = 1;
 
 	ret_val = transformer_init_parameter_array(trans, 6);
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
@@ -443,7 +415,77 @@ int init_envelope(m_eng_transformer *trans)
 	RETURN_ERR_CODE(ret_val);
 }
 
-int init_high_pass_filter(m_eng_transformer *trans)
+int init_flanger(m_transformer *trans)
+{
+	if (!trans)
+	{
+		RETURN_ERR_CODE(ERR_NULL_PTR);
+	}
+
+	int ret_val = transformer_init_controls(trans);
+	if (ret_val != NO_ERROR)
+	{
+		RETURN_ERR_CODE(ret_val);
+	}
+
+	trans->type = TRANSFORMER_FLANGER;
+
+	trans->compute_transformer    = calc_flanger;
+	trans->compute_transformer_nl = NULL;
+	trans->transition_policy = TRANSFORMER_TRANSITION_MONOBLOCK_LINEAR;
+
+	ret_val = transformer_init_parameter_array(trans, 4);
+	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
+	ret_val = transformer_init_setting_array(trans, 1);
+	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
+	m_eng_flanger_str *str = (m_eng_flanger_str*)malloc(sizeof(m_eng_flanger_str));
+	trans->data_struct = (void*)str;
+
+	if (!str)
+	{
+		RETURN_ERR_CODE(ERR_ALLOC_FAIL);
+	}
+
+	trans->reconfigure = reconfigure_flanger;
+	trans->free_struct = NULL;
+
+	init_parameter(&str->range, 0.5, 0.0, 1.0, 0.0005, PARAMETER_SCALE_LINEAR);
+	if ((ret_val = transformer_add_parameter(trans, &str->range)) != NO_ERROR)
+	{
+		RETURN_ERR_CODE(ret_val);
+	}
+
+	init_parameter(&str->depth, 4.0, 0.1, 10.0, 0.00495, PARAMETER_SCALE_LINEAR);
+	if ((ret_val = transformer_add_parameter(trans, &str->depth)) != NO_ERROR)
+	{
+		RETURN_ERR_CODE(ret_val);
+	}
+
+	init_parameter(&str->mix, 0.5, 0.0, 1.0, 0.0005, PARAMETER_SCALE_LINEAR);
+	if ((ret_val = transformer_add_parameter(trans, &str->mix)) != NO_ERROR)
+	{
+		RETURN_ERR_CODE(ret_val);
+	}
+
+	init_parameter(&str->tempo, 120, 30, 300, 0.135, PARAMETER_SCALE_LINEAR);
+	if ((ret_val = transformer_add_parameter(trans, &str->tempo)) != NO_ERROR)
+	{
+		RETURN_ERR_CODE(ret_val);
+	}
+
+	init_setting(&str->note, 4);
+	if ((ret_val = transformer_add_setting(trans, &str->note)) != NO_ERROR)
+	{
+		RETURN_ERR_CODE(ret_val);
+	}
+
+	trans->clone_struct = NULL;
+	trans->struct_size = sizeof(m_eng_flanger_str);
+	ret_val = init_flanger_str(str);
+	RETURN_ERR_CODE(ret_val);
+}
+
+int init_high_pass_filter(m_transformer *trans)
 {
 	if (!trans)
 	{
@@ -460,11 +502,7 @@ int init_high_pass_filter(m_eng_transformer *trans)
 
 	trans->compute_transformer    = calc_high_pass_filter;
 	trans->compute_transformer_nl = NULL;
-	trans->bypass = 0;
 	trans->transition_policy = TRANSFORMER_TRANSITION_MONOBLOCK_LINEAR;
-
-	trans->n_inputs  = 1;
-	trans->n_inputs  = 1;
 
 	ret_val = transformer_init_parameter_array(trans, 1);
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
@@ -493,7 +531,7 @@ int init_high_pass_filter(m_eng_transformer *trans)
 	RETURN_ERR_CODE(ret_val);
 }
 
-int init_low_end_compressor(m_eng_transformer *trans)
+int init_low_end_compressor(m_transformer *trans)
 {
 	if (!trans)
 	{
@@ -510,11 +548,7 @@ int init_low_end_compressor(m_eng_transformer *trans)
 
 	trans->compute_transformer    = calc_low_end_compressor;
 	trans->compute_transformer_nl = NULL;
-	trans->bypass = 0;
 	trans->transition_policy = TRANSFORMER_TRANSITION_MONOBLOCK_LINEAR;
-
-	trans->n_inputs  = 1;
-	trans->n_inputs  = 1;
 
 	ret_val = transformer_init_parameter_array(trans, 8);
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
@@ -585,7 +619,7 @@ int init_low_end_compressor(m_eng_transformer *trans)
 	RETURN_ERR_CODE(ret_val);
 }
 
-int init_low_pass_filter(m_eng_transformer *trans)
+int init_low_pass_filter(m_transformer *trans)
 {
 	if (!trans)
 	{
@@ -602,11 +636,7 @@ int init_low_pass_filter(m_eng_transformer *trans)
 
 	trans->compute_transformer    = calc_low_pass_filter;
 	trans->compute_transformer_nl = NULL;
-	trans->bypass = 0;
 	trans->transition_policy = TRANSFORMER_TRANSITION_MONOBLOCK_LINEAR;
-
-	trans->n_inputs  = 1;
-	trans->n_inputs  = 1;
 
 	ret_val = transformer_init_parameter_array(trans, 1);
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
@@ -635,7 +665,7 @@ int init_low_pass_filter(m_eng_transformer *trans)
 	RETURN_ERR_CODE(ret_val);
 }
 
-int init_noise_suppressor(m_eng_transformer *trans)
+int init_noise_suppressor(m_transformer *trans)
 {
 	if (!trans)
 	{
@@ -652,11 +682,7 @@ int init_noise_suppressor(m_eng_transformer *trans)
 
 	trans->compute_transformer    = calc_noise_suppressor;
 	trans->compute_transformer_nl = NULL;
-	trans->bypass = 0;
 	trans->transition_policy = TRANSFORMER_TRANSITION_MONOBLOCK_LINEAR;
-
-	trans->n_inputs  = 1;
-	trans->n_inputs  = 1;
 
 	ret_val = transformer_init_parameter_array(trans, 3);
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
@@ -697,7 +723,7 @@ int init_noise_suppressor(m_eng_transformer *trans)
 	RETURN_ERR_CODE(ret_val);
 }
 
-int init_percussifier(m_eng_transformer *trans)
+int init_percussifier(m_transformer *trans)
 {
 	if (!trans)
 	{
@@ -714,11 +740,7 @@ int init_percussifier(m_eng_transformer *trans)
 
 	trans->compute_transformer    = calc_percussifier;
 	trans->compute_transformer_nl = NULL;
-	trans->bypass = 0;
 	trans->transition_policy = TRANSFORMER_TRANSITION_MONOBLOCK_LINEAR;
-
-	trans->n_inputs  = 1;
-	trans->n_inputs  = 1;
 
 	ret_val = transformer_init_parameter_array(trans, 7);
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
@@ -783,7 +805,7 @@ int init_percussifier(m_eng_transformer *trans)
 	RETURN_ERR_CODE(ret_val);
 }
 
-int init_transformer(m_eng_transformer *trans, uint16_t type)
+int init_transformer(m_transformer *trans, uint16_t type)
 {
 	if (!trans)
 	{
@@ -799,6 +821,7 @@ int init_transformer(m_eng_transformer *trans, uint16_t type)
 		case TRANSFORMER_DIRTY_OCTAVE:       return init_dirty_octave(trans);
 		case TRANSFORMER_DISTORTION:         return init_distortion(trans);
 		case TRANSFORMER_ENVELOPE:           return init_envelope(trans);
+		case TRANSFORMER_FLANGER:            return init_flanger(trans);
 		case TRANSFORMER_HIGH_PASS_FILTER:   return init_high_pass_filter(trans);
 		case TRANSFORMER_LOW_END_COMPRESSOR: return init_low_end_compressor(trans);
 		case TRANSFORMER_LOW_PASS_FILTER:    return init_low_pass_filter(trans);

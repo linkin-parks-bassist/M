@@ -3,7 +3,7 @@
 
 typedef struct
 {
-	m_eng_parameter fuzz;
+	m_parameter fuzz;
 	
 	float dc_average;
 	

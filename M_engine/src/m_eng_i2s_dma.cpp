@@ -99,20 +99,20 @@ void init_i2s_dma()
 {
 	FUNCTION_START();
 	
-	m_eng_printf("Allocating I2S input DMA channel... ");
+	m_printf("Allocating I2S input DMA channel... ");
 	/* First, init i2s input */
 	i2s_in_dma.begin(true); // Allocate the DMA channel first
-	m_eng_printf("done.\n");
+	m_printf("done.\n");
 	
-	m_eng_printf("Configuring I2S... ");
+	m_printf("Configuring I2S... ");
 	configure_i2s_dma();
-	m_eng_printf("done.\n");
+	m_printf("done.\n");
 
-	m_eng_printf("Configuring I2S input DMA channel...\n");
+	m_printf("Configuring I2S input DMA channel...\n");
 	CORE_PIN8_CONFIG  = 3;  //1:RX_DATA0
 	IOMUXC_SAI1_RX_DATA0_SELECT_INPUT = 2;
 
-	m_eng_printf("Setting to DMA registers... ");
+	m_printf("Setting to DMA registers... ");
 	i2s_in_dma.TCD->SADDR = (void *)((uint32_t)&I2S1_RDR0 + 2);
 	i2s_in_dma.TCD->SOFF = 0;
 	i2s_in_dma.TCD->ATTR = DMA_TCD_ATTR_SSIZE(1) | DMA_TCD_ATTR_DSIZE(1);
@@ -127,29 +127,29 @@ void init_i2s_dma()
 	i2s_in_dma.triggerAtHardwareEvent(DMAMUX_SOURCE_SAI1_RX);
 
 	I2S1_RCSR = I2S_RCSR_RE | I2S_RCSR_BCE | I2S_RCSR_FRDE | I2S_RCSR_FR;
-	m_eng_printf("done.\n");
+	m_printf("done.\n");
 
-	m_eng_printf("Registering update interrupt service routine... ");
+	m_printf("Registering update interrupt service routine... ");
 	i2s_in_update_responsibility = update_setup();
-	m_eng_printf("done.\n");
-	m_eng_printf("Enabling I2S input DMA... ");
+	m_printf("done.\n");
+	m_printf("Enabling I2S input DMA... ");
 	i2s_in_dma.enable();
-	m_eng_printf("done.\n");
-	m_eng_printf("Registering I2S input DMA interrupt... ");
+	m_printf("done.\n");
+	m_printf("Registering I2S input DMA interrupt... ");
 	i2s_in_dma.attachInterrupt(m_eng_i2s_input_isr);
-	m_eng_printf("done.\n");
+	m_printf("done.\n");
 	
 	/* Next, init i2s output */
-	m_eng_printf("Allocating I2S output DMA channel... ");
+	m_printf("Allocating I2S output DMA channel... ");
 	i2s_out_dma.begin(true); // Allocate the DMA channel first
-	m_eng_printf("done.\n");
+	m_printf("done.\n");
 
 	i2s_out_block_left_1st  = NULL;
 	i2s_out_block_right_1st = NULL;
 	
-	m_eng_printf("Configuring I2S... ");
+	m_printf("Configuring I2S... ");
 	configure_i2s_dma();
-	m_eng_printf("done.\n");
+	m_printf("done.\n");
 
 	CORE_PIN7_CONFIG  = 3;  //1:TX_DATA0
 	i2s_out_dma.TCD->SADDR = i2s_tx_buffer;
@@ -169,10 +169,10 @@ void init_i2s_dma()
 	I2S1_RCSR |= I2S_RCSR_RE | I2S_RCSR_BCE;
 	I2S1_TCSR = I2S_TCSR_TE | I2S_TCSR_BCE | I2S_TCSR_FRDE;
 
-	m_eng_printf("Attaching I2S output interrupt... ");
+	m_printf("Attaching I2S output interrupt... ");
 	i2s_out_update_responsibility = update_setup();
 	i2s_out_dma.attachInterrupt(m_eng_i2s_output_isr);
-	m_eng_printf("done.\n");
+	m_printf("done.\n");
 	
 	RETURN_VOID();
 }

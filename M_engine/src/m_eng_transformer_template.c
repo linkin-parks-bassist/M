@@ -1,8 +1,8 @@
 #if 0
 #include "m_eng.h"
-static const char *FNAME = "m_eng_transformer_template.c";
+static const char *FNAME = "m_transformer_template.c";
 
-int init_transformer_str(m_eng_transformer_str *str)
+int init_transformer_str(m_transformer_str *str)
 {
 	if (!str)
 	{
@@ -21,7 +21,7 @@ int reconfigure_transformer(void *data_struct)
 		RETURN_ERR_CODE(ERR_NULL_PTR);
 	}
 	
-	m_eng_transformer_str *str = (m_eng_transformer_str*)data_struct;
+	m_transformer_str *str = (m_transformer_str*)data_struct;
 	
 	
 	
@@ -36,7 +36,7 @@ int calc_transformer(void *data_struct, float *dest, float *src, int n_samples)
 		RETURN_ERR_CODE(ERR_NULL_PTR);
 	}
 	
-	m_eng_transformer_str *str = (m_eng_transformer_str*)data_struct;
+	m_transformer_str *str = (m_transformer_str*)data_struct;
 	
 	float *in_buffer  =  src ? src  : zero_buffer;
 	float *out_buffer = dest ? dest : sink_buffer;

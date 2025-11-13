@@ -11,11 +11,13 @@
 
 #define NUM_MASKS  						(((MAX_AUDIO_MEMORY / AUDIO_BLOCK_SAMPLES / 2) + 31) / 32)
 
+#ifndef M_ENGINE
 #define M_ENGINE
+#endif
 
 //#define NO_CMSIS
 
-#ifdef ME_SIMULATED
+#ifdef M_SIMULATED
 #ifndef NO_CMSIS
 #define NO_CMSIS
 #endif
@@ -23,7 +25,7 @@
 
 #define DC_BLOCKER_ALPHA 0.999
 
-#ifndef ME_SIMULATED
+#ifndef M_SIMULATED
 #include <arm_math.h>
 #endif
 
@@ -48,7 +50,7 @@ extern "C" {
 #include "utility/imxrt_hw.h"
 #endif
 
-#ifdef ME_SIMULATED
+#ifdef M_SIMULATED
 
 #define DMAMEM
 #define FLASHMEM
@@ -71,6 +73,11 @@ extern "C" {
 #include "m_status.h"
 #include "m_comms.h"
 #include "m_linked_list.h"
+
+#include "m_parameter.h"
+#include "m_transformer.h"
+#include "m_pipeline.h"
+#include "m_profile.h"
 
 #include "m_eng_logging.h"
 
@@ -101,16 +108,17 @@ extern "C" {
 #include "m_eng_noise_suppressor.h"
 #include "m_eng_percussifier.h"
 #include "m_eng_envelope.h"
+#include "m_eng_flanger.h"
 
 #ifdef GRAPH_PIPELINE
-#include "m_eng_pipeline.h"
+#include "m_eng_graph.h"
 #endif
-#include "m_eng_pipe_line.h"
+#include "m_eng_pipeline.h"
 #include "m_eng_pipeline_mod.h"
 #include "m_eng_profile.h"
 #include "m_eng_update.h"
 
-#ifndef ME_SIMULATED
+#ifndef M_SIMULATED
 #include "m_eng_i2s_dma.h"
 #include "m_eng_sgtl5000.h"
 #include "m_eng_memcpy_audio.h"
@@ -123,10 +131,10 @@ extern "C" {
 
 #include "m_eng_debugging.h"
 
-#ifndef ME_SIMULATED
+#ifndef M_SIMULATED
 #include "m_eng_printf.h"
 #else
-#define m_eng_printf printf
+#define m_printf printf
 #include "M_teensy_simulator.h"
 #endif
 

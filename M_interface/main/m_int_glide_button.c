@@ -257,8 +257,8 @@ void glide_button_pressing_cb(lv_event_t *e)
 		for (int i = 0; i < gb->array->n_buttons; i++)
 			index_array[i] = NULL;
 		
-		m_int_glide_button_ptr_linked_list *current = gb->array->buttons;
-		m_int_glide_button_ptr_linked_list *other;
+		m_int_glide_button_pll *current = gb->array->buttons;
+		m_int_glide_button_pll *other;
 		
 		int j = 0;
 		while (current)
@@ -381,7 +381,7 @@ int create_glide_button_array_ui(m_int_glide_button_array *array, lv_obj_t *pare
 	
 	glide_button_array_sort(array);
 	
-	glide_button_ll *current = array->buttons;
+	m_int_glide_button_pll *current = array->buttons;
 	
 	while (current)
 	{
@@ -414,7 +414,7 @@ void free_glide_button(m_int_glide_button *gb)
 			gb->array->free_cb(gb);
 	}
 	
-	m_int_free(gb);
+	m_free(gb);
 }
 
 int init_glide_button_array(m_int_glide_button_array *array)
@@ -483,7 +483,7 @@ int append_glide_button_to_array(m_int_glide_button *button, m_int_glide_button_
 	if (!button || !array)
 		return ERR_NULL_PTR;
 	
-	glide_button_ll *nl = m_int_glide_button_ptr_linked_list_append(array->buttons, button);
+	m_int_glide_button_pll *nl = m_int_glide_button_pll_append(array->buttons, button);
 	
 	if (!nl)
 		return ERR_ALLOC_FAIL;
@@ -508,7 +508,7 @@ int glide_button_array_sort(m_int_glide_button_array *array)
 	if (!array)
 		return ERR_NULL_PTR;
 	
-	glide_button_ll *current, *prev, *prev_prev;
+	m_int_glide_button_pll *current, *prev, *prev_prev;
 	int sorted;
 	
 	do {
@@ -556,7 +556,7 @@ int glide_button_change_label(m_int_glide_button *gb, char *text)
 		text = "";
 	
 	if (gb->label_text)
-		m_int_free(gb->label_text);
+		m_free(gb->label_text);
 	
 	gb->label_text = m_int_strndup(text, 32);
 	if (gb->label)

@@ -46,28 +46,26 @@ typedef struct
 	int relative_touch_y;
 	
 	int long_pressed;
-	m_int_transformer *trans;
-	m_int_ui_page *parent;
-} m_int_transformer_widget;
+	m_transformer *trans;
+	m_ui_page *parent;
+} m_transformer_widget;
 
-int init_transformer_widget(m_int_transformer_widget *tw, m_int_ui_page *parent, m_int_transformer *trans, int index);
-int create_transformer_widget_ui(m_int_transformer_widget *tw, lv_obj_t *parent);
-int delete_transformer_widget_ui(m_int_transformer_widget *tw);
+int init_transformer_widget(m_transformer_widget *tw, m_ui_page *parent, m_transformer *trans, int index);
+int create_transformer_widget_ui(m_transformer_widget *tw, lv_obj_t *parent);
+int delete_transformer_widget_ui(m_transformer_widget *tw);
 
-int transformer_widget_untether(m_int_transformer_widget *tw);
-int transformer_widget_retether(m_int_transformer_widget *tw);
-int transformer_widget_set_index(m_int_transformer_widget *tw, int i);
+int transformer_widget_set_index(m_transformer_widget *tw, int i);
 
 void transformer_widget_release_cb(lv_event_t *e);
 void transformer_widget_long_pressed_cb(lv_event_t *e);
 void transformer_widget_pressing_cb(lv_event_t *e);
 
-void transformer_widget_trigger_scale_anim(m_int_transformer_widget *tw, int direction);
-void transformer_widget_trigger_glide_anim(m_int_transformer_widget *tw, int32_t new_pos_y);
+void transformer_widget_trigger_scale_anim(m_transformer_widget *tw, int direction);
+void transformer_widget_trigger_glide_anim(m_transformer_widget *tw, int32_t new_pos_y);
 
-void free_transformer_widget(m_int_transformer_widget *tw);
+void free_transformer_widget(m_transformer_widget *tw);
 
-DECLARE_LINKED_PTR_LIST(m_int_transformer_widget);
+DECLARE_LINKED_PTR_LIST(m_transformer_widget);
 
 #endif
 

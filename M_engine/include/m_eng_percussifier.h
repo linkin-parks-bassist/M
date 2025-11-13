@@ -9,13 +9,13 @@
 
 typedef struct
 {
-	m_eng_parameter tempo;
-	m_eng_parameter note;
-	m_eng_parameter trigger_threshold;
-	m_eng_parameter arm_threshold;
-	m_eng_parameter refractory_period;
-	m_eng_parameter fade_in;
-	m_eng_parameter fade_out;
+	m_parameter tempo;
+	m_parameter note;
+	m_parameter trigger_threshold;
+	m_parameter arm_threshold;
+	m_parameter refractory_period;
+	m_parameter fade_in;
+	m_parameter fade_out;
 	
 	int state;
 	int fade_in_samples;

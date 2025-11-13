@@ -12,6 +12,7 @@ struct m_int_menu_page_str;
 #define MENU_ITEM_PROFILE_LISTING 		4
 #define MENU_ITEM_SEQUENCE_LISTING 		5
 #define MENU_ITEM_PARAMETER_WIDGET		6
+#define MENU_ITEM_DANGER_BUTTON			7
 
 typedef struct m_int_menu_item
 {
@@ -20,6 +21,7 @@ typedef struct m_int_menu_item
 	char *text;
 	char *desc;
 	
+	void (*action_cb)(void *arg);
 	void (*click_cb)(lv_event_t *e);
 	void *cb_arg;
 	
@@ -31,18 +33,16 @@ typedef struct m_int_menu_item
 	
 	lv_timer_t *timer;
 	
-	m_int_ui_page *linked_page;
-	m_int_ui_page **linked_page_indirect;
+	m_ui_page *linked_page;
+	m_ui_page **linked_page_indirect;
 	
-	m_int_ui_page *parent;
+	m_ui_page *parent;
 	
 	int long_pressed;
 	void *lp_configure_arg;
 } m_int_menu_item;
 
 DECLARE_LINKED_PTR_LIST(m_int_menu_item);
-
-typedef struct m_int_menu_item_ptr_linked_list menu_item_ll;
 
 int init_menu_item(m_int_menu_item *item);
 
@@ -52,8 +52,8 @@ typedef struct m_int_menu_page_str
 	
 	char *name;
 	
-	menu_item_ll *items;
-	m_int_ui_page *next_page;
+	m_int_menu_item_pll *items;
+	m_ui_page *next_page;
 	
 	void *data;
 	
@@ -67,19 +67,19 @@ int refresh_menu_item(m_int_menu_item *item);
 
 int init_menu_page_str(m_int_menu_page_str *str);
 
-int init_menu_page(m_int_ui_page *page);
-int configure_menu_page(m_int_ui_page *page, void *data);
-int create_menu_page_ui(m_int_ui_page *page);
-int free_menu_page_ui(m_int_ui_page *page);
-int enter_menu_page(m_int_ui_page *page);
-int refresh_menu_page(m_int_ui_page *page);
+int init_menu_page(m_ui_page *page);
+int configure_menu_page(m_ui_page *page, void *data);
+int create_menu_page_ui(m_ui_page *page);
+int free_menu_page_ui(m_ui_page *page);
+int enter_menu_page(m_ui_page *page);
+int refresh_menu_page(m_ui_page *page);
 
 int menu_page_add_item(m_int_menu_page_str *str, m_int_menu_item *item);
 
-int init_main_menu(m_int_ui_page *page);
-int configure_main_menu(m_int_ui_page *page, void *data);
+int init_main_menu(m_ui_page *page);
+int configure_main_menu(m_ui_page *page, void *data);
 
-int menu_page_remove_item(m_int_ui_page *page, m_int_menu_item *item);
+int menu_page_remove_item(m_ui_page *page, m_int_menu_item *item);
 
 void enter_main_menu_cb(lv_event_t *e);
 

@@ -100,9 +100,9 @@ typedef struct
 	
 	lv_event_cb_t rw_save_cb;
 	lv_event_cb_t rw_cancel_cb;
-} m_int_ui_page_panel;
+} m_ui_page_panel;
 
-m_int_ui_page_panel *new_panel();
+m_ui_page_panel *new_panel();
 
 #define MAX_BOTTOM_BUTTONS 6
 #define BOTTOM_BUTTON_PADDING 20
@@ -111,65 +111,65 @@ m_int_ui_page_panel *new_panel();
 #define CONTAINER_TYPE_STD_BTN_LIST 		1
 #define CONTAINER_TYPE_STD_MENU				2
 
-typedef struct m_int_ui_page
+typedef struct m_ui_page
 {
 	lv_obj_t *screen;
 	
 	int container_type;
 	lv_obj_t *container;
 	
-	m_int_ui_page_panel *panel;
+	m_ui_page_panel *panel;
 	
-	int (*configure)			(struct m_int_ui_page *page, void *data);
-	int (*create_ui)			(struct m_int_ui_page *page);
-	int (*free_ui)				(struct m_int_ui_page *page);
-	int (*free_all)				(struct m_int_ui_page *page);
-	int (*enter_page)			(struct m_int_ui_page *page);
-	int (*enter_page_forward)	(struct m_int_ui_page *page);
-	int (*enter_page_back)		(struct m_int_ui_page *page);
-	int (*refresh)				(struct m_int_ui_page *page);
+	int (*configure)			(struct m_ui_page *page, void *data);
+	int (*create_ui)			(struct m_ui_page *page);
+	int (*free_ui)				(struct m_ui_page *page);
+	int (*free_all)				(struct m_ui_page *page);
+	int (*enter_page)			(struct m_ui_page *page);
+	int (*enter_page_forward)	(struct m_ui_page *page);
+	int (*enter_page_back)		(struct m_ui_page *page);
+	int (*refresh)				(struct m_ui_page *page);
 	
 	void *data_struct;
 	
 	int configured;
 	int ui_created;
 	
-	struct m_int_ui_page *parent;
+	struct m_ui_page *parent;
 	
 	m_int_button *bottom_buttons[MAX_BOTTOM_BUTTONS];
-} m_int_ui_page;
+} m_ui_page;
 
 void create_ui(lv_disp_t *disp);
 
-int init_ui_page(m_int_ui_page *page);
-int init_ui_page_dp(m_int_ui_page **page);
+int init_ui_page(m_ui_page *page);
+int init_ui_page_dp(m_ui_page **page);
 
-int configure_ui_page(m_int_ui_page *page, void *data);
-int create_page_ui(m_int_ui_page *page);
+int configure_ui_page(m_ui_page *page, void *data);
+int create_page_ui(m_ui_page *page);
 
-int enter_ui_page(m_int_ui_page *page);
+int enter_ui_page(m_ui_page *page);
 
 void enter_ui_page_cb(lv_event_t *e);
-int enter_ui_page_indirect(m_int_ui_page **_page);
-void m_int_ui_page_return_to_parent(m_int_ui_page *page);
+int enter_ui_page_indirect(m_ui_page **_page);
+void m_ui_page_return_to_parent(m_ui_page *page);
 
-int m_int_ui_page_set_background_default(m_int_ui_page *page);
+int m_ui_page_set_background_default(m_ui_page *page);
 
-int m_int_ui_page_add_child(m_int_ui_page *page, m_int_ui_page *child);
+int m_ui_page_add_child(m_ui_page *page, m_ui_page *child);
 
-int ui_page_create_base_ui(m_int_ui_page *page);
-int ui_page_create_container(m_int_ui_page *page);
-int ui_page_create_bottom_buttons(m_int_ui_page *page);
+int ui_page_create_base_ui(m_ui_page *page);
+int ui_page_create_container(m_ui_page *page);
+int ui_page_create_bottom_buttons(m_ui_page *page);
 
-int ui_page_add_left_panel_button(m_int_ui_page *page, const char *label, lv_event_cb_t cb);
-int ui_page_add_right_panel_button(m_int_ui_page *page, const char *label, lv_event_cb_t cb);
+int ui_page_add_left_panel_button(m_ui_page *page, const char *label, lv_event_cb_t cb);
+int ui_page_add_right_panel_button(m_ui_page *page, const char *label, lv_event_cb_t cb);
 
-int ui_page_add_back_button(m_int_ui_page *page);
-int ui_page_add_parent_button(m_int_ui_page *page);
+int ui_page_add_back_button(m_ui_page *page);
+int ui_page_add_parent_button(m_ui_page *page);
 
-int ui_page_set_title_rw(m_int_ui_page *page, lv_event_cb_t ok_cb, lv_event_cb_t cancel_cb);
+int ui_page_set_title_rw(m_ui_page *page, lv_event_cb_t ok_cb, lv_event_cb_t cancel_cb);
 
-m_int_button *ui_page_add_bottom_button(m_int_ui_page *page, const char *label, lv_event_cb_t cb);
+m_int_button *ui_page_add_bottom_button(m_ui_page *page, const char *label, lv_event_cb_t cb);
 
 int create_standard_container(lv_obj_t **cont, lv_obj_t *parent);
 int create_standard_container_tall(lv_obj_t **cont, lv_obj_t *parent);
@@ -185,20 +185,20 @@ int create_standard_button_click_short(lv_obj_t **obj, lv_obj_t **label, lv_obj_
 int create_standard_button_long_press_release(lv_obj_t **obj, lv_obj_t **label, lv_obj_t *parent,
 	char *text, lv_event_cb_t press_cb, void *press_cb_arg, lv_event_cb_t release_cb, void *release_cb_arg);
 
-int create_panel(m_int_ui_page *page);
-int set_panel_text(m_int_ui_page *page, const char *text);
-int set_panel_text_rw(m_int_ui_page *page, const char *text);
-int create_panel_rw_title(m_int_ui_page *page, const char *text);
-int create_panel_left_button(m_int_ui_page *page, const char *button_text, lv_event_cb_t cb, void *cb_arg);
-int create_panel_right_button(m_int_ui_page *page, const char *button_text, lv_event_cb_t cb, void *cb_arg);
-int create_panel_rw_title_and_left_button(m_int_ui_page *page, const char *text, const char *left_button_text, lv_event_cb_t left_cb, void *left_cb_arg);
-int create_panel_with_back_button(m_int_ui_page *page);
-int create_panel_with_back_and_settings_buttons(m_int_ui_page *page, m_int_ui_page *settings_page);
-int create_panel_with_back_button_and_right_button(m_int_ui_page *page, const char *right_button_text, lv_event_cb_t right_cb, void *cb_arg);
-int create_panel_with_left_button(m_int_ui_page *page, const char *left_button_text, lv_event_cb_t left_cb, void *cb_arg);
-int create_panel_with_right_button(m_int_ui_page *page, const char *right_button_text, lv_event_cb_t right_cb, void *cb_arg);
-int create_panel_with_back_button_and_page_button(m_int_ui_page *page, const char *right_button_text, m_int_ui_page *right_button_page);
-int create_panel_with_left_and_right_buttons(m_int_ui_page *page,
+int create_panel(m_ui_page *page);
+int set_panel_text(m_ui_page *page, const char *text);
+int set_panel_text_rw(m_ui_page *page, const char *text);
+int create_panel_rw_title(m_ui_page *page, const char *text);
+int create_panel_left_button(m_ui_page *page, const char *button_text, lv_event_cb_t cb, void *cb_arg);
+int create_panel_right_button(m_ui_page *page, const char *button_text, lv_event_cb_t cb, void *cb_arg);
+int create_panel_rw_title_and_left_button(m_ui_page *page, const char *text, const char *left_button_text, lv_event_cb_t left_cb, void *left_cb_arg);
+int create_panel_with_back_button(m_ui_page *page);
+int create_panel_with_back_and_settings_buttons(m_ui_page *page, m_ui_page *settings_page);
+int create_panel_with_back_button_and_right_button(m_ui_page *page, const char *right_button_text, lv_event_cb_t right_cb, void *cb_arg);
+int create_panel_with_left_button(m_ui_page *page, const char *left_button_text, lv_event_cb_t left_cb, void *cb_arg);
+int create_panel_with_right_button(m_ui_page *page, const char *right_button_text, lv_event_cb_t right_cb, void *cb_arg);
+int create_panel_with_back_button_and_page_button(m_ui_page *page, const char *right_button_text, m_ui_page *right_button_page);
+int create_panel_with_left_and_right_buttons(m_ui_page *page,
 	const char *left_button_text, lv_event_cb_t left_cb, void *left_cb_arg,
 	const char *right_button_text, lv_event_cb_t right_cb, void *right_cb_arg);
 void spawn_keyboard(lv_obj_t *parent, lv_obj_t *text_area, void (*ok_cb)(lv_event_t*), void *ok_arg, void (*cancel_cb)(lv_event_t*), void *cancel_arg);
@@ -211,19 +211,19 @@ void hide_keyboard();
 
 typedef struct
 {
-	m_int_ui_page transformer_selector;
+	m_ui_page transformer_selector;
 	
 	lv_obj_t *backstage;
 	
 	lv_obj_t *keyboard;
 	
-	m_int_ui_page *main_menu;
-	m_int_ui_page *prev_page;
-	m_int_ui_page *profile_list;
-	m_int_ui_page *sequence_list;
+	m_ui_page *main_menu;
+	m_ui_page *prev_page;
+	m_ui_page *profile_list;
+	m_ui_page *sequence_list;
 } m_int_ui_context;
 
-typedef lv_obj_t_ptr_linked_list lv_obj_ll;
+typedef lv_obj_t_pll lv_obj_ll;
 
 int init_ui_context(m_int_ui_context *cxt);
 

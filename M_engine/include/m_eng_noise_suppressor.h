@@ -3,9 +3,9 @@
 
 typedef struct
 {
-	m_eng_parameter threshold;
-	m_eng_parameter ratio;
-	m_eng_parameter max_reduction;
+	m_parameter threshold;
+	m_parameter ratio;
+	m_parameter max_reduction;
 	float e_final;
 	
 	int r;

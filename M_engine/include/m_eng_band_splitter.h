@@ -3,7 +3,7 @@
 
 typedef struct
 {
-	m_eng_lr_low_pass_filter_str filters[3];
+	m_lr_low_pass_filter_str filters[3];
 } m_eng_3_band_splitter_str;
 
 int init_3_band_splitter_str(m_eng_3_band_splitter_str *str);
@@ -12,7 +12,7 @@ int calc_3_band_splitter(void *data_struct, float **dest, float **src, int n_sam
 
 typedef struct
 {
-	m_eng_lr_low_pass_filter_str *filters;
+	m_lr_low_pass_filter_str *filters;
 } m_eng_n_band_splitter_str;
 
 int init_n_band_splitter_str(m_eng_n_band_splitter_str *str);

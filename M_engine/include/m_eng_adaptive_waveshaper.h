@@ -6,7 +6,7 @@
 
 typedef struct
 {
-	m_eng_parameter coefficient;
+	m_parameter coefficient;
 	
 	float (*shape)(float x);
 	

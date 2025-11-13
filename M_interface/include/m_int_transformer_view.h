@@ -9,37 +9,38 @@
 typedef struct
 {
 	lv_obj_t *container;
-	m_int_parameter_widget_ptr_linked_list *parameter_widgets;
+	m_parameter_widget_pll *parameter_widgets;
 } m_int_tv_grouping;
 
 typedef struct
 {
-	m_int_transformer *trans;
+	m_transformer *trans;
 	
 	lv_obj_t *container;
 	
 	lv_obj_t *group_containers[TRANSFORMER_VIEW_MAX_GROUPS];
 	
-	m_int_parameter_widget_ptr_linked_list *parameter_widgets;
+	m_parameter_widget_pll *parameter_widgets;
+	m_setting_widget_pll   *setting_widgets;
 	
-	m_int_ui_page *settings_page;
-} m_int_transformer_view_str;
+	m_ui_page *settings_page;
+} m_transformer_view_str;
 
 
-m_int_ui_page *create_transformer_view_for(m_int_transformer *trans);
+m_ui_page *create_transformer_view_for(m_transformer *trans);
 
-int transformer_view_configure(m_int_ui_page *page, void *trans);
+int transformer_view_configure(m_ui_page *page, void *trans);
 
-int init_transformer_view(m_int_ui_page *page);
-int configure_transformer_view(m_int_ui_page *page, void *data);
-int create_transformer_view_ui(m_int_ui_page *page);
-int free_transformer_view_ui(m_int_ui_page *page);
-int free_transformer_view(m_int_ui_page *page);
-int enter_transformer_view(m_int_ui_page *page);
-int enter_transformer_view_forward(m_int_ui_page *page);
-int enter_transformer_view_back(m_int_ui_page *page);
-int refresh_transformer_view(m_int_ui_page *page);
+int init_transformer_view(m_ui_page *page);
+int configure_transformer_view(m_ui_page *page, void *data);
+int create_transformer_view_ui(m_ui_page *page);
+int free_transformer_view_ui(m_ui_page *page);
+int free_transformer_view(m_ui_page *page);
+int enter_transformer_view(m_ui_page *page);
+int enter_transformer_view_forward(m_ui_page *page);
+int enter_transformer_view_back(m_ui_page *page);
+int refresh_transformer_view(m_ui_page *page);
 
-int transformer_view_request_parameter_values(m_int_ui_page *page);
+int transformer_view_request_parameter_values(m_ui_page *page);
 
 #endif

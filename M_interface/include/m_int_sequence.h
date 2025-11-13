@@ -3,7 +3,7 @@
 
 typedef struct seq_profile_ll
 {
-	m_int_profile *data;
+	m_profile *data;
 	struct seq_profile_ll *next;
 	struct seq_profile_ll *prev;
 	
@@ -18,9 +18,9 @@ typedef struct
 	seq_profile_ll *profiles;
 	seq_profile_ll *position;
 	
-	m_int_ui_page *view_page;
+	m_ui_page *view_page;
 	
-	struct m_int_menu_item_ptr_linked_list *listings;
+	struct m_int_menu_item_pll *listings;
 	char *fname;
 	
 	int unsaved_changes;
@@ -28,12 +28,12 @@ typedef struct
 
 DECLARE_LINKED_PTR_LIST(m_int_sequence);
 
-typedef m_int_sequence_ptr_linked_list sequence_ll;
+typedef m_int_sequence_pll sequence_ll;
 
 int init_m_int_sequence(m_int_sequence *seq);
 
-int sequence_append_profile(m_int_sequence *seq, m_int_profile *profile);
-seq_profile_ll *sequence_append_profile_rp(m_int_sequence *seq, m_int_profile *profile);
+int sequence_append_profile(m_int_sequence *seq, m_profile *profile);
+seq_profile_ll *sequence_append_profile_rp(m_int_sequence *seq, m_profile *profile);
 int sequence_move_profile(m_int_sequence *seq, int pos, int new_pos);
 
 int m_int_sequence_add_menu_listing(m_int_sequence *seq, struct m_int_menu_item *listing);

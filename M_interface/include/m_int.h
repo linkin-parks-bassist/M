@@ -10,37 +10,39 @@
 //#define M_ENABLE_LV_LOGGING
 
 #ifndef M_SIMULATED
-#define LV_USE_SDL 1
+	#define LV_USE_SDL 1
 
-#include <freertos/FreeRTOS.h>
-#include <freertos/semphr.h>
-#include <freertos/queue.h>
+	#include <freertos/FreeRTOS.h>
+	#include <freertos/semphr.h>
+	#include <freertos/queue.h>
 
-#include <esp_lcd_touch.h>
-#include <driver/i2c.h>
-#include <esp_log.h>
+	#include <esp_lcd_touch.h>
+	#include <driver/i2c.h>
+	#include <esp_log.h>
 
-#include "waveshare_rgb_lcd_port.h"
+	#include "waveshare_rgb_lcd_port.h"
+
 #else
 
-#define ESP_LOGE sim_esp_log
-#define ESP_LOGI sim_esp_log
-#define ESP_LOGD sim_esp_log
-#define ESP_LOGW sim_esp_log
+	#define ESP_LOGE sim_esp_log
+	#define ESP_LOGI sim_esp_log
+	#define ESP_LOGD sim_esp_log
+	#define ESP_LOGW sim_esp_log
 
-void sim_esp_log(const char *tag, const char *fmt, ...);
+	void sim_esp_log(const char *tag, const char *fmt, ...);
 
-#define xTaskCreatePinnedToCore(a1, a2, a3, a4, a5, a6, a7) xTaskCreate(a1, a2, a3, a4, a5, a6) 
+	#define xTaskCreatePinnedToCore(a1, a2, a3, a4, a5, a6, a7) xTaskCreate(a1, a2, a3, a4, a5, a6) 
 
-void app_main();
+	void app_main();
 
-#include <FreeRTOS/include/FreeRTOS.h>
-#include <FreeRTOS/include/semphr.h>
-#include <FreeRTOS/include/queue.h>
+	#include <FreeRTOS/include/FreeRTOS.h>
+	#include <FreeRTOS/include/semphr.h>
+	#include <FreeRTOS/include/queue.h>
 
-#include "SDL2/SDL.h"
+	#include "SDL2/SDL.h"
 
-typedef int esp_err_t;
+	typedef int esp_err_t;
+	
 #endif
 
 #include <lvgl.h>
@@ -48,27 +50,39 @@ typedef int esp_err_t;
 #define LVGL_VERSION_MAJOR 8
 
 #ifndef M_SIMULATED
-#include <lvgl_port.h>
+
+	#include <lvgl_port.h>
+	
 #endif
 
 extern const lv_font_t manrope_24;
 
-#define LL_MALLOC m_int_malloc
-#define LL_FREE   m_int_free
+#define LL_MALLOC m_alloc
+#define LL_FREE   m_free
 
 //#define LV_MM_INT_CUSTOM_ALLOC  m_int_lv_malloc
 //#define LV_MM_INT_CUSTOM_FREE   m_int_lv_free
 
 #define SETTINGS_FNAME "/sdcard/conf"
 
+#ifndef M_INTERFACE
+	#define M_INTERFACE
+#endif
+
 #include "m_linked_list.h"
 #include "m_error_codes.h"
+
+#include "m_parameter.h"
+#include "m_transformer.h"
+#include "m_pipeline.h"
+#include "m_profile.h"
+
 #include "m_status.h"
 #include "m_vec2i.h"
 #include "m_transformer_enum.h"
 #include "m_comms.h"
 
-#include "m_int_malloc.h"
+#include "m_alloc.h"
 
 #include "m_int_i2c.h"
 #include "m_int_display.h"
@@ -107,6 +121,6 @@ extern const lv_font_t manrope_24;
 #include "m_int_sequence_list.h"
 #include "m_int_menu.h"
 
-#include "m_int_logging.h"
+#include "m_int_lv_log.h"
 
 #endif

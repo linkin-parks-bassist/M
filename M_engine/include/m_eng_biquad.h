@@ -6,10 +6,10 @@ typedef struct
 	float a0, a1, a2, a3, a4;
 	float x1, x2, y1, y2;
 	
-	m_eng_setting type;
-	m_eng_parameter cutoff;
-	m_eng_parameter bandwidth;
-	m_eng_parameter db_gain;
+	m_setting type;
+	m_parameter cutoff;
+	m_parameter bandwidth;
+	m_parameter db_gain;
 } m_eng_biquad_str;
 
 int init_biquad_str(m_eng_biquad_str *str);

@@ -6,8 +6,8 @@ typedef struct
 	m_eng_compressor_str bass_comp;
 	m_eng_compressor_str mids_comp;
 	
-	m_eng_lr_low_pass_filter_str low_pass;
-	m_eng_lr_low_pass_filter_str mid_pass;
+	m_lr_low_pass_filter_str low_pass;
+	m_lr_low_pass_filter_str mid_pass;
 	
 } m_eng_low_end_compressor_str;
 

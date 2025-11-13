@@ -1,51 +1,26 @@
 #ifndef M_INT_TRANSFORMER_H_
 #define M_INT_TRANSFORMER_H_
 
-typedef struct
-{
-	uint16_t profile_id;
-	uint16_t transformer_id;
-	
-	int type;
-	int position;
-	
-	parameter_ll *parameters;
-	setting_ll *settings;
-	
-	m_int_ui_page *view_page;
-	struct m_int_profile *profile;
-	
-	m_int_parameter wet_mix;
-	
-	m_int_setting band_mode;
-	m_int_parameter lp_cutoff_freq;
-	m_int_parameter hp_cutoff_freq;
-} m_int_transformer;
+int init_transformer(m_transformer *trans);
 
-int init_transformer(m_int_transformer *trans);
+int transformer_set_id(m_transformer *trans, uint16_t profile_id, uint16_t transformer_id);
 
-int transformer_set_id(m_int_transformer *trans, uint16_t profile_id, uint16_t transformer_id);
+m_parameter *transformer_add_parameter(m_transformer *trans);
+m_setting *transformer_add_setting(m_transformer *trans);
 
-m_int_parameter *transformer_add_parameter(m_int_transformer *trans);
-m_int_setting *transformer_add_setting(m_int_transformer *trans);
+int init_default_transformer_by_type(m_transformer *trans, uint16_t type, uint16_t profile_id, uint16_t transformer_id);
 
-int init_default_transformer_by_type(m_int_transformer *trans, uint16_t type, uint16_t profile_id, uint16_t transformer_id);
-
-int transformer_init_ui_page(m_int_transformer *trans, m_int_ui_page *parent);
+int transformer_init_ui_page(m_transformer *trans, m_ui_page *parent);
 
 void add_transformer_from_menu(lv_event_t *e);
 
-int request_append_transformer(uint16_t type, m_int_transformer *local);
+int request_append_transformer(uint16_t type, m_transformer *local);
 void transformer_receive_id(et_msg message, te_msg response);
 
-int clone_transformer(m_int_transformer *dest, m_int_transformer *src);
-void free_transformer(m_int_transformer *trans);
+int clone_transformer(m_transformer *dest, m_transformer *src);
+void free_transformer(m_transformer *trans);
 
-DECLARE_LINKED_PTR_LIST(m_int_transformer);
-
-typedef m_int_transformer_ptr_linked_list transformer_ll;
-
-m_int_parameter *transformer_get_parameter(m_int_transformer *trans, int n);
-m_int_setting *transformer_get_setting(m_int_transformer *trans, int n);
+m_parameter *transformer_get_parameter(m_transformer *trans, int n);
+m_setting *transformer_get_setting(m_transformer *trans, int n);
 
 #endif
