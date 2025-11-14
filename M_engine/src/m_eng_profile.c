@@ -2,21 +2,6 @@
 
 static const char *FNAME = "m_eng_profile.c";
 
-float trig_transition_function(float x)
-{
-	if (x > 1.0)
-	{
-		return 0.0;
-	}
-	if (x > 0.0)
-	{
-		float y = cos(1.57079632679 * x);
-		return y * y;
-	}
-	
-	return 1.0;
-}
-
 int nullify_profile(m_eng_profile *profile)
 {
 	FUNCTION_START();
@@ -37,9 +22,11 @@ int nullify_profile(m_eng_profile *profile)
 	profile->transition_policy = TRANSITION_MONOBLOCK_COS2;
 	
 	profile->jobs  = NULL;
-	profile->ujobs = NULL;
+	profile->blocked_jobs = NULL;
 	
 	profile->active = 0;
+	
+	profile->runs = 0;
 	
 	RETURN_ERR_CODE(NO_ERROR);
 }
@@ -80,7 +67,7 @@ int init_profile(m_eng_profile *profile)
 	profile->transition_policy = TRANSITION_MONOBLOCK_COS2;
 	
 	profile->jobs  = NULL;
-	profile->ujobs = NULL;
+	profile->blocked_jobs = NULL;
 	
 	profile->prev_block = allocate_buffer();
 	
@@ -115,20 +102,20 @@ int profile_print_job_list(m_eng_profile *profile)
 		m_printf("Job %i: ", i);
 		switch (current->data.type)
 		{
-			case PIPE_LINE_MOD_APPEND_TRANSFORMER:
+			case PIPELINE_MOD_APPEND_TRANSFORMER:
 				m_printf("append transformer of type %d\n", current->data.data);
 				break;
 			
 			
-			case PIPE_LINE_MOD_MOVE_TRANSFORMER:
+			case PIPELINE_MOD_MOVE_TRANSFORMER:
 				m_printf("move transformer %d to position %d\n", current->data.tid, current->data.data);
 				break;
 			
-			case PIPE_LINE_MOD_REMOVE_TRANSFORMER:
+			case PIPELINE_MOD_REMOVE_TRANSFORMER:
 				m_printf("remove transformer %d\n", current->data.tid);
 				break;
 			
-			case PIPE_LINE_MOD_CHANGE_TRANSFORMER_SETTING:
+			case PIPELINE_MOD_CHANGE_TRANSFORMER_SETTING:
 				m_printf("change setting %d.%d to %d\n", current->data.tid, current->data.data, current->data.sdata);
 				break;
 				
@@ -151,19 +138,19 @@ int profile_print_ujob_list(m_eng_profile *profile)
 	m_printf("Printing ujob list.\n");
 	
 	int i = 0;
-	m_pipeline_mod_ll *current = profile->ujobs;
+	m_pipeline_mod_ll *current = profile->blocked_jobs;
 	
 	while (current)
 	{
 		m_printf("Job %i: ", i);
 		switch (current->data.type)
 		{
-			case PIPE_LINE_MOD_APPEND_TRANSFORMER:
+			case PIPELINE_MOD_APPEND_TRANSFORMER:
 				m_printf("append transformer of type %d\n", current->data.data);
 				break;
 			
 			
-			case PIPE_LINE_MOD_MOVE_TRANSFORMER:
+			case PIPELINE_MOD_MOVE_TRANSFORMER:
 				m_printf("move transformer %d to position %d\n", current->data.tid, current->data.data);
 				break;
 			
@@ -180,42 +167,71 @@ int profile_print_ujob_list(m_eng_profile *profile)
 	RETURN_ERR_CODE(NO_ERROR);
 }
 
+/**
+ * @brief Applies the given modification to the given profile
+ * 
+ * If the current profile is active, to prevent audio artifacts, pipeline modifications
+ * ("mods", encoded by #m_pipeline_mod) are applied in the background - to an inactive
+ * copy of the profile's pipeline (the "back pipeline"), and the outputs from the front
+ * and back pipeline are smoothly cross-faded between, after which it can be safely
+ * applied to the now back (previously front) pipeline, keeping the two in sync.
+ * 
+ * To achieve this, #profile_apply_pipeline_mod calls #apply_pipeline_mod to apply
+ * the mod to the back pipeline,  calls #profile_trigger_pipeline_swap to trigger 
+ * the pipeline swap and saved the mod in a linked list (\ref m_profile::jobs).
+ * After the swap is complete, #profile_update will retrieve the job from the list
+ * and apply it to the back (previously front) pipeline.
+ * 
+ * If, however, when #profile_apply_pipeline_mod is called, a pipeline swap is already
+ * in progress, the mod is *not* applied, but rather stored in a second linked list,
+ * (\ref profile::blocked_jobs), whereupon #profile_update will apply it (only after
+ * the swap is finished, and any jobs waiting in (\ref profile::jobs) have been applied)
+ * by calling #profile_apply_pipeline_mod.
+ * 
+ * @param mod A struct describing the modofication to apply
+ * @param profile The profile 
+ */
+
 int profile_apply_pipeline_mod(m_eng_profile *profile, m_pipeline_mod mod)
 {
 	FUNCTION_START();
 
-	m_printf("Applying a type %d pipeline mod\n", mod.type);
+	m_printf("profile_apply_pipeline_mod %s on run %d\n", pipeline_mod_type_string(mod.type), profile->runs);
 	if (!profile)
 	{
 		RETURN_ERR_CODE(ERR_NULL_PTR);
 	}
 	
 	m_pipeline_mod_ll *nl;
-	int ret_val = NO_ERROR;
+	int err_code = NO_ERROR;
 	
 	if (!profile->active)
 	{
-		ret_val = apply_pipeline_mod(profile->front_pipeline, mod);
+		m_printf("Profile is not active; apply willy-nilly\n");
+		apply_pipeline_mod(profile->front_pipeline, mod, &err_code);
 		
-		if (ret_val != NO_ERROR)
+		if (err_code != NO_ERROR)
 		{
-			RETURN_ERR_CODE(ret_val);
+			RETURN_ERR_CODE(err_code);
 		}
 		
-		ret_val = apply_pipeline_mod(profile->back_pipeline, mod);
+		apply_pipeline_mod(profile->back_pipeline, mod, &err_code);
 		
-		RETURN_ERR_CODE(ret_val);
+		RETURN_ERR_CODE(err_code);
 	}
 	
 	if (!profile->pipelines_swapping)
 	{
-		m_printf("There is no pipeline swap occuring; safe to apply to back pipeline\n");
-		ret_val = apply_pipeline_mod(profile->back_pipeline, mod);
+		m_printf("Profile is active; pipelines are not swapping. Apply with care\n");
+		apply_pipeline_mod(profile->back_pipeline, mod, &err_code);
 		
-		m_printf("Applied\n");
-		profile_trigger_pipeline_swap(profile);
+		if (err_code != NO_ERROR)
+		{
+			RETURN_ERR_CODE(err_code);
+		}
 		
 		profile->transition_policy = binary_max(profile->front_pipeline->transition_policy, profile->back_pipeline->transition_policy);
+		profile_trigger_pipeline_swap(profile);
 		
 		nl = m_pipeline_mod_ll_append(profile->jobs, mod);
 		if (nl)
@@ -226,28 +242,25 @@ int profile_apply_pipeline_mod(m_eng_profile *profile, m_pipeline_mod mod)
 		{
 			RETURN_ERR_CODE(ERR_ALLOC_FAIL);
 		}
-		
-		profile_print_job_list(profile);
 	}
 	else
 	{
-		m_printf("There is a pipeline swap occuring. I will log the job for later.\n");
-		
-		nl = m_pipeline_mod_ll_append(profile->ujobs, mod);
+		m_printf("Profile is active and pipelines are swapping. Log to apply later\n");
+		nl = m_pipeline_mod_ll_append(profile->blocked_jobs, mod);
 		if (nl)
 		{
-			profile->ujobs = nl;
+			profile->blocked_jobs = nl;
 		}
 		else
 		{
+			printf("Failed: cannot appent pipeline mod; alloc failure\n");
 			RETURN_ERR_CODE(ERR_ALLOC_FAIL);
 		}
 		
 		profile_print_ujob_list(profile);
 	}
 	
-	m_printf("Function returned\n");
-	RETURN_ERR_CODE(ret_val);
+	RETURN_ERR_CODE(err_code);
 }
 
 int profile_update(m_eng_profile *profile)
@@ -259,29 +272,33 @@ int profile_update(m_eng_profile *profile)
 		RETURN_ERR_CODE(ERR_NULL_PTR);
 	}
 	
-	int tps = (profile->ujobs != NULL);
 	m_pipeline_mod_ll *next;
+	
+	int err_code;
 	
 	if (!profile->pipelines_swapping)
 	{
+		if (profile->jobs)
+		{
+			profile_print_job_list(profile);
+		}
+		
 		while (profile->jobs)
 		{
-			apply_pipeline_mod(profile->back_pipeline, profile->jobs->data);
+			apply_pipeline_mod(profile->back_pipeline, profile->jobs->data, &err_code);
 			next = profile->jobs->next;
 			m_free(profile->jobs);
 			profile->jobs = next;
 		}
 		
-		while (profile->ujobs)
+		if (profile->blocked_jobs)
 		{
-			apply_pipeline_mod(profile->back_pipeline, profile->ujobs->data);
-			next = profile->ujobs->next;
-			m_free(profile->ujobs);
-			profile->ujobs = next;
+			profile_print_ujob_list(profile);
+			profile_apply_pipeline_mod(profile, profile->blocked_jobs->data);
+			next = profile->blocked_jobs->next;
+			m_free(profile->blocked_jobs);
+			profile->blocked_jobs = next;
 		}
-		
-		if (tps)
-			profile_trigger_pipeline_swap(profile);
 	}
 	
 	RETURN_ERR_CODE(NO_ERROR);
@@ -486,6 +503,8 @@ int profile_process(m_eng_profile *profile, float *dest, float *src)
 		M_LOG_ERROR(ERR_ALLOC_FAIL);
 	}
 	
+	profile->runs++;
+	
 	RETURN_ERR_CODE(NO_ERROR);
 }
 
@@ -550,7 +569,7 @@ int profile_scheduled_maintainance(m_eng_profile *profile)
 	}
 	
 	// If the profile is up to something, don't touch it
-	if (profile->jobs || profile->ujobs || profile->pipelines_swapping)
+	if (profile->jobs || profile->blocked_jobs || profile->pipelines_swapping)
 	{
 		RETURN_ERR_CODE(NO_ERROR);
 	}
