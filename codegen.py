@@ -12,6 +12,18 @@ enum_source_fname = "shared/m_transformer_enum.c"
 enum_header_initial = [
 	"#ifndef M_TRANSFORMER_ENUM_H_",
 	"#define M_TRANSFORMER_ENUM_H_",
+	"",
+	"#define TRANSFORMER_MODE_FULL_SPECTRUM  0",
+	"#define TRANSFORMER_MODE_UPPER_SPECTRUM	1",
+	"#define TRANSFORMER_MODE_LOWER_SPECTRUM	2",
+	"#define TRANSFORMER_MODE_BAND			3",
+	"",
+	"#define TRANSFORMER_WET_MIX_PID	0xFFFF",
+	"",
+	"#define TRANSFORMER_BAND_LP_CUTOFF_PID 0xFFFE",
+	"#define TRANSFORMER_BAND_HP_CUTOFF_PID 0xFFFD",
+	"",
+	"#define TRANSFORMER_BAND_MODE_SID 0xFFFF",
 	""
 ]
 
@@ -58,10 +70,11 @@ m_int_init_fname = "./M_interface/main/m_int_transformer_init.c"
 m_int_init_transformer_initial = [
 	"#include \"m_int.h\"",
 	"",
-	"static const char *unit_string_ = \"\";",
-	"static const char *unit_string_hz = \" Hz\";",
-	"static const char *unit_string_ms = \" ms\";",
-	"static const char *unit_string_db = \" dB\";",
+	"static const char *unit_string_    = \"\";",
+	"static const char *unit_string_hz  = \" Hz\";",
+	"static const char *unit_string_ms  = \" ms\";",
+	"static const char *unit_string_db  = \" dB\";",
+	"static const char *unit_string_bpm = \" bpm\";",
 	"",
 	"static const char *FNAME = \"m_int_transformer_init.c\";"
 ]
@@ -111,6 +124,8 @@ class setting_desc:
 	name: 		str = ""
 	s_type:		str = ""
 	default: 	int = 0
+	max_val:	int = 0
+	min_val:	int = 0
 	location:	str = ""
 	options:	list = field(default_factory=list)
 	group:		int = 0
@@ -198,7 +213,7 @@ def load_setting(setting):
 	s.name     = setting['name']
 	s.location = setting.get('location', normal_sanitize(s.name))
 
-	s.s_type = setting.get('type', "")
+	s.s_type = "TRANSFORMER_SETTING_" + enum_sanitize(setting.get('type', "ENUM"))
 	
 	s.default = setting.get("default", 0)
 	s.units   = setting.get("units", "")
@@ -211,7 +226,7 @@ def load_setting(setting):
 	for option in setting.get('options', []):
 		o = setting_option()
 		o.name = option.get('name', f"Option {i + 1}")
-		o.val = option.get('value', i)
+		o.value = option.get('value', i)
 		s.options.append(o)
 		i = i + 1
 	
@@ -269,19 +284,19 @@ def load_transformer(transformer):
 
 def m_eng_transformer_init_function(trans):
 	output  = []
-	output += [f"int {trans.init_fn}(m_eng_transformer *trans)", "{"]
+	output += [f"int {trans.init_fn}(m_transformer *trans)", "{"]
 	output += ["	if (!trans)", "	{", "		RETURN_ERR_CODE(ERR_NULL_PTR);", "	}", ""]
-	output += ["	int ret_val = NO_ERROR;", "", f"	trans->type = {trans.enum_name};", ""]
+	output += ["	int ret_val = transformer_init_controls(trans);", "	if (ret_val != NO_ERROR)", "	{", "		RETURN_ERR_CODE(ret_val);", "	}", "", f"	trans->type = {trans.enum_name};", ""]
 	
 	if trans.linear:
 		output += [f"	trans->compute_transformer    = {trans.calc_fn};", f"	trans->compute_transformer_nl = NULL;"]
 	else:
 		output += [f"	trans->compute_transformer    = NULL;",  f"	trans->compute_transformer_nl = {trans.calc_fn};"]
 	
-	output += ["	trans->bypass = 0;"]
+	#output += ["	trans->bypass = 0;"]
 
 	output += [f"	trans->transition_policy = TRANSFORMER_TRANSITION_{trans.transition};", ""]
-	output += [f"	trans->n_inputs  = {trans.n_inputs};", f"	trans->n_inputs  = {trans.n_outputs};", ""]
+	#output += [f"	trans->n_inputs  = {trans.n_inputs};", f"	trans->n_inputs  = {trans.n_outputs};", ""]
 	output += [f"	ret_val = transformer_init_parameter_array(trans, {len(trans.parameters)});"]
 	output += ["	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }"]
 	output += [f"	ret_val = transformer_init_setting_array(trans, {len(trans.settings)});"]
@@ -292,7 +307,7 @@ def m_eng_transformer_init_function(trans):
 		output += [f"	trans->clone_struct = NULL;", f"	trans->struct_size = 0;"]
 		return output + ["", "	RETURN_ERR_CODE(NO_ERROR);", "}", ""]
 		
-	output += [f"	{trans.struct_name} *str = ({trans.struct_name}*)malloc(sizeof({trans.struct_name}));"]
+	output += [f"	{trans.struct_name} *str = ({trans.struct_name}*)m_alloc(sizeof({trans.struct_name}));"]
 	output += [f"	trans->data_struct = (void*)str;", "", f"	if (!str)", "	{", f"		RETURN_ERR_CODE(ERR_ALLOC_FAIL);", "	}", ""]
 	output += [f"	trans->reconfigure = {trans.reconfigure_fn};"]
 	output += [f"	trans->free_struct = {trans.free_str_fn};", ""]
@@ -313,7 +328,7 @@ def m_eng_transformer_init_function(trans):
 	return output + [f"	RETURN_ERR_CODE(ret_val);", "}", ""]
 
 def m_eng_init_transformer_switch(transformers):
-	output = ["int init_transformer(m_eng_transformer *trans, uint16_t type)", "{"]
+	output = ["int init_transformer(m_transformer *trans, uint16_t type)", "{"]
 	output += m_eng_trans_null_ptr_guard
 	output += ["	switch (type)", "	{"]
 
@@ -333,7 +348,7 @@ def m_eng_init_transformer_switch(transformers):
 	return output + ["		default: RETURN_ERR_CODE(ERR_BAD_ARGS);", "	}", "", "	RETURN_ERR_CODE(NO_ERROR);", "}"]
 
 def m_int_init_transformer_switch(transformers):
-	output = ["int init_transformer_of_type(m_int_transformer *trans, uint16_t type)", "{"]
+	output = ["int init_transformer_of_type(m_transformer *trans, uint16_t type)", "{"]
 	output += trans_null_ptr_guard
 	
 	output += ["	int ret_val = init_transformer(trans);", "	", "	if (ret_val != NO_ERROR)", "		return ret_val;"]
@@ -359,24 +374,24 @@ def m_int_init_transformer_switch(transformers):
 	return output + ["		default: return ERR_BAD_ARGS;", "	}", "", "	return NO_ERROR;", "}"]
 
 def m_int_transformer_init_function(trans):
-	output = [f"int {trans.init_fn}(m_int_transformer *trans)", "{"]
+	output = [f"int {trans.init_fn}(m_transformer *trans)", "{"]
 	output += trans_null_ptr_guard
 	output.append(f"	trans->type = {trans.enum_name};")
 	output.append(f"	trans->view_page = NULL;")
 
 	if len(trans.parameters) > 0:
-		output += ["", "	m_int_parameter *param;", ""]
+		output += ["", "	m_parameter *param;", ""]
 
 	i = 0
 	for param in trans.parameters:
-		output.append("	param = transformer_add_parameter(trans);")
-		output.append("")
-		output.append("	if (!param)")
-		output.append("		return ERR_ALLOC_FAIL;")
-		output.append("")
+		output.append( "	param = transformer_add_parameter(trans);")
+		output.append( "")
+		output.append( "	if (!param)")
+		output.append( "		return ERR_ALLOC_FAIL;")
+		output.append( "")
 		output.append(f"	param->id.parameter_id = {i};")
 		output.append("")
-		output.append(f"	param->val   = {param.default};")
+		output.append(f"	param->value   = {param.default};")
 		output.append(f"	param->max   = {param.max_val};")
 		output.append(f"	param->min   = {param.min_val};")
 		output.append(f"	param->name  = \"{param.name}\";")
@@ -387,6 +402,47 @@ def m_int_transformer_init_function(trans):
 			
 		output.append("")
 		i += 1
+	
+	if len(trans.settings) > 0:
+		output += ["", "	m_setting *setting;", ""]
+	
+	for setting in trans.settings:
+		output.append( "	setting = transformer_add_setting(trans);")
+		output.append( "")
+		output.append( "	if (!setting)")
+		output.append( "		return ERR_ALLOC_FAIL;")
+		output.append( "")
+		output.append(f"	setting->id.setting_id = {i};")
+		output.append("")
+		output.append(f"	setting->value   = {setting.default};")
+		output.append(f"	setting->max   = {setting.max_val};")
+		output.append(f"	setting->min   = {setting.min_val};")
+		output.append(f"	setting->name  = \"{setting.name}\";")
+		output.append(f"	setting->units = unit_string_{setting.units.lower()};")
+		output.append(f"	setting->group = {setting.group};")
+		output.append(f"	setting->widget_type = {setting.widget};")
+		output.append(f"	setting->page = TRANSFORMER_SETTING_PAGE_{setting.page.upper()};")
+		
+		n_options = len(setting.options)
+		output.append(f"	setting->n_options = {n_options};")
+		
+		if n_options > 0:
+			output.append(f"	setting->options = m_alloc(sizeof(m_setting) * {n_options});")
+			output.append(f"	if (!setting->options) return ERR_ALLOC_FAIL;")
+			output.append("")
+			
+			i = 0
+			for option in setting.options:
+				output.append(f"	setting->options[{i}].value = {option.value};")
+				output.append(f"	setting->options[{i}].name = \"{option.name}\";")
+				output.append("")
+				i = i + 1
+				
+		else:
+			output.append(f"	setting->options = NULL;")
+		
+		i += 1
+		
 	
 	return output + ["	return NO_ERROR;", "}", "\n"]
 
