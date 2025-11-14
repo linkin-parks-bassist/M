@@ -4,7 +4,7 @@ static const char *TAG = "TeensyComms";
 
 #define SEND_BUFFER_LENGTH 16
 
-QueueHandle_t et_msg_queue;
+QueueHandle_t m_message_queue;
 
 void m_int_comms_task(void *param);
 
@@ -14,23 +14,23 @@ int teensy_online = 0;
 int teensy_online = 1;
 #endif
 
-#define ET_MESSAGE_MAX_RETRIES 5
+#define M_MESSAGE_MAX_RETRIES 5
 
-IMPLEMENT_LINKED_PTR_LIST(et_msg);
+IMPLEMENT_LINKED_PTR_LIST(m_message);
 
-static et_msg_pll *retry_queue = NULL;
+static m_message_pll *retry_queue = NULL;
 
-static et_msg hi_msg;
+static m_message hi_msg;
 
-int queue_message_retry(et_msg *msg)
+int queue_message_retry(m_message *msg)
 {
 	if (!msg)
 		return ERR_NULL_PTR;
 	
-	if (msg->retries > ET_MESSAGE_MAX_RETRIES)
-		msg->retries = ET_MESSAGE_MAX_RETRIES;
+	if (msg->retries > M_MESSAGE_MAX_RETRIES)
+		msg->retries = M_MESSAGE_MAX_RETRIES;
 	
-	et_msg_pll *nl = et_msg_pll_append(retry_queue, msg);
+	m_message_pll *nl = m_message_pll_append(retry_queue, msg);
 	
 	if (!nl)
 		return ERR_ALLOC_FAIL;
@@ -42,18 +42,18 @@ int queue_message_retry(et_msg *msg)
 	return NO_ERROR;
 }
 
-int queue_msg_to_teensy(et_msg msg)
+int queue_msg_to_teensy(m_message msg)
 {
-	printf("Queueing message of type %s\n", et_msg_code_to_string(msg.type));
+	printf("Queueing message of type %s\n", m_message_code_to_string(msg.type));
 	
-	et_msg *msg_copy = m_alloc(sizeof(et_msg));
+	m_message *msg_copy = m_alloc(sizeof(m_message));
 	
 	if (!msg_copy)
 		return ERR_ALLOC_FAIL;
 	
-	memcpy(msg_copy, &msg, sizeof(et_msg));
+	memcpy(msg_copy, &msg, sizeof(m_message));
 	
-	if (xQueueSend(et_msg_queue, (void*)&msg_copy, (TickType_t)10) != pdPASS)
+	if (xQueueSend(m_message_queue, (void*)&msg_copy, (TickType_t)10) != pdPASS)
 	{
 		printf("Queueing failed!\n");
 		return ERR_QUEUE_SEND_FAILED;
@@ -64,9 +64,9 @@ int queue_msg_to_teensy(et_msg msg)
 
 int init_m_int_msg_queue()
 {
-	et_msg_queue = xQueueCreate(16, sizeof(et_msg*));
-	if (et_msg_queue == NULL)
-		ESP_LOGE("queue", "Failed to create et_msg queue");
+	m_message_queue = xQueueCreate(16, sizeof(m_message*));
+	if (m_message_queue == NULL)
+		ESP_LOGE("queue", "Failed to create m_message queue");
 	
 	return ERR_ALLOC_FAIL;
 }
@@ -86,62 +86,62 @@ int begin_m_int_comms()
 	return NO_ERROR;
 }
 
-#define ET_MESSAGE_SEND_TRIES 		3
-#define ET_MESSAGE_RESPONSE_TRIES 	5
-#define ET_MESSAGE_I2C_SEND_TRIES 	5
+#define M_MESSAGE_SEND_TRIES 		3
+#define M_MESSAGE_RESPONSE_TRIES 	5
+#define M_MESSAGE_I2C_SEND_TRIES 	5
 #define REPORT_I2C
 
-static int send_msg_to_teensy(et_msg *msg, te_msg *response_ptr)
+static int send_msg_to_teensy(m_message *msg, m_response *response_ptr)
 {
 	if (!msg || !response_ptr)
 		return ERR_NULL_PTR;
 	
 	#ifdef REPORT_I2C
-	printf("Sending message %s to Teensy\n", et_msg_code_to_string(msg->type));
+	printf("Sending message %s to Teensy\n", m_message_code_to_string(msg->type));
 	#endif
 	
-	uint8_t buf[ET_MESSAGE_MAX_TRANSFER_LEN];
-	uint8_t response_buf[TE_MESSAGE_MAX_TRANSFER_LEN];
-	te_msg response;
+	uint8_t buf[M_MESSAGE_MAX_TRANSFER_LEN];
+	uint8_t response_buf[M_RESPONSE_MAX_TRANSFER_LEN];
+	m_response response;
 	
-	int len = encode_et_msg(buf, *msg);
+	int len = encode_m_message(buf, *msg);
 	if (len < 2)
 	{
 		printf("Nonsense message\n");
-		return ERR_ET_MSG_INVALID;
+		return ERR_INVALID_MESSAGE;
 	}
 	
 	int succeeded = 0;
 	int response_obtained;
 	int ret_val;
 	
-	for (int send_tries = 0; send_tries < ET_MESSAGE_SEND_TRIES && !succeeded; send_tries++)
+	for (int send_tries = 0; send_tries < M_MESSAGE_SEND_TRIES && !succeeded; send_tries++)
 	{
 		
-		ret_val = i2c_transmit_persistent(TEENSY_ADDR, buf, len, ET_MESSAGE_I2C_SEND_TRIES);
+		ret_val = i2c_transmit_persistent(TEENSY_ADDR, buf, len, M_MESSAGE_I2C_SEND_TRIES);
 		
 		if (ret_val != NO_ERROR)
 		{
 			#ifdef REPORT_I2C
-			printf("i2c_transmit_persistent reports failure. retrying... %d tries left\n", ET_MESSAGE_SEND_TRIES - send_tries);
+			printf("i2c_transmit_persistent reports failure. retrying... %d tries left\n", M_MESSAGE_SEND_TRIES - send_tries);
 			#endif
 			continue;
 		}
 		
 		response_obtained = 0;
-		for (int response_tries = 0; response_tries < ET_MESSAGE_RESPONSE_TRIES && !response_obtained; response_tries++)
+		for (int response_tries = 0; response_tries < M_MESSAGE_RESPONSE_TRIES && !response_obtained; response_tries++)
 		{
 			// Give the Teensy a moment
 			vTaskDelay(pdMS_TO_TICKS(1));
 			
 			// Ask for response
-			ret_val = i2c_receive(TEENSY_ADDR, response_buf, TE_MESSAGE_MAX_TRANSFER_LEN);
+			ret_val = i2c_receive(TEENSY_ADDR, response_buf, M_RESPONSE_MAX_TRANSFER_LEN);
 			
-			if (ret_val == NO_ERROR && response_buf[0] != TE_MESSAGE_WAIT)
+			if (ret_val == NO_ERROR && response_buf[0] != M_RESPONSE_WAIT)
 			{
-				response = decode_te_msg(response_buf, TE_MESSAGE_MAX_TRANSFER_LEN);
+				response = decode_m_response(response_buf, M_RESPONSE_MAX_TRANSFER_LEN);
 				
-				if (response.type != TE_MESSAGE_CRC_FAIL)
+				if (response.type != M_RESPONSE_CRC_FAIL)
 					response_obtained = 1;
 			}
 		}
@@ -156,16 +156,16 @@ static int send_msg_to_teensy(et_msg *msg, te_msg *response_ptr)
 		
 		
 		#ifdef REPORT_I2C
-		printf("Obtained teensy response. Type = %s", te_msg_code_to_string(response.type));
+		printf("Obtained teensy response. Type = %s", m_response_code_to_string(response.type));
 		#ifdef PRINT_RESPONSE_BYTES
 		printf(", bytes: ");
-		for (int i = 0; i < TE_MESSAGE_MAX_DATA_LEN; i++)
+		for (int i = 0; i < M_RESPONSE_MAX_DATA_LEN; i++)
 			printf("0x%02x ", response.data[i]);
 		#endif
 		printf("\n");
 		#endif
 		
-		if (response.type != TE_MESSAGE_REPEAT_MESSAGE)
+		if (response.type != M_RESPONSE_REPEAT_MESSAGE)
 		{
 			succeeded = 1;
 		}
@@ -173,27 +173,27 @@ static int send_msg_to_teensy(et_msg *msg, te_msg *response_ptr)
 	
 	if (succeeded)
 	{
-		memcpy(response_ptr, &response, sizeof(te_msg));
+		memcpy(response_ptr, &response, sizeof(m_response));
 		return NO_ERROR;
 	}
 	
 	return ERR_COMMS_FAIL;
 }
 
-void handle_teensy_response(et_msg msg, te_msg response)
+void handle_teensy_response(m_message msg, m_response response)
 {
 	
 	switch (response.type)
 	{	
-		case TE_MESSAGE_NO_MESSAGE:
+		case M_RESPONSE_NO_MESSAGE:
 			ESP_LOGW(TAG, "No response received from Teensy");
 			break;
 		
-		case TE_MESSAGE_HI:
+		case M_RESPONSE_HI:
 			teensy_online = 1;
 			break;
 		
-		case TE_MESSAGE_INVALID:
+		case M_RESPONSE_INVALID:
 			break;
 			
 		default:
@@ -202,12 +202,12 @@ void handle_teensy_response(et_msg msg, te_msg response)
 	}
 }
 
-static int handle_msg(et_msg *msg)
+static int handle_msg(m_message *msg)
 {
 	if (!msg)
 		return ERR_NULL_PTR;
 	
-	te_msg response;
+	m_response response;
 	
 	int ret_val = send_msg_to_teensy(msg, &response);
 			
@@ -219,8 +219,8 @@ static int handle_msg(et_msg *msg)
 			break;
 			
 		case ERR_COMMS_FAIL:
-			if (msg->retries > ET_MESSAGE_MAX_RETRIES)
-				msg->retries = ET_MESSAGE_MAX_RETRIES;
+			if (msg->retries > M_MESSAGE_MAX_RETRIES)
+				msg->retries = M_MESSAGE_MAX_RETRIES;
 			
 			if (msg->retries > 0)
 			{
@@ -247,17 +247,17 @@ void m_int_comms_task(void *param)
 	int response_received;
 	
 	#ifdef PING_TEENSY
-	hi_msg = create_et_msg_nodata(ET_MESSAGE_HI);
+	hi_msg = create_m_message_nodata(M_MESSAGE_HI);
 	#endif
 	
-	et_msg *msg;
+	m_message *msg;
 	
 	TickType_t last_hi   = xTaskGetTickCount();
 	TickType_t last_wake = xTaskGetTickCount();
 	
 	esp_err_t err;
 	
-	et_msg_pll *retry_next;
+	m_message_pll *retry_next;
 
 	while (true)
 	{
@@ -287,7 +287,7 @@ void m_int_comms_task(void *param)
 			retry_queue = retry_next;
 		}
 		
-		if (teensy_online && xQueueReceive(et_msg_queue, &msg, 0) == pdTRUE)
+		if (teensy_online && xQueueReceive(m_message_queue, &msg, 0) == pdTRUE)
 			handle_msg(msg);
 
 		vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(10));

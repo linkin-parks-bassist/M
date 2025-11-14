@@ -15,7 +15,7 @@ int transformer_init_ui_page(m_transformer *trans, m_ui_page *parent);
 void add_transformer_from_menu(lv_event_t *e);
 
 int request_append_transformer(uint16_t type, m_transformer *local);
-void transformer_receive_id(et_msg message, te_msg response);
+void transformer_receive_id(m_message message, m_response response);
 
 int clone_transformer(m_transformer *dest, m_transformer *src);
 void free_transformer(m_transformer *trans);

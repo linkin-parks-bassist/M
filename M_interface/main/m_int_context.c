@@ -281,7 +281,7 @@ int cxt_remove_profile(m_int_context *cxt, m_profile *profile)
 	{
 		if (current->data == profile)
 		{
-			queue_msg_to_teensy(create_et_msg(ET_MESSAGE_DELETE_PROFILE, "s", profile->id));
+			queue_msg_to_teensy(create_m_message(M_MESSAGE_DELETE_PROFILE, "s", profile->id));
 			
 			if (!prev)
 			{
@@ -352,7 +352,7 @@ int cxt_remove_transformer(m_int_context *cxt, uint16_t pid, uint16_t tid)
 	
 	if (ret_val == NO_ERROR)
 	{
-		queue_msg_to_teensy(create_et_msg(ET_MESSAGE_REMOVE_TRANSFORMER, "ss", pid, tid));
+		queue_msg_to_teensy(create_m_message(M_MESSAGE_REMOVE_TRANSFORMER, "ss", pid, tid));
 	}
 	
 	printf("cxt_remove_transformer done\n");
@@ -372,7 +372,7 @@ int set_active_profile(m_profile *profile)
 	
 	global_cxt.active_profile = profile;
 	
-	return queue_msg_to_teensy(create_et_msg(ET_MESSAGE_SWITCH_PROFILE, "s", profile->id));
+	return queue_msg_to_teensy(create_m_message(M_MESSAGE_SWITCH_PROFILE, "s", profile->id));
 }
 
 int set_working_profile(m_profile *profile)

@@ -215,7 +215,7 @@ void parameter_widget_change_cb_inner(m_parameter_widget *pw)
 	
 	parameter_widget_update_value_label(pw);
 	
-	et_msg msg = create_et_msg(ET_MESSAGE_SET_PARAM_VALUE, "sssf", pw->param->id.profile_id, pw->param->id.transformer_id, pw->param->id.parameter_id, pw->param->value);
+	m_message msg = create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", pw->param->id.profile_id, pw->param->id.transformer_id, pw->param->id.parameter_id, pw->param->value);
 
 	queue_msg_to_teensy(msg);
 	
@@ -349,14 +349,14 @@ int parameter_widget_create_ui_no_callback(m_parameter_widget *pw, lv_obj_t *par
 	return NO_ERROR;
 }
 
-void param_widget_receive(et_msg msg, te_msg response)
+void param_widget_receive(m_message msg, m_response response)
 {
 	m_parameter_widget *pw = (m_parameter_widget*)msg.cb_arg;
 	
 	if (!pw || !pw->param)
 		return;
 	
-	if (response.type != TE_MESSAGE_PARAM_VALUE)
+	if (response.type != M_RESPONSE_PARAM_VALUE)
 	{
 		#ifndef M_SIMULATED
 		ESP_LOGE(TAG, "Weird message (%d) send to parameter widget...\n", response.type);
@@ -397,7 +397,7 @@ int param_widget_request_value(m_parameter_widget *pw)
 	if (!pw)
 		return ERR_NULL_PTR;
 	
-	et_msg msg = create_et_msg(ET_MESSAGE_GET_PARAM_VALUE, "sss", pw->param->id.profile_id, pw->param->id.transformer_id, pw->param->id.parameter_id);
+	m_message msg = create_m_message(M_MESSAGE_GET_PARAM_VALUE, "sss", pw->param->id.profile_id, pw->param->id.transformer_id, pw->param->id.parameter_id);
 	msg.callback = param_widget_receive;
 	msg.cb_arg = pw;
 
@@ -472,7 +472,7 @@ void setting_widget_refresh_cb(lv_event_t *event)
 
 void setting_widget_change_cb_inner(m_setting_widget *sw)
 {	
-	et_msg msg = create_et_msg(ET_MESSAGE_SET_SETTING_VALUE, "sssf", sw->setting->id.profile_id, sw->setting->id.transformer_id, sw->setting->id.setting_id, sw->setting->value);
+	m_message msg = create_m_message(M_MESSAGE_SET_SETTING_VALUE, "sssf", sw->setting->id.profile_id, sw->setting->id.transformer_id, sw->setting->id.setting_id, sw->setting->value);
 
 	queue_msg_to_teensy(msg);
 	
@@ -569,14 +569,14 @@ int setting_widget_create_ui_no_callback(m_setting_widget *sw, lv_obj_t *parent)
 	return NO_ERROR;
 }
 
-void setting_widget_receive(et_msg msg, te_msg response)
+void setting_widget_receive(m_message msg, m_response response)
 {
 	m_setting_widget *sw = (m_setting_widget*)msg.cb_arg;
 	
 	if (!sw || !sw->setting)
 		return;
 	
-	if (response.type != TE_MESSAGE_SETTING_VALUE)
+	if (response.type != M_RESPONSE_SETTING_VALUE)
 	{
 		#ifndef M_SIMULATED
 		ESP_LOGE(TAG, "Weird message (%d) send to setting widget...\n", response.type);
@@ -617,7 +617,7 @@ int setting_widget_request_value(m_setting_widget *sw)
 	if (!sw)
 		return ERR_NULL_PTR;
 	
-	et_msg msg = create_et_msg(ET_MESSAGE_GET_SETTING_VALUE, "sss", sw->setting->id.profile_id, sw->setting->id.transformer_id, sw->setting->id.setting_id);
+	m_message msg = create_m_message(M_MESSAGE_GET_SETTING_VALUE, "sss", sw->setting->id.profile_id, sw->setting->id.transformer_id, sw->setting->id.setting_id);
 	msg.callback = setting_widget_receive;
 	msg.cb_arg = sw;
 

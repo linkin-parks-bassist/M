@@ -112,7 +112,7 @@ void band_control_value_changed_cb(lv_event_t *e)
 	
 	refresh_transformer_settings_page(page);
 	
-	et_msg msg = create_et_msg(ET_MESSAGE_SET_SETTING_VALUE, "ssss", setting->id.profile_id, setting->id.transformer_id, setting->id.setting_id, value);
+	m_message msg = create_m_message(M_MESSAGE_SET_SETTING_VALUE, "ssss", setting->id.profile_id, setting->id.transformer_id, setting->id.setting_id, value);
 	
 	queue_msg_to_teensy(msg);
 }

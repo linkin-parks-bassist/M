@@ -29,80 +29,80 @@ uint8_t crc_8(const uint8_t *data, int len)
     return crc;
 }
 
-int et_message_data_length(et_msg msg)
+int et_message_data_length(m_message msg)
 {
 	switch (msg.type)
 	{
-		case ET_MESSAGE_HI:
+		case M_MESSAGE_HI:
 			return 0;
 
-		case ET_MESSAGE_RESET:
+		case M_MESSAGE_RESET:
 			return 0;
 
-		case ET_MESSAGE_REBOOT:
+		case M_MESSAGE_REBOOT:
 			return 0;
 		
-		case ET_MESSAGE_CREATE_PROFILE:
+		case M_MESSAGE_CREATE_PROFILE:
 			return 0;
 		
-		case ET_MESSAGE_APPEND_TRANSFORMER:
+		case M_MESSAGE_APPEND_TRANSFORMER:
 			return 2 * sizeof(uint16_t);
 		
-		case ET_MESSAGE_MOVE_TRANSFORMER:
+		case M_MESSAGE_MOVE_TRANSFORMER:
 			return 2 * sizeof(uint16_t);
 		
-		case ET_MESSAGE_REMOVE_TRANSFORMER:
+		case M_MESSAGE_REMOVE_TRANSFORMER:
 			return 2 * sizeof(uint16_t);
 
-		case ET_MESSAGE_GET_N_PROFILES:
+		case M_MESSAGE_GET_N_PROFILES:
 			return 0;
 
-		case ET_MESSAGE_GET_N_TRANSFORMERS:
+		case M_MESSAGE_GET_N_TRANSFORMERS:
 			return 1 * sizeof(uint16_t);
 		
-		case ET_MESSAGE_GET_TRANSFORMER_ID:
+		case M_MESSAGE_GET_TRANSFORMER_ID:
 			return 2 * sizeof(uint16_t);
 			
-		case ET_MESSAGE_GET_TRANSFORMER_TYPE:
+		case M_MESSAGE_GET_TRANSFORMER_TYPE:
 			return 2 * sizeof(uint16_t);
 			
-		case ET_MESSAGE_GET_N_PARAMETERS:
+		case M_MESSAGE_GET_N_PARAMETERS:
 			return 2 * sizeof(uint16_t);
 
-		case ET_MESSAGE_GET_PARAM_VALUE:
+		case M_MESSAGE_GET_PARAM_VALUE:
 			return 3 * sizeof(uint16_t);
 			
-		case ET_MESSAGE_SET_PARAM_VALUE: 
+		case M_MESSAGE_SET_PARAM_VALUE: 
 			return 3 * sizeof(uint16_t) + sizeof(float);
 
-		case ET_MESSAGE_GET_N_SETTINGS: 
+		case M_MESSAGE_GET_N_SETTINGS: 
 			return 2 * sizeof(uint16_t);
 
-		case ET_MESSAGE_GET_SETTING_VALUE: 
+		case M_MESSAGE_GET_SETTING_VALUE: 
 			return 3 * sizeof(uint16_t);
 			
-		case ET_MESSAGE_SET_SETTING_VALUE: 
+		case M_MESSAGE_SET_SETTING_VALUE: 
 			return 3 * sizeof(uint16_t) + sizeof(int16_t);
 
-		case ET_MESSAGE_STRING_CONTINUE:
+		case M_MESSAGE_STRING_CONTINUE:
 			return 0;
 			
-		case ET_MESSAGE_STRING_CONTINUING:
+		case M_MESSAGE_STRING_CONTINUING:
 			return MESSAGE_LEN_VARIABLE;
 		
-		case ET_MESSAGE_SWITCH_PROFILE:
+		case M_MESSAGE_SWITCH_PROFILE:
 			return 1 * sizeof(uint16_t);
 		
-		case ET_MESSAGE_DELETE_PROFILE:
+		case M_MESSAGE_DELETE_PROFILE:
 			return 1 * sizeof(uint16_t);
 		
-		case ET_MESSAGE_REPEAT_MESSAGE:
+		case M_MESSAGE_REPEAT_MESSAGE:
 			return 0;
 		
-		case ET_MESSAGE_ENTER_TUNER_MODE:
+		case M_MESSAGE_ENTER_TUNER_MODE:
 			return 0;
 		
-		case ET_MESSAGE_EXIT_TUNER_MODE:
+		case M_MESSAGE_EXIT_TUNER_MODE:
 			return 0;
 		
 		default:
@@ -116,7 +116,7 @@ int et_message_default_retries(uint16_t type)
 }
 
 // Returns the transfer length
-int encode_et_msg(uint8_t *buf, et_msg msg)
+int encode_m_message(uint8_t *buf, m_message msg)
 {
 	if (!buf)
 	{
@@ -128,43 +128,43 @@ int encode_et_msg(uint8_t *buf, et_msg msg)
 	int len = et_message_data_length(msg);
 	
 	// Should not be possible. Throw a fit if it happens
-	if (len > ET_MESSAGE_MAX_DATA_LEN)
+	if (len > M_MESSAGE_MAX_DATA_LEN)
 	{
-		buf[0] = ET_MESSAGE_INVALID;
+		buf[0] = M_MESSAGE_INVALID;
 		return -1;
 	}
 	
 	if (len == MESSAGE_LEN_VARIABLE)
-		len = ET_MESSAGE_MAX_DATA_LEN;
+		len = M_MESSAGE_MAX_DATA_LEN;
 	
 	int i;
-	for (i = 1; i < len + 1 && i < ET_MESSAGE_MAX_TRANSFER_LEN; i++)
+	for (i = 1; i < len + 1 && i < M_MESSAGE_MAX_TRANSFER_LEN; i++)
 		buf[i] = msg.data[i - 1];
 	
 	// Insert the crc code after the message
 	buf[i++] = crc_8(buf, len + 1);
 	
 	// Pad the rest of the message data buffer with 0xFF
-	while (i < ET_MESSAGE_MAX_TRANSFER_LEN)
+	while (i < M_MESSAGE_MAX_TRANSFER_LEN)
 		buf[i++] = 0xFF;
 	
 	return len + 2;
 }
 
-et_msg decode_et_msg(uint8_t *bytes, unsigned int len)
+m_message decode_m_message(uint8_t *bytes, unsigned int len)
 {
-	et_msg msg;
-	msg.type = TE_MESSAGE_INVALID;
+	m_message msg;
+	msg.type = M_RESPONSE_INVALID;
 	
 	// Check buffer and length bounds. Any transfer should
 	// include at least a type and crc byte, so len < 2
 	// means nonsense
-	if (!bytes || len < 2 || len > ET_MESSAGE_MAX_TRANSFER_LEN)
+	if (!bytes || len < 2 || len > M_MESSAGE_MAX_TRANSFER_LEN)
 	{
 		return msg;
 	}
 	
-	if (!valid_et_msg_type(bytes[0]))
+	if (!valid_m_message_type(bytes[0]))
 	{
 		return msg;
 	}
@@ -174,7 +174,7 @@ et_msg decode_et_msg(uint8_t *bytes, unsigned int len)
 	
 	if (received_crc != computed_crc)
 	{
-		msg.type = ET_MESSAGE_CRC_FAIL;
+		msg.type = M_MESSAGE_CRC_FAIL;
 		return msg;
 	}
 	
@@ -186,7 +186,7 @@ et_msg decode_et_msg(uint8_t *bytes, unsigned int len)
 	int data_len = len - 2;
 	
 	int i;
-	for (i = 0; i < data_len && i < ET_MESSAGE_MAX_DATA_LEN; i++)
+	for (i = 0; i < data_len && i < M_MESSAGE_MAX_DATA_LEN; i++)
 		msg.data[i] = bytes[i + 1];
 	
 	// Pad the rest of the buffer with 0xFF
@@ -197,7 +197,7 @@ et_msg decode_et_msg(uint8_t *bytes, unsigned int len)
 	// debug if it happens, plus less likely
 	// to be interpreted as a valid but unintended
 	// command
-	while (i < ET_MESSAGE_MAX_DATA_LEN)
+	while (i < M_MESSAGE_MAX_DATA_LEN)
 		msg.data[i++] = 0xFF;
 	
 	msg.callback = NULL;
@@ -207,12 +207,12 @@ et_msg decode_et_msg(uint8_t *bytes, unsigned int len)
 }
 
 
-et_msg create_et_msg_nodata(uint16_t type)
+m_message create_m_message_nodata(uint16_t type)
 {
-	et_msg msg;
+	m_message msg;
 	msg.type = type;
 	
-	for (int i = 0; i < ET_MESSAGE_MAX_DATA_LEN; i++)
+	for (int i = 0; i < M_MESSAGE_MAX_DATA_LEN; i++)
 		msg.data[i] = 0xFF;
 	
 	msg.callback = NULL;
@@ -223,9 +223,9 @@ et_msg create_et_msg_nodata(uint16_t type)
 	return msg;
 }
 
-et_msg create_et_msg(uint16_t type, const char *fmt, ...)
+m_message create_m_message(uint16_t type, const char *fmt, ...)
 {
-	et_msg msg;
+	m_message msg;
 	
 	uint8_t  b;
 	uint16_t s;
@@ -238,7 +238,7 @@ et_msg create_et_msg(uint16_t type, const char *fmt, ...)
 	
 	msg.type = type;
 	
-	while (*fmt && index < ET_MESSAGE_MAX_DATA_LEN)
+	while (*fmt && index < M_MESSAGE_MAX_DATA_LEN)
 	{
 		switch (*fmt++)
 		{
@@ -263,13 +263,13 @@ et_msg create_et_msg(uint16_t type, const char *fmt, ...)
 				break;
 			
 			default:
-				msg.type = ET_MESSAGE_INVALID;
+				msg.type = M_MESSAGE_INVALID;
 				return msg;
 		}
 	}
 	va_end(args);
 	
-	while (index < ET_MESSAGE_MAX_DATA_LEN)
+	while (index < M_MESSAGE_MAX_DATA_LEN)
 		msg.data[index++] = 0xFF;
 	
 	msg.callback = NULL;
@@ -280,177 +280,177 @@ et_msg create_et_msg(uint16_t type, const char *fmt, ...)
 	return msg;
 }
 
-int valid_et_msg_type(uint8_t type)
+int valid_m_message_type(uint8_t type)
 {
-	return (ET_MESSAGE_HI <= type && type <= ET_MESSAGE_TYPE_MAX);
+	return (M_MESSAGE_HI <= type && type <= M_MESSAGE_TYPE_MAX);
 }
 
 
-const char *et_msg_code_to_string(uint16_t code)
+const char *m_message_code_to_string(uint16_t code)
 {
 	switch (code)
 	{
-		case ET_MESSAGE_INVALID:
-			return "ET_MESSAGE_INVALID";
-		case ET_MESSAGE_HI:
-			return "ET_MESSAGE_HI";
-		case ET_MESSAGE_RESET:
-			return "ET_MESSAGE_RESET";
-		case ET_MESSAGE_REBOOT:
-			return "ET_MESSAGE_REBOOT";
-		case ET_MESSAGE_CREATE_PROFILE:
-			return "ET_MESSAGE_CREATE_PROFILE";
-		case ET_MESSAGE_APPEND_TRANSFORMER:
-			return "ET_MESSAGE_APPEND_TRANSFORMER";
-		case ET_MESSAGE_MOVE_TRANSFORMER:
-			return "ET_MESSAGE_MOVE_TRANSFORMER";
-		case ET_MESSAGE_REMOVE_TRANSFORMER:
-			return "ET_MESSAGE_REMOVE_TRANSFORMER";
-		case ET_MESSAGE_GET_N_PROFILES:
-			return "ET_MESSAGE_GET_N_PROFILES";
-		case ET_MESSAGE_GET_N_TRANSFORMERS:
-			return "ET_MESSAGE_GET_N_TRANSFORMERS";
-		case ET_MESSAGE_GET_TRANSFORMER_ID:
-			return "ET_MESSAGE_GET_TRANSFORMER_ID";
-		case ET_MESSAGE_GET_TRANSFORMER_TYPE:
-			return "ET_MESSAGE_GET_TRANSFORMER_TYPE";
-		case ET_MESSAGE_GET_N_PARAMETERS:
-			return "ET_MESSAGE_GET_N_PARAMETERS";
-		case ET_MESSAGE_GET_PARAM_VALUE:
-			return "ET_MESSAGE_GET_PARAM_VALUE";
-		case ET_MESSAGE_SET_PARAM_VALUE:
-			return "ET_MESSAGE_SET_PARAM_VALUE";
-		case ET_MESSAGE_GET_N_SETTINGS:
-			return "ET_MESSAGE_GET_N_SETTINGS";
-		case ET_MESSAGE_GET_SETTING_VALUE:
-			return "ET_MESSAGE_GET_SETTING_VALUE";
-		case ET_MESSAGE_SET_SETTING_VALUE:
-			return "ET_MESSAGE_SET_SETTING_VALUE";
-		case ET_MESSAGE_STRING_CONTINUE:
-			return "ET_MESSAGE_STRING_CONTINUE";
-		case ET_MESSAGE_STRING_CONTINUING:
-			return "ET_MESSAGE_STRING_CONTINUING";
-		case ET_MESSAGE_SWITCH_PROFILE:
-			return "ET_MESSAGE_SWITCH_PROFILE";
-		case ET_MESSAGE_DELETE_PROFILE:
-			return "ET_MESSAGE_DELETE_PROFILE";
-		case ET_MESSAGE_REPEAT_MESSAGE:
-			return "ET_MESSAGE_REPEAT_MESSAGE";
+		case M_MESSAGE_INVALID:
+			return "M_MESSAGE_INVALID";
+		case M_MESSAGE_HI:
+			return "M_MESSAGE_HI";
+		case M_MESSAGE_RESET:
+			return "M_MESSAGE_RESET";
+		case M_MESSAGE_REBOOT:
+			return "M_MESSAGE_REBOOT";
+		case M_MESSAGE_CREATE_PROFILE:
+			return "M_MESSAGE_CREATE_PROFILE";
+		case M_MESSAGE_APPEND_TRANSFORMER:
+			return "M_MESSAGE_APPEND_TRANSFORMER";
+		case M_MESSAGE_MOVE_TRANSFORMER:
+			return "M_MESSAGE_MOVE_TRANSFORMER";
+		case M_MESSAGE_REMOVE_TRANSFORMER:
+			return "M_MESSAGE_REMOVE_TRANSFORMER";
+		case M_MESSAGE_GET_N_PROFILES:
+			return "M_MESSAGE_GET_N_PROFILES";
+		case M_MESSAGE_GET_N_TRANSFORMERS:
+			return "M_MESSAGE_GET_N_TRANSFORMERS";
+		case M_MESSAGE_GET_TRANSFORMER_ID:
+			return "M_MESSAGE_GET_TRANSFORMER_ID";
+		case M_MESSAGE_GET_TRANSFORMER_TYPE:
+			return "M_MESSAGE_GET_TRANSFORMER_TYPE";
+		case M_MESSAGE_GET_N_PARAMETERS:
+			return "M_MESSAGE_GET_N_PARAMETERS";
+		case M_MESSAGE_GET_PARAM_VALUE:
+			return "M_MESSAGE_GET_PARAM_VALUE";
+		case M_MESSAGE_SET_PARAM_VALUE:
+			return "M_MESSAGE_SET_PARAM_VALUE";
+		case M_MESSAGE_GET_N_SETTINGS:
+			return "M_MESSAGE_GET_N_SETTINGS";
+		case M_MESSAGE_GET_SETTING_VALUE:
+			return "M_MESSAGE_GET_SETTING_VALUE";
+		case M_MESSAGE_SET_SETTING_VALUE:
+			return "M_MESSAGE_SET_SETTING_VALUE";
+		case M_MESSAGE_STRING_CONTINUE:
+			return "M_MESSAGE_STRING_CONTINUE";
+		case M_MESSAGE_STRING_CONTINUING:
+			return "M_MESSAGE_STRING_CONTINUING";
+		case M_MESSAGE_SWITCH_PROFILE:
+			return "M_MESSAGE_SWITCH_PROFILE";
+		case M_MESSAGE_DELETE_PROFILE:
+			return "M_MESSAGE_DELETE_PROFILE";
+		case M_MESSAGE_REPEAT_MESSAGE:
+			return "M_MESSAGE_REPEAT_MESSAGE";
 		default:
 			return "UNKNOWN MESSAGE CODE";
 	}
 }
 
-const char *te_msg_code_to_string(uint16_t code)
+const char *m_response_code_to_string(uint16_t code)
 {
 	switch (code)
 	{
 		
-		case TE_MESSAGE_INVALID:
-			return "TE_MESSAGE_INVALID";
-		case TE_MESSAGE_WAIT:
-			return "TE_MESSAGE_WAIT";
-		case TE_MESSAGE_HI:
-			return "TE_MESSAGE_HI";
-		case TE_MESSAGE_BAD_MESSAGE:
-			return "TE_MESSAGE_BAD_MESSAGE";
-		case TE_MESSAGE_BAD_REQUEST:
-			return "TE_MESSAGE_BAD_REQUEST";
-		case TE_MESSAGE_TRY_AGAIN:
-			return "TE_MESSAGE_TRY_AGAIN";
-		case TE_MESSAGE_OK:
-			return "TE_MESSAGE_OK";
-		case TE_MESSAGE_ERROR:
-			return "TE_MESSAGE_ERROR";
-		case TE_MESSAGE_PROFILE_ID:
-			return "TE_MESSAGE_PROFILE_ID";
-		case TE_MESSAGE_TRANSFORMER_ID:
-			return "TE_MESSAGE_TRANSFORMER_ID";
-		case TE_MESSAGE_N_PROFILES:
-			return "TE_MESSAGE_N_PROFILES";
-		case TE_MESSAGE_N_TRANSFORMERS:
-			return "TE_MESSAGE_N_TRANSFORMERS";
-		case TE_MESSAGE_TRANSFORMER_TYPE:
-			return "TE_MESSAGE_TRANSFORMER_TYPE";
-		case TE_MESSAGE_N_PARAMETERS:
-			return "TE_MESSAGE_N_PARAMETERS";
-		case TE_MESSAGE_PARAM_VALUE:
-			return "TE_MESSAGE_PARAM_VALUE";
-		case TE_MESSAGE_N_SETTINGS:
-			return "TE_MESSAGE_N_SETTINGS";
-		case TE_MESSAGE_SETTING_VALUE:
-			return "TE_MESSAGE_SETTING_VALUE";
-		case TE_MESSAGE_STRING_CONTINUING:
-			return "TE_MESSAGE_STRING_CONTINUING";
-		case TE_MESSAGE_START_OVER:
-			return "TE_MESSAGE_START_OVER";
-		case TE_MESSAGE_SWITCHING_PROFILE:
-			return "TE_MESSAGE_SWITCHING_PROFILE";
-		case TE_MESSAGE_DELETED_PROFILE:
-			return "TE_MESSAGE_DELETED_PROFILE";
-		case TE_MESSAGE_REPEAT_MESSAGE:
-			return "TE_MESSAGE_REPEAT_MESSAGE";
+		case M_RESPONSE_INVALID:
+			return "M_RESPONSE_INVALID";
+		case M_RESPONSE_WAIT:
+			return "M_RESPONSE_WAIT";
+		case M_RESPONSE_HI:
+			return "M_RESPONSE_HI";
+		case M_RESPONSE_BAD_MESSAGE:
+			return "M_RESPONSE_BAD_MESSAGE";
+		case M_RESPONSE_BAD_REQUEST:
+			return "M_RESPONSE_BAD_REQUEST";
+		case M_RESPONSE_TRY_AGAIN:
+			return "M_RESPONSE_TRY_AGAIN";
+		case M_RESPONSE_OK:
+			return "M_RESPONSE_OK";
+		case M_RESPONSE_ERROR:
+			return "M_RESPONSE_ERROR";
+		case M_RESPONSE_PROFILE_ID:
+			return "M_RESPONSE_PROFILE_ID";
+		case M_RESPONSE_TRANSFORMER_ID:
+			return "M_RESPONSE_TRANSFORMER_ID";
+		case M_RESPONSE_N_PROFILES:
+			return "M_RESPONSE_N_PROFILES";
+		case M_RESPONSE_N_TRANSFORMERS:
+			return "M_RESPONSE_N_TRANSFORMERS";
+		case M_RESPONSE_TRANSFORMER_TYPE:
+			return "M_RESPONSE_TRANSFORMER_TYPE";
+		case M_RESPONSE_N_PARAMETERS:
+			return "M_RESPONSE_N_PARAMETERS";
+		case M_RESPONSE_PARAM_VALUE:
+			return "M_RESPONSE_PARAM_VALUE";
+		case M_RESPONSE_N_SETTINGS:
+			return "M_RESPONSE_N_SETTINGS";
+		case M_RESPONSE_SETTING_VALUE:
+			return "M_RESPONSE_SETTING_VALUE";
+		case M_RESPONSE_STRING_CONTINUING:
+			return "M_RESPONSE_STRING_CONTINUING";
+		case M_RESPONSE_START_OVER:
+			return "M_RESPONSE_START_OVER";
+		case M_RESPONSE_SWITCHING_PROFILE:
+			return "M_RESPONSE_SWITCHING_PROFILE";
+		case M_RESPONSE_DELETED_PROFILE:
+			return "M_RESPONSE_DELETED_PROFILE";
+		case M_RESPONSE_REPEAT_MESSAGE:
+			return "M_RESPONSE_REPEAT_MESSAGE";
 		default:
 			return "UNKNOWN MESSAGE CODE";
 	}
 }
 
-int te_message_data_length(te_msg msg)
+int te_message_data_length(m_response msg)
 {
 	switch (msg.type)
 	{
-		case TE_MESSAGE_HI:
+		case M_RESPONSE_HI:
 			return sizeof(uint16_t);
 		
-		case TE_MESSAGE_BAD_MESSAGE:
+		case M_RESPONSE_BAD_MESSAGE:
 			return 0;
 
-		case TE_MESSAGE_BAD_REQUEST:
+		case M_RESPONSE_BAD_REQUEST:
 			return 0;
 
-		case TE_MESSAGE_TRY_AGAIN:
+		case M_RESPONSE_TRY_AGAIN:
 			return 0;
 
-		case TE_MESSAGE_OK:
+		case M_RESPONSE_OK:
 			return 0;
 
-		case TE_MESSAGE_ERROR:
+		case M_RESPONSE_ERROR:
 			return sizeof(int);
 
-		case TE_MESSAGE_PROFILE_ID:
+		case M_RESPONSE_PROFILE_ID:
 			return sizeof(uint16_t);
 
-		case TE_MESSAGE_TRANSFORMER_ID:
+		case M_RESPONSE_TRANSFORMER_ID:
 			return 2 * sizeof(uint16_t);
 
-		case TE_MESSAGE_N_PROFILES:
+		case M_RESPONSE_N_PROFILES:
 			return 1 * sizeof(uint16_t);
 			
-		case TE_MESSAGE_N_TRANSFORMERS:
+		case M_RESPONSE_N_TRANSFORMERS:
 			return 2 * sizeof(uint16_t);
 
-		case TE_MESSAGE_TRANSFORMER_TYPE:
+		case M_RESPONSE_TRANSFORMER_TYPE:
 			return 3 * sizeof(uint16_t);
 
-		case TE_MESSAGE_N_PARAMETERS:
+		case M_RESPONSE_N_PARAMETERS:
 			return 3 * sizeof(uint16_t);
 
-		case TE_MESSAGE_PARAM_VALUE:
+		case M_RESPONSE_PARAM_VALUE:
 			return 3 * sizeof(uint16_t) + sizeof(float);
 		
-		case TE_MESSAGE_STRING_CONTINUING:
+		case M_RESPONSE_STRING_CONTINUING:
 			return MESSAGE_LEN_VARIABLE;
 
-		case TE_MESSAGE_START_OVER:
+		case M_RESPONSE_START_OVER:
 			return 0;
 
-		case TE_MESSAGE_SWITCHING_PROFILE:
+		case M_RESPONSE_SWITCHING_PROFILE:
 			return 1 * sizeof(uint16_t);
 
-		case TE_MESSAGE_DELETED_PROFILE:
+		case M_RESPONSE_DELETED_PROFILE:
 			return 1 * sizeof(uint16_t);
 		
-		case TE_MESSAGE_REPEAT_MESSAGE:
+		case M_RESPONSE_REPEAT_MESSAGE:
 			return 0;
 
 		default:
@@ -459,7 +459,7 @@ int te_message_data_length(te_msg msg)
 }
 
 // Returns the transfer length
-int encode_te_msg(uint8_t *buf, te_msg msg)
+int encode_m_response(uint8_t *buf, m_response msg)
 {
 	if (!buf)
 	{
@@ -471,42 +471,42 @@ int encode_te_msg(uint8_t *buf, te_msg msg)
 	int len = te_message_data_length(msg);
 	
 	// Should not be possible. Throw a fit if it happens
-	if (len > TE_MESSAGE_MAX_DATA_LEN)
+	if (len > M_RESPONSE_MAX_DATA_LEN)
 	{
-		buf[0] = TE_MESSAGE_INVALID;
+		buf[0] = M_RESPONSE_INVALID;
 		return -1;
 	}
 	
 	if (len == MESSAGE_LEN_VARIABLE)
-		len = TE_MESSAGE_MAX_DATA_LEN;
+		len = M_RESPONSE_MAX_DATA_LEN;
 	
 	int i;
-	for (i = 1; i < len + 1 && i < TE_MESSAGE_MAX_TRANSFER_LEN - 1; i++)
+	for (i = 1; i < len + 1 && i < M_RESPONSE_MAX_TRANSFER_LEN - 1; i++)
 		buf[i] = msg.data[i - 1];
 	
 	// Pad the rest of the message data buffer with 0xFF
-	while (i < TE_MESSAGE_MAX_TRANSFER_LEN - 1)
+	while (i < M_RESPONSE_MAX_TRANSFER_LEN - 1)
 		buf[i++] = 0xFF;
 	
 	// Insert the crc code after the message plus padding
-	buf[TE_MESSAGE_MAX_TRANSFER_LEN - 1] = crc_8(buf, TE_MESSAGE_MAX_TRANSFER_LEN - 1);
+	buf[M_RESPONSE_MAX_TRANSFER_LEN - 1] = crc_8(buf, M_RESPONSE_MAX_TRANSFER_LEN - 1);
 	return len + 2;
 }
 
-te_msg decode_te_msg(uint8_t *bytes, unsigned int len)
+m_response decode_m_response(uint8_t *bytes, unsigned int len)
 {
-	te_msg msg;
-	msg.type = TE_MESSAGE_INVALID;
+	m_response msg;
+	msg.type = M_RESPONSE_INVALID;
 	
 	// Check buffer and length bounds. Any transfer should
 	// include at least a type and crc byte, so len < 2
 	// means nonsense
-	if (!bytes || len < 2 || len > TE_MESSAGE_MAX_TRANSFER_LEN)
+	if (!bytes || len < 2 || len > M_RESPONSE_MAX_TRANSFER_LEN)
 	{
 		return msg;
 	}
 	
-	if (!valid_te_msg_type(bytes[0]))
+	if (!valid_m_response_type(bytes[0]))
 	{
 		return msg;
 	}
@@ -516,7 +516,7 @@ te_msg decode_te_msg(uint8_t *bytes, unsigned int len)
 	
 	if (received_crc != computed_crc)
 	{
-		msg.type = TE_MESSAGE_CRC_FAIL;
+		msg.type = M_RESPONSE_CRC_FAIL;
 		return msg;
 	}
 	
@@ -528,7 +528,7 @@ te_msg decode_te_msg(uint8_t *bytes, unsigned int len)
 	int data_len = len - 2;
 	
 	int i;
-	for (i = 0; i < data_len && i < TE_MESSAGE_MAX_DATA_LEN; i++)
+	for (i = 0; i < data_len && i < M_RESPONSE_MAX_DATA_LEN; i++)
 		msg.data[i] = bytes[i + 1];
 	
 	// Pad the rest of the buffer with 0xFF
@@ -539,20 +539,20 @@ te_msg decode_te_msg(uint8_t *bytes, unsigned int len)
 	// debug if it happens, plus less likely
 	// to be interpreted as a valid but unintended
 	// command
-	while (i < TE_MESSAGE_MAX_DATA_LEN)
+	while (i < M_RESPONSE_MAX_DATA_LEN)
 		msg.data[i++] = 0xFF;
 	
 	return msg;
 }
 
-int valid_te_msg_type(uint8_t type)
+int valid_m_response_type(uint8_t type)
 {
-	return (TE_MESSAGE_WAIT <= type && type <= TE_MESSAGE_TYPE_MAX);
+	return (M_RESPONSE_WAIT <= type && type <= M_RESPONSE_TYPE_MAX);
 }
 
-te_msg create_te_msg(uint16_t type, const char *fmt, ...)
+m_response create_m_response(uint16_t type, const char *fmt, ...)
 {
-	te_msg msg;
+	m_response msg;
 	
 	uint8_t  b;
 	uint16_t s;
@@ -565,7 +565,7 @@ te_msg create_te_msg(uint16_t type, const char *fmt, ...)
 	
 	msg.type = type;
 	
-	while (*fmt && index < TE_MESSAGE_MAX_DATA_LEN)
+	while (*fmt && index < M_RESPONSE_MAX_DATA_LEN)
 	{
 		switch (*fmt++)
 		{
@@ -590,35 +590,35 @@ te_msg create_te_msg(uint16_t type, const char *fmt, ...)
 				break;
 			
 			default:
-				msg.type = ET_MESSAGE_INVALID;
+				msg.type = M_MESSAGE_INVALID;
 				break;
 		}
 	}
 	va_end(args);
 	
-	while (index < TE_MESSAGE_MAX_DATA_LEN)
+	while (index < M_RESPONSE_MAX_DATA_LEN)
 		msg.data[index++] = 0xFF;
 	
 	return msg;
 }
 
-te_msg create_te_msg_nodata(uint16_t type)
+m_response create_m_response_nodata(uint16_t type)
 {
-	te_msg msg;
+	m_response msg;
 	msg.type = type;
 	return msg;
 }
 
-te_msg create_te_msg_ok()
+m_response create_m_response_ok()
 {
-	return create_te_msg(TE_MESSAGE_OK, "");
+	return create_m_response(M_RESPONSE_OK, "");
 }
 
-te_msg create_te_msg_parameter_value(uint16_t pid, uint16_t tid, uint16_t ppid, float val)
+m_response create_m_response_parameter_value(uint16_t pid, uint16_t tid, uint16_t ppid, float val)
 {
-	te_msg msg;
+	m_response msg;
 	
-	msg.type = TE_MESSAGE_PARAM_VALUE;
+	msg.type = M_RESPONSE_PARAM_VALUE;
 	memcpy(&msg.data[0], &pid, 	 	  sizeof(uint16_t));
 	memcpy(&msg.data[2], &tid, 		  sizeof(uint16_t));
 	memcpy(&msg.data[4], &ppid,   	  sizeof(uint16_t));
@@ -627,33 +627,33 @@ te_msg create_te_msg_parameter_value(uint16_t pid, uint16_t tid, uint16_t ppid, 
 	return msg;
 }
 
-te_msg create_te_msg_error(uint16_t error_code)
+m_response create_m_response_error(uint16_t error_code)
 {
-	te_msg msg;
+	m_response msg;
 	
-	msg.type = TE_MESSAGE_ERROR;
+	msg.type = M_RESPONSE_ERROR;
 	
 	memcpy(msg.data, &error_code, sizeof(uint16_t));
 	
 	return msg;
 }
 
-te_msg create_te_msg_profile_id(uint16_t pid)
+m_response create_m_response_profile_id(uint16_t pid)
 {
-	te_msg msg;
+	m_response msg;
 	
-	msg.type = TE_MESSAGE_PROFILE_ID;
+	msg.type = M_RESPONSE_PROFILE_ID;
 	
 	memcpy(&msg.data[0], &pid, sizeof(uint16_t));
 	
 	return msg;
 }
 
-te_msg create_te_msg_transformer_id(uint16_t pid, uint16_t tid)
+m_response create_m_response_transformer_id(uint16_t pid, uint16_t tid)
 {
-	te_msg msg;
+	m_response msg;
 	
-	msg.type = TE_MESSAGE_TRANSFORMER_ID;
+	msg.type = M_RESPONSE_TRANSFORMER_ID;
 	
 	memcpy(&msg.data[0], &pid, sizeof(uint16_t));
 	memcpy(&msg.data[2], &tid, sizeof(uint16_t));

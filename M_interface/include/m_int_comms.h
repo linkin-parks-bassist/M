@@ -7,14 +7,14 @@
 //#define PRINT_RESPONSE_BYTES
 #define PING_TEENSY
 
-DECLARE_LINKED_PTR_LIST(et_msg);
+DECLARE_LINKED_PTR_LIST(m_message);
 
-extern QueueHandle_t et_msg_queue;
+extern QueueHandle_t m_message_queue;
 
 int init_m_int_msg_queue();
 int begin_m_int_comms();
 
-int queue_msg_to_teensy(et_msg msg);
+int queue_msg_to_teensy(m_message msg);
 
 int send_parameter_change  (m_parameter_id id, float new_value);
 int request_parameter_value(m_parameter_id id, void *widget);

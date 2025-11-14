@@ -114,7 +114,7 @@ int init_amplifier(m_transformer *trans)
 	setting->widget_type = SETTING_WIDGET_DROPDOWN;
 	setting->page = TRANSFORMER_SETTING_PAGE_SETTINGS;
 	setting->n_options = 2;
-	setting->options = malloc(sizeof(m_setting) * 2);
+	setting->options = m_alloc(sizeof(m_setting) * 2);
 	if (!setting->options) return ERR_ALLOC_FAIL;
 
 	setting->options[0].value = 0;
@@ -562,7 +562,7 @@ int init_flanger(m_transformer *trans)
 	setting->widget_type = SETTING_WIDGET_DROPDOWN;
 	setting->page = TRANSFORMER_SETTING_PAGE_MAIN;
 	setting->n_options = 5;
-	setting->options = malloc(sizeof(m_setting) * 5);
+	setting->options = m_alloc(sizeof(m_setting) * 5);
 	if (!setting->options) return ERR_ALLOC_FAIL;
 
 	setting->options[0].value = 1;

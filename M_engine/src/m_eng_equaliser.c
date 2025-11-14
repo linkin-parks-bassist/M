@@ -11,9 +11,9 @@ int init_3_band_eq_str(m_eng_3_band_eq_str *str)
 	
 	str->control_mode = M_ENG_EQ_CONTROL_DB_GAIN;
 	
-	str->filters[0].cutoff_frequency.value = 250.0;
+	str->filters[0].cutoff_frequency.value = 400.0;
 	str->filters[0].cutoff_frequency.updated = 1;
-	str->filters[1].cutoff_frequency.value = 4000.0;
+	str->filters[1].cutoff_frequency.value = 1750.0;
 	str->filters[1].cutoff_frequency.updated = 1;
 	
 	init_lr_low_pass_filter_str(&str->filters[0]);

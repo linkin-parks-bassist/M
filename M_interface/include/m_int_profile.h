@@ -25,7 +25,7 @@ void free_profile(m_profile *profile);
 int m_profile_set_active(m_profile *profile);
 int m_profile_set_inactive(m_profile *profile);
 
-void new_profile_receive_id(et_msg msg, te_msg response);
+void new_profile_receive_id(m_message msg, m_response response);
 
 struct m_int_menu_item;
 

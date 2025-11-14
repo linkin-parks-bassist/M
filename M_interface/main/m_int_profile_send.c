@@ -4,7 +4,7 @@ IMPLEMENT_LINKED_PTR_LIST(m_int_trans_send_job);
 
 static const char *TAG = "m_profile_send.c";
 
-void transformer_job_recieve_parameter_value_response(et_msg msg, te_msg response);
+void transformer_job_recieve_parameter_value_response(m_message msg, m_response response);
 void send_profile_job_discard_tsj(m_profile_send_job *job);
 void send_profile_job_dispatch_tsj(m_profile_send_job *job);
 
@@ -46,7 +46,7 @@ void transformer_job_send_parameter_value(m_int_trans_send_job *job)
 		return;
 	}
 	
-	et_msg msg = create_et_msg(ET_MESSAGE_SET_PARAM_VALUE, "sssf",
+	m_message msg = create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf",
 		job->trans->profile->id, job->trans->id, job->parameter_index, param->value);
 	
 	msg.callback = transformer_job_recieve_parameter_value_response;
@@ -55,7 +55,7 @@ void transformer_job_send_parameter_value(m_int_trans_send_job *job)
 	queue_msg_to_teensy(msg);
 }
 
-void transformer_job_recieve_parameter_value_response(et_msg msg, te_msg response)
+void transformer_job_recieve_parameter_value_response(m_message msg, m_response response)
 {
 	m_int_trans_send_job *job = (m_int_trans_send_job*)msg.cb_arg;
 	
@@ -79,7 +79,7 @@ void transformer_job_recieve_parameter_value_response(et_msg msg, te_msg respons
 	}	
 }
 
-void transformer_send_job_recieve_transformer_id(et_msg msg, te_msg response)
+void transformer_send_job_recieve_transformer_id(m_message msg, m_response response)
 {
 	m_int_trans_send_job *job = (m_int_trans_send_job*)msg.cb_arg;
 	
@@ -99,7 +99,7 @@ void transformer_send_job_recieve_transformer_id(et_msg msg, te_msg response)
 		return;
 	}
 	
-	if (response.type != TE_MESSAGE_TRANSFORMER_ID)
+	if (response.type != M_RESPONSE_TRANSFORMER_ID)
 	{
 		#ifndef M_SIMULATED
 		ESP_LOGE(TAG, "Teensy did not return transformer ID\n");
@@ -152,7 +152,7 @@ void send_profile_job_dispatch_tsj(m_profile_send_job *job)
 		else
 		{
 			printf("Tell Teensy to append a transformer of type %s to profile %d\n", transformer_type_to_string(job->tsjs->data->trans->type), job->profile->id);
-			et_msg msg = create_et_msg(ET_MESSAGE_APPEND_TRANSFORMER, "ss", job->profile->id, job->tsjs->data->trans->type);
+			m_message msg = create_m_message(M_MESSAGE_APPEND_TRANSFORMER, "ss", job->profile->id, job->tsjs->data->trans->type);
 			msg.callback = transformer_send_job_recieve_transformer_id;
 			msg.cb_arg = job->tsjs->data;
 			
@@ -166,7 +166,7 @@ void send_profile_job_dispatch_tsj(m_profile_send_job *job)
 	}
 }
 
-void profile_send_job_recieve_profile_id(et_msg msg, te_msg response)
+void profile_send_job_recieve_profile_id(m_message msg, m_response response)
 {
 	m_profile_send_job *job = (m_profile_send_job*)msg.cb_arg;
 	
@@ -298,7 +298,7 @@ void send_new_profile_to_teensy(m_profile *profile)
 	printf("%d items in the trans send job list\n", i);
 	
 	printf("Ask Teensy to create a new profile... job = %p, job->tsjs = %p\n", job, job->tsjs);
-	et_msg msg = create_et_msg_nodata(ET_MESSAGE_CREATE_PROFILE);
+	m_message msg = create_m_message_nodata(M_MESSAGE_CREATE_PROFILE);
 	msg.callback = profile_send_job_recieve_profile_id;
 	msg.cb_arg = job;
 	

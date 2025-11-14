@@ -23,8 +23,8 @@
 
 #define ERR_FIXED_ARRAY_FULL			14
 
-#define ERR_BUSTED_ET_MSG				15
-#define ERR_ET_MSG_BAD_REQUEST			16
+#define ERR_BUSTED_MSG					15
+#define ERR_BAD_REQUEST					16
 
 #define ERR_QUEUE_SEND_FAILED			17
 #define ERR_QUEUE_FULL					18
@@ -33,7 +33,7 @@
 #define ERR_NODE_PRIVATE				20
 #define ERR_PIPELINE_BUSTED				21
 
-#define ERR_ET_MSG_INVALID				22
+#define ERR_INVALID_MESSAGE				22
 
 #define ERR_VALUE_OUT_OF_BOUNDS			23
 

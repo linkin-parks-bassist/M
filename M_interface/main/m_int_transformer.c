@@ -140,14 +140,14 @@ int request_append_transformer(uint16_t type, m_transformer *local)
 	if (!local->profile)
 		return ERR_BAD_ARGS;
 	
-	et_msg msg = create_et_msg(ET_MESSAGE_APPEND_TRANSFORMER, "ss", local->profile->id, local->type);
+	m_message msg = create_m_message(M_MESSAGE_APPEND_TRANSFORMER, "ss", local->profile->id, local->type);
 	msg.callback = transformer_receive_id;
 	msg.cb_arg = local;
 	
 	return queue_msg_to_teensy(msg);
 }
 
-void transformer_receive_id(et_msg message, te_msg response)
+void transformer_receive_id(m_message message, m_response response)
 {
 	printf("Transformer receive ID!\n");
 	m_transformer *trans = message.cb_arg;

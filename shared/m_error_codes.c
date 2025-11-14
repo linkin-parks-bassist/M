@@ -51,10 +51,10 @@ const char *m_error_code_to_string(int error_code)
 		case ERR_FIXED_ARRAY_FULL:
 			return "ERR_FIXED_ARRAY_FULL";
 
-		case ERR_BUSTED_ET_MSG:
-			return "ERR_BUSTED_ET_MSG";
-		case ERR_ET_MSG_BAD_REQUEST:
-			return "ERR_ET_MSG_BAD_REQUEST";
+		case ERR_BUSTED_MSG:
+			return "ERR_BUSTED_MSG";
+		case ERR_BAD_REQUEST:
+			return "ERR_BAD_REQUEST";
 
 		case ERR_QUEUE_SEND_FAILED:
 			return "ERR_QUEUE_SEND_FAILED";
@@ -68,8 +68,8 @@ const char *m_error_code_to_string(int error_code)
 		case ERR_PIPELINE_BUSTED:
 			return "ERR_PIPELINE_BUSTED";
 
-		case ERR_ET_MSG_INVALID:
-			return "ERR_ET_MSG_INVALID";
+		case ERR_INVALID_MESSAGE:
+			return "ERR_INVALID_MESSAGE";
 
 		case ERR_VALUE_OUT_OF_BOUNDS:
 			return "ERR_VALUE_OUT_OF_BOUNDS";

@@ -269,7 +269,7 @@ int profile_propagate_name_change(m_profile *profile)
 	return NO_ERROR;
 }
 
-void new_profile_receive_id(et_msg msg, te_msg response)
+void new_profile_receive_id(m_message msg, m_response response)
 {
 	m_profile *profile = msg.cb_arg;
 	
@@ -304,7 +304,7 @@ m_profile *create_new_profile_with_teensy()
 		return NULL;
 	}
 	
-	et_msg msg = create_et_msg_nodata(ET_MESSAGE_CREATE_PROFILE);
+	m_message msg = create_m_message_nodata(M_MESSAGE_CREATE_PROFILE);
 	
 	msg.callback = new_profile_receive_id;
 	msg.cb_arg = new_profile;

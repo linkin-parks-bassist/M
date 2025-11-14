@@ -23,7 +23,7 @@ int send_settings(m_settings *settings)
 		return ERR_NULL_PTR;
 	
 	xSemaphoreTake(settings_mutex, portMAX_DELAY);
-	queue_msg_to_teensy(create_et_msg(ET_MESSAGE_SET_PARAM_VALUE, "sssf", 0xFFFF, 0, 0, settings->global_volume.value));
+	queue_msg_to_teensy(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0xFFFF, 0, 0, settings->global_volume.value));
 	xSemaphoreGive(settings_mutex);
 	
 	return NO_ERROR;

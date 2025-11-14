@@ -338,7 +338,7 @@ void transformer_widget_release_cb(lv_event_t *e)
 			}
 			else
 			{
-				queue_msg_to_teensy(create_et_msg(ET_MESSAGE_MOVE_TRANSFORMER, "sss", tw->trans->profile->id, tw->trans->id, tw->index));
+				queue_msg_to_teensy(create_m_message(M_MESSAGE_MOVE_TRANSFORMER, "sss", tw->trans->profile->id, tw->trans->id, tw->index));
 			}
 			tw->prev_index = tw->index;
 			
