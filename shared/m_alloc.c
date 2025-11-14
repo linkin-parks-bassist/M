@@ -1,9 +1,5 @@
 #ifdef M_INTERFACE
 #include "m_int.h"
-#endif
-
-#ifdef M_SIMULATED
-#include "M_teensy_simulator.h"
 #elif defined(M_ENGINE)
 #include "m_eng.h"
 #endif

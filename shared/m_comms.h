@@ -37,8 +37,6 @@
 
 #define M_MESSAGE_TYPE_MAX M_MESSAGE_EXIT_TUNER_MODE
 
-#include "m_vec2i.h"
-
 #define MESSAGE_LEN_VARIABLE				-2
 #define M_MESSAGE_MAX_DATA_LEN 16
 #define M_MESSAGE_MAX_TRANSFER_LEN (M_RESPONSE_MAX_DATA_LEN + 2)
@@ -102,7 +100,6 @@ m_response create_m_response_error(uint16_t error_code);
 m_response create_m_response_profile_id(uint16_t pid);
 m_response create_m_response_transformer_id(uint16_t pid, uint16_t tid);
 m_response create_m_response_parameter_value(uint16_t pid, uint16_t tid, uint16_t ppid, float value);
-m_response create_m_response_transformer_vec2i(uint16_t type, uint16_t pid, uint16_t tid, uint16_t i, vec2i vec);
 
 int et_message_data_length(m_message msg);
 int valid_m_message_type(uint8_t type);
