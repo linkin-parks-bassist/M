@@ -1,7 +1,12 @@
 #include "m_eng.h"
 
 static const char *FNAME = "m_printf.c";
-#define ALLOW_PRINTLINES
+
+#ifdef ALLOW_PRINTLINES
+static uint64_t voice_print_mask = (uint64_t)((int64_t)(-1));
+#else
+static uint64_t voice_print_mask = 0;
+#endif
 
 void m_printf(const char *fmt, ...)
 {
@@ -11,9 +16,55 @@ void m_printf(const char *fmt, ...)
 	va_start(args, fmt);
 	vsnprintf(buf, sizeof(buf), fmt, args);
 	va_end(args);
+	
+	#ifndef M_SIMULATED
 	Serial.print(buf);
 	Serial.flush();
+	#else
+	fputs(buf, stdout);
 	#endif
+	#endif
+}
+
+const char *voice_colour_table[64] = {"\e[31m",
+	"\e[34m", "\e[35m", "\e[36m", "\e[33m", "\e[34m", "\e[35m", "\e[36m", "\e[33m", 
+	"\e[34m", "\e[35m", "\e[36m", "\e[33m", "\e[34m", "\e[35m", "\e[36m", "\e[33m", 
+	"\e[34m", "\e[35m", "\e[36m", "\e[33m", "\e[34m", "\e[35m", "\e[36m", "\e[33m", 
+	"\e[34m", "\e[35m", "\e[36m", "\e[33m", "\e[34m", "\e[35m", "\e[36m", "\e[33m", 
+	"\e[34m", "\e[35m", "\e[36m", "\e[33m", "\e[34m", "\e[35m", "\e[36m", "\e[33m", 
+	"\e[34m", "\e[35m", "\e[36m", "\e[33m", "\e[34m", "\e[35m", "\e[36m", "\e[33m", 
+	"\e[34m", "\e[35m", "\e[36m", "\e[33m", "\e[34m", "\e[35m", "\e[36m", "\e[33m", 
+	"\e[34m", "\e[35m", "\e[36m", "\e[33m", "\e[34m", "\e[35m", "\e[36m"
+};
+
+void m_voice_printf(int who, const char *fmt, ...)
+{
+	if (voice_print_mask & (1 << who))
+	{
+		char buf[1024];
+		va_list args;
+		int index = snprintf(buf, 7, "%s", voice_colour_table[who]);
+		va_start(args, fmt);
+		index += vsnprintf(&buf[index], sizeof(buf) - index, fmt, args);
+		snprintf(&buf[index], sizeof(buf) - index, "\e[0m");
+		va_end(args);
+		#ifndef M_SIMULATED
+		Serial.print(buf);
+		Serial.flush();
+		#else
+		fputs(buf, stdout);
+		#endif
+	}
+}
+
+void m_mute_voice(int who)
+{
+	voice_print_mask &= ~(1 << who);
+}
+
+void m_unmute_voice(int who)
+{
+	voice_print_mask |= (1 << who);
 }
 
 void serial_print_blocks(int n, ...)
@@ -40,7 +91,11 @@ void serial_print_blocks(int n, ...)
 		pos++;
 	}
 	va_end(args);
+	#ifndef M_SIMULATED
 	Serial.print(buf);
+	#else
+	fputs(buf, stdout);
+	#endif
 }
 
 void pretty_print_block(int16_t *data, const char *start)
