@@ -25,40 +25,33 @@
 
 #define DC_BLOCKER_ALPHA 0.999
 
-#ifndef M_SIMULATED
-#include <arm_math.h>
-#endif
-
 #ifdef __cplusplus
-#include <cstdint>
-#include <cstring>
-#include <cstdarg>
-#include <cstdlib>
-#include <cstdio>
-#include <cmath>
-#include "utility/imxrt_hw.h"
+ #include <cstdint>
+ #include <cstring>
+ #include <cstdarg>
+ #include <cstdlib>
+ #include <cstdio>
+ #include <cmath>
 
-extern "C" {
+ extern "C" {
 #else
-#include <stdint.h>
-#include <string.h>
-#include <stdarg.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
-
-#include "utility/imxrt_hw.h"
+ #include <stdint.h>
+ #include <string.h>
+ #include <stdarg.h>
+ #include <stdlib.h>
+ #include <stdio.h>
+ #include <math.h>
 #endif
 
 #ifdef M_SIMULATED
-
-#define DMAMEM
-#define FLASHMEM
-
-#define __enable_irq()
-#define __disable_irq()
-
-#define PI   3.14159265
+ #define DMAMEM
+ #define FLASHMEM
+ #define __enable_irq()
+ #define __disable_irq()
+ #define PI   3.14159265
+#else
+ #include <arm_math.h>
+ #include "utility/imxrt_hw.h"
 #endif
 
 #define LN_2 0.69314718055994530942
@@ -142,7 +135,7 @@ extern "C" {
 #include "m_eng_printf.h"
 #else
 #define m_printf printf
-#include "M_teensy_simulator.h"
+#include "m_eng_sim.h"
 #endif
 
 #define sqr(x) (x * x)

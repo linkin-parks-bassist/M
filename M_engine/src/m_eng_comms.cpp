@@ -126,7 +126,7 @@ void handle_esp32_message(m_message msg)
 			break;
 		
 		case M_MESSAGE_APPEND_TRANSFORMER:
-			m_printf("Creating new transformer of type %d to profile %d...\n", arg16_2, arg16_1);
+			m_printf("Creating new transformer of type %s to profile %d...\n", transformer_type_to_string(arg16_2), arg16_1);
 			
 			ret_val = cxt_append_transformer_to_profile(&global_cxt, arg16_1, arg16_2);
 			

@@ -81,45 +81,6 @@ void print_profile_info(m_eng_profile *profile, int depth)
 	RETURN_VOID();
 }
 
-#ifdef GRAPH_PIPELINE
-void print_pipeline_info(m_eng_graph *pipeline, int depth)
-{
-	FUNCTION_START();
-	
-	m_printf("\n~~~PIPELINE INFO~~~\n");
-	
-	m_printf("Memory address: %p\n", pipeline);
-	
-	if (!pipeline)
-	{
-		RETURN_VOID();
-	}
-	
-	m_printf("Flags: ");
-	
-	print_binary(pipeline->err_flags, 16);
-	
-	m_printf("\n");
-	
-	m_printf("Width: %d, height: %d\n", pipeline->width, pipeline->height);
-	
-	m_printf("Transformers: %d\n", pipeline->n_transformers);
-	
-	if (depth)
-	{
-		for (int i = 0; i < pipeline->n_transformers; i++)
-		{
-			m_printf("Transformer %d:\n", i);
-			print_transformer_info(pipeline->transformers[i], depth - 1);
-		}
-	}
-	
-	if (!depth)
-		m_printf("\n");
-	
-	RETURN_VOID();
-}
-#endif
 
 void print_pipeline_info(m_pipeline *pipeline, int depth)
 {

@@ -2,7 +2,6 @@
 #define M_CONTEXT_H_
 
 #include "m_eng_profile.h"
-#include "m_vec2i.h"
 
 #define M_PROFILE_SWITCH_SAMPLES 	256
 #define PROFILES_MALLOC_CHUNK_SIZE 	16
