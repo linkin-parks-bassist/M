@@ -31,12 +31,6 @@ void run_teensy_init()
 void run_teensy_loop()
 {
 	profile_update(&global_cxt.profiles[global_cxt.active_profile]);
-	esp32_message_check_handle();
-	if (ask_for_response)
-	{
-		i2c_request_isr();
-		ask_for_response = 0;
-	}
 	cxt_process(&global_cxt);
 }
 
@@ -48,23 +42,6 @@ void add_message_to_queue(m_message msg, int block_no)
 	tmsg.block_no = block_no;
 	
 	message_list = m_message_timed_ll_append(message_list, tmsg);
-}
-
-void generam_response_queue()
-{
-	add_message_to_queue(create_m_message(M_MESSAGE_CREATE_PROFILE,     "", 0), 0);
-	add_message_to_queue(create_m_message(M_MESSAGE_APPEND_TRANSFORMER, "ss", 1, TRANSFORMER_DISTORTION), 0);
-	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE,    "sssf", 1, 0, 0, 0.0), 0);
-	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE,    "sssf", 1, 0, 1, 0.0), 0);
-	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE,    "sssf", 1, 0, 2, 0.0), 0);
-	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE,    "sssf", 1, 0, 3, 0.797844), 0);
-	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE,    "sssf", 1, 0, 4, 0.300000), 0);
-	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE,    "sssf", 1, 0, 5, 2000.000000), 0);
-	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE,    "sssf", 1, 0, 6, 200.000000), 0);
-	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE,    "sssf", 1, 0, 7, 0.100000), 0);
-	add_message_to_queue(create_m_message(M_MESSAGE_APPEND_TRANSFORMER,    "ss", 0, TRANSFORMER_ENVELOPE), 128);
-	add_message_to_queue(create_m_message(M_MESSAGE_APPEND_TRANSFORMER,    "ss", 0, TRANSFORMER_DISTORTION), 256);
-	add_message_to_queue(create_m_message(M_MESSAGE_REMOVE_TRANSFORMER,    "sss", 0, 0, 1), 312);
 }
 
 m_message generate_random_msg()
@@ -84,9 +61,7 @@ m_message generate_random_msg()
 #define PROB_BIG 100000
 
 void generate_stress_test_msg_queue(int n, int blocks)
-{
-	srand(time(0));
-	
+{	
 	int prob = PROB_BIG * ((float)n / (float)blocks);
 	
 	printf("prob = %d / %d\n", prob, PROB_BIG);
@@ -110,20 +85,84 @@ void generate_stress_test_msg_queue(int n, int blocks)
 	printf("... for a total of %d messages.\n", m);
 }
 
+void generate_band_isolation_test_msg_queue(int start)
+{
+	int i = 0;
+	int j = 0;
+	
+	add_message_to_queue(create_m_message(M_MESSAGE_APPEND_TRANSFORMER, "ss", 0, TRANSFORMER_AMPLIFIER), start + 8 * i++);
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, 0, -90.0), start + 8 * i++);
+	
+	
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_SETTING_VALUE, "ssss", 0, 0,TRANSFORMER_BAND_MODE_SID, TRANSFORMER_MODE_LOWER_SPECTRUM), start + 8 * i + 256 * j + 4);
+	
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_LP_CUTOFF_PID, 100.0  ), start + 8 * i + 256 * j++ + 4);
+	
+	
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_LP_CUTOFF_PID, 440.0  ), start + 8 * i + 256 * j++ + 4);
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_LP_CUTOFF_PID, 15000.0), start + 8 * i + 256 * j++ + 4);
+	
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_LP_CUTOFF_PID, 10000.0), start + 8 * i + 256 * j++ + 4);
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_LP_CUTOFF_PID, 100.0  ), start + 8 * i + 256 * j++ + 4);
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_LP_CUTOFF_PID, 1000.0 ), start + 8 * i + 256 * j++ + 4);
+	
+	
+	
+	
+	
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_SETTING_VALUE, "ssss", 0, 0, TRANSFORMER_BAND_MODE_SID, TRANSFORMER_MODE_UPPER_SPECTRUM), start + 8 * i + 256 * j + 4);
+	
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_HP_CUTOFF_PID, 100.0  ), start + 8 * i + 256 * j++ + 4);
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_HP_CUTOFF_PID, 440.0  ), start + 8 * i + 256 * j++ + 4);
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_HP_CUTOFF_PID, 200.0  ), start + 8 * i + 256 * j++ + 4);
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_HP_CUTOFF_PID, 250.0  ), start + 8 * i + 256 * j++ + 4);
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_HP_CUTOFF_PID, 325.0  ), start + 8 * i + 256 * j++ + 4);
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_HP_CUTOFF_PID, 400.0  ), start + 8 * i + 256 * j++ + 4);
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_HP_CUTOFF_PID, 15000.0), start + 8 * i + 256 * j++ + 4);
+	
+	
+	
+	
+	
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_SETTING_VALUE, "ssss", 0, 0, TRANSFORMER_BAND_MODE_SID, TRANSFORMER_MODE_BAND), start + 8 * i + 256 * j + 4);
+	
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_HP_CUTOFF_PID, 1000.0), start + 8 * i + 256 * j);
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_LP_CUTOFF_PID, 100.0 ), start + 8 * i + 256 * j++ + 4);
+	
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_HP_CUTOFF_PID, 10000.0), start + 8 * i + 256 * j);
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_LP_CUTOFF_PID, 500.0 ), start + 8 * i + 256 * j++ + 4);
+	
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_HP_CUTOFF_PID, 30.0), start + 8 * i + 256 * j);
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_LP_CUTOFF_PID, 1.0 ), start + 8 * i + 256 * j++ + 4);
+	
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_HP_CUTOFF_PID, 3000.0), start + 8 * i + 256 * j);
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_LP_CUTOFF_PID, 1.0 ), start + 8 * i + 256 * j++ + 4);
+	
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_LP_CUTOFF_PID, 800.0), start + 8 * i + 256 * j);
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_HP_CUTOFF_PID, 900.0), start + 8 * i + 256 * j++ + 4);
+	
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_LP_CUTOFF_PID, 2000.0), start + 8 * i + 256 * j);
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_HP_CUTOFF_PID, 400.0), start + 8 * i + 256 * j++ + 4);
+	
+	
+}
+
 int m_sim_send_m_message(m_message msg)
 {
 	printf("Sending message to simulated teensy...\n");
 	int len = encode_m_message(simulated_i2c_send_buffer, msg);
 	
 	i2c_receive_isr(len);
-	
-	ask_for_response = 1;
+	esp32_message_check_handle();
+	i2c_request_isr();
 	
 	return NO_ERROR;
 }
 
 int main(int argc, char **argv)
 {
+	srand(time(0));
+	
 	sfinfo_out.format = SF_FORMAT_WAV | SF_FORMAT_FLOAT;
 	sfinfo_out.channels = 1;
 	sfinfo_out.samplerate = 44100;
@@ -136,12 +175,22 @@ int main(int argc, char **argv)
 		abort();
 	}
 	
-	int n_blocks = 1 << 12;
+	int n_blocks = 1 << 15;
+	
+	m_mute_voice(M_VOICE_COMMS);
 	
 	run_teensy_init();
 	
 	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0xFFFF, 0, 0, 0.0f), 0);
-	add_message_to_queue(create_m_message(M_MESSAGE_APPEND_TRANSFORMER, "sssf", 0, TRANSFORMER_FLANGER), 1);
+	
+	generate_band_isolation_test_msg_queue(1024);
+	
+	//add_message_to_queue(create_m_message(M_MESSAGE_APPEND_TRANSFORMER,    "ss", 0, TRANSFORMER_AMPLIFIER), 64);
+	//add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE,       "sssf", 0, 0, 0, 12.0), 66);
+	//add_message_to_queue(create_m_message(M_MESSAGE_APPEND_TRANSFORMER,    "ss", 0, TRANSFORMER_ENVELOPE), 128);
+	//add_message_to_queue(create_m_message(M_MESSAGE_APPEND_TRANSFORMER,    "ss", 0, TRANSFORMER_DISTORTION), 128);
+	
+	//add_message_to_queue(create_m_message(M_MESSAGE_APPEND_TRANSFORMER, "sssf", 0, TRANSFORMER_FLANGER), 1);
 	
 	//generate_stress_test_msg_queue(500, n_blocks);
 	
@@ -150,23 +199,24 @@ int main(int argc, char **argv)
 	
 	for (int i = 0; i < n_blocks; i++)
 	{
-		if (current)
+		while (current && i >= current->data.block_no)
 		{
-			if (i >= current->data.block_no)
-			{
-				m_sim_send_m_message(current->data.msg);
-				m_free(current);
-				current = next;
-				next = current ? current->next : NULL;
-			}
+			m_sim_send_m_message(current->data.msg);
+			
+			m_free(current);
+			current = next;
+			next = current ? current->next : NULL;
 		}
 		
 		run_teensy_loop();
+		m_eng_print_flush_log();
 	}
 	
 	print_context_info(&global_cxt, -1);
 	print_memory_report();
 	sf_close(outfile);
+	
+	m_eng_profiler_print();
 	
 	return 0;
 }
@@ -255,7 +305,20 @@ int m_sim_restart_sound_file(m_sim_sound_file *fstruct)
 	return NO_ERROR;
 }
 
-int m_sim_get_input_block(float *dest)
+int m_sim_send_white_noise(float *dest, float vol)
+{
+	if (!dest)
+		return ERR_NULL_PTR;
+	
+	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
+	{
+		dest[i] = vol * ((float)(rand() - (RAND_MAX / 2)) / ((float)RAND_MAX / 2));
+	}
+	
+	return NO_ERROR;
+}
+
+int m_sim_send_sample_audio(float *dest)
 {
 	static m_sim_sound_file input_file;
 	static int input_file_opened = 0;
@@ -286,6 +349,11 @@ int m_sim_get_input_block(float *dest)
 	}
 	
 	return NO_ERROR;
+}
+
+int m_sim_get_input_block(float *dest)
+{
+	return m_sim_send_white_noise(dest, 1.0);
 }
 
 uint32_t blocks_recieved = 0;

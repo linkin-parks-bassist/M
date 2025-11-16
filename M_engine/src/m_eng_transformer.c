@@ -85,6 +85,9 @@ int transformer_init_controls(m_transformer *trans)
 	
 	init_lr_low_pass_filter_str(&trans->input_lpf);
 	init_lr_high_pass_filter_str(&trans->input_hpf);
+	init_lr_high_pass_filter_str(&trans->input_hpf_band);
+	init_lr_low_pass_filter_str(&trans->input_lpf_complement);
+	init_lr_high_pass_filter_str(&trans->input_hpf_complement);
 	
 	reconfigure_lr_low_pass_filter(&trans->input_lpf);
 	reconfigure_lr_high_pass_filter(&trans->input_hpf);
@@ -185,6 +188,11 @@ int run_transformer(m_transformer *trans, float *dest, float *src)
 	float factor;
 	
 	float *tmp = NULL;
+	float *tmp2 = NULL;
+	float *band = NULL;
+	float *rest = NULL;
+	float *high = NULL;
+	float *low  = NULL;
 	float *local_src = NULL;
 	float *wet_buffer = NULL;
 	
@@ -192,6 +200,11 @@ int run_transformer(m_transformer *trans, float *dest, float *src)
 	float *src_saved;
 	
 	if (!(tmp 		 = allocate_buffer())) goto run_transformer_alloc_fail;
+	if (!(tmp2 		 = allocate_buffer())) goto run_transformer_alloc_fail;
+	if (!(band 		 = allocate_buffer())) goto run_transformer_alloc_fail;
+	if (!(rest 		 = allocate_buffer())) goto run_transformer_alloc_fail;
+	if (!(high 		 = allocate_buffer())) goto run_transformer_alloc_fail;
+	if (!(low 		 = allocate_buffer())) goto run_transformer_alloc_fail;
 	if (!(local_src  = allocate_buffer())) goto run_transformer_alloc_fail;
 	if (!(wet_buffer = allocate_buffer())) goto run_transformer_alloc_fail;
 
@@ -209,7 +222,9 @@ int run_transformer(m_transformer *trans, float *dest, float *src)
 		
 		// Setting updates trigger a reconfigure
 		if (setting_reconf && trans->reconfigure)
-				trans->reconfigure((void*)trans->data_struct);
+		{
+			trans->reconfigure((void*)trans->data_struct);
+		}
 		
 		// Clear updatedness flags
 		for (int i = 0; i < n_settings; i++)
@@ -268,7 +283,9 @@ int run_transformer(m_transformer *trans, float *dest, float *src)
 			deltas[i] = 0.0;
 			// but, make sure to reconfigure the transformer !
 			if (trans->reconfigure)
+			{
 				trans->reconfigure((void*)trans->data_struct);
+			}
 			continue;
 		}
 		// Otherwise, calculate the min steps needed to move to the
@@ -314,62 +331,70 @@ int run_transformer(m_transformer *trans, float *dest, float *src)
 	
 	n_samples = AUDIO_BLOCK_SAMPLES / divider;
 	
-	//m_printf("trans->band_mode.value = %d\n", trans->band_mode.value);
 	// The actual computation!
 	for (int i = 0; i < divider; i++)
 	{
-		// Apply deltas...
-		for (int j = 0; j < n_parameters; j++)
+		if (any_updates)
 		{
-			if (parameters[j] && parameters[j]->updated)
-				parameters[j]->value += deltas[j];
+			// Apply deltas...
+			for (int j = 0; j < n_parameters; j++)
+			{
+				if (parameters[j] && parameters[j]->updated)
+					parameters[j]->value += deltas[j];
+			}
+			
+			if (trans->reconfigure)
+				trans->reconfigure((void*)trans->data_struct);
 		}
 		
-		if (trans->reconfigure)
-			trans->reconfigure((void*)trans->data_struct);
 		
-		
-		//m_printf("made it to %s:%s\n", FNAME, XSTR(__LINE__));
 		if (trans->band_mode.value == TRANSFORMER_MODE_FULL_SPECTRUM)
 		{
 			for (int i = 0; i < n_samples; i++)
 				local_src[i] = src[i];
 		}
 		else
-		{
-			/*m_printf("Input block:\n");
-			for (int i = 0; i < n_samples; i++)
-			{
-				m_printf("%s%.03f%s", (src[i] > 0) ? " " : "-", fabsf(src[i]), ((i + 1) % 16 == 0) ? "\n" : " ");
-			}
-			m_printf("\n");*/
-			
+		{			
 			if (trans->input_lpf.cutoff_frequency.updated)
+			{
 				reconfigure_lr_low_pass_filter(&trans->input_lpf);
-			
+				
+				trans->input_hpf_complement.cutoff_frequency = trans->input_lpf.cutoff_frequency;
+				reconfigure_lr_high_pass_filter(&trans->input_hpf_complement);
+			}
 			if (trans->input_hpf.cutoff_frequency.updated)
+			{
 				reconfigure_lr_high_pass_filter(&trans->input_hpf);
+				
+				trans->input_lpf_complement.cutoff_frequency = trans->input_hpf.cutoff_frequency;
+				reconfigure_lr_low_pass_filter(&trans->input_lpf_complement);
+				
+				if (trans->band_mode.value == TRANSFORMER_MODE_BAND)
+				{
+					trans->input_hpf_band.cutoff_frequency = trans->input_hpf.cutoff_frequency;
+					reconfigure_lr_high_pass_filter(&trans->input_hpf_band);
+				}
+			}
 			
 			switch (trans->band_mode.value)
 			{
 				case TRANSFORMER_MODE_LOWER_SPECTRUM:
-					//m_printf("Lower spectrum mode. Cutoff frequencey: %f\n", trans->input_lpf.cutoff_frequency.value);
-					calc_lr_low_pass_filter(&trans->input_lpf, local_src, src, n_samples);
+					calc_lr_low_pass_filter (&trans->input_lpf, local_src, src, n_samples);
+					calc_lr_high_pass_filter(&trans->input_hpf_complement, rest, src, n_samples);
 					break;
 				case TRANSFORMER_MODE_UPPER_SPECTRUM:
-					//m_printf("Upper spectrum mode. Cutoff frequencey: %f\n", trans->input_hpf.cutoff_frequency.value);
 					calc_lr_high_pass_filter(&trans->input_hpf, local_src, src, n_samples);
+					calc_lr_low_pass_filter (&trans->input_lpf_complement, rest, src, n_samples);
 					break;
 				case TRANSFORMER_MODE_BAND:
-					//m_printf("Band mode. Cutoff frequenceies: %f, %f\n", trans->input_lpf.cutoff_frequency.value, trans->input_hpf.cutoff_frequency.value);
-					calc_lr_low_pass_filter(&trans->input_lpf, tmp, src, n_samples);
-					calc_lr_high_pass_filter(&trans->input_hpf, local_src, tmp, n_samples);
+					calc_lr_high_pass_filter(&trans->input_hpf, high, src, n_samples);
+					calc_lr_low_pass_filter (&trans->input_lpf_complement, tmp, src, n_samples);
+					
+					calc_lr_low_pass_filter(&trans->input_lpf, low, tmp, n_samples);
+					calc_lr_high_pass_filter(&trans->input_hpf_complement, band, tmp, n_samples);
+					
+					m_add_f32(rest, high, low, n_samples);
 					break;
-			}
-
-			for (int i = 0; i < n_samples; i++)
-			{
-				tmp[i] = src[i] - local_src[i];
 			}
 		}
 		
@@ -379,13 +404,11 @@ int run_transformer(m_transformer *trans, float *dest, float *src)
 		if (trans->band_mode.value != TRANSFORMER_MODE_FULL_SPECTRUM)
 		{
 			for (int i = 0; i < n_samples; i++)
-				local_dest[i] += tmp[i];
+				local_dest[i] += rest[i];
 		}
 		
 		src  = &src [n_samples];
 		local_dest = &local_dest[n_samples];
-		
-		//m_printf("made it to %s:%s\n", FNAME, XSTR(__LINE__));
 	}
 	
 	
@@ -409,6 +432,11 @@ int run_transformer(m_transformer *trans, float *dest, float *src)
 		dest[i] = trans->wet_mix.value * wet_buffer[i] + (1.0 - trans->wet_mix.value) * src_saved[i];
 	
 	release_buffer(tmp);
+	release_buffer(tmp2);
+	release_buffer(band);
+	release_buffer(rest);
+	release_buffer(high);
+	release_buffer(low);
 	release_buffer(local_src);
 	release_buffer(wet_buffer);
 	
@@ -420,6 +448,11 @@ int run_transformer(m_transformer *trans, float *dest, float *src)
 run_transformer_alloc_fail:
 	
 	if (tmp) release_buffer(tmp);
+	if (tmp2) release_buffer(tmp2);
+	if (band) release_buffer(band);
+	if (rest) release_buffer(rest);
+	if (high) release_buffer(rest);
+	if (low)  release_buffer(rest);
 	if (local_src) release_buffer(local_src);
 	if (wet_buffer) release_buffer(wet_buffer);
 	
@@ -478,6 +511,8 @@ int transformer_add_parameter(m_transformer *trans, m_parameter *param)
 
 m_parameter *transformer_get_parameter(m_transformer *trans, uint16_t ppid)
 {
+	FUNCTION_START();
+	
 	if (!trans)
 	{
 		RETURN_PTR(NULL);
@@ -515,11 +550,13 @@ m_setting *transformer_get_setting(m_transformer *trans, uint16_t sid)
 	
 	if (!trans)
 	{
+		m_voice_printf(M_VOICE_TR, "transformer_get_setting given NULL transformer ptr\n");
 		RETURN_PTR(NULL);
 	}
 	
 	if (!trans->settings)
 	{
+		m_voice_printf(M_VOICE_TR, "transformer_get_setting given transformer with NULL settings array\n");
 		RETURN_PTR(NULL);
 	}
 	
@@ -529,8 +566,9 @@ m_setting *transformer_get_setting(m_transformer *trans, uint16_t sid)
 		{
 			case TRANSFORMER_BAND_MODE_SID:
 				RETURN_PTR(&trans->band_mode);
-			
+				
 			default:
+				m_voice_printf(M_VOICE_TR, "transformer_get_setting given nonsense setting id %d (=0x%04x)\n", sid, sid);
 				RETURN_PTR(NULL);
 		}
 	}

@@ -34,7 +34,10 @@ typedef struct m_transformer
 	m_parameter **parameters;
 	
 	struct m_lr_low_pass_filter_str  input_lpf;
+	struct m_lr_low_pass_filter_str  input_lpf_complement;
 	struct m_lr_high_pass_filter_str input_hpf;
+	struct m_lr_high_pass_filter_str input_hpf_band;
+	struct m_lr_high_pass_filter_str input_hpf_complement;
 	
 	void *data_struct;
 	int (*compute_transformer)(void *data_struct, float *dest, float *src, int n_samples);
