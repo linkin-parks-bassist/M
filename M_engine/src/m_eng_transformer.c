@@ -195,6 +195,7 @@ int run_transformer(m_transformer *trans, float *dest, float *src)
 	float *low  = NULL;
 	float *local_src = NULL;
 	float *wet_buffer = NULL;
+	float g;
 	
 	float *local_dest;	
 	float *src_saved;
@@ -387,13 +388,13 @@ int run_transformer(m_transformer *trans, float *dest, float *src)
 					calc_lr_low_pass_filter (&trans->input_lpf_complement, rest, src, n_samples);
 					break;
 				case TRANSFORMER_MODE_BAND:
-					calc_lr_high_pass_filter(&trans->input_hpf, high, src, n_samples);
-					calc_lr_low_pass_filter (&trans->input_lpf_complement, tmp, src, n_samples);
+					calc_lr_low_pass_filter(&trans->input_lpf, low, src, n_samples);
+					calc_lr_high_pass_filter(&trans->input_hpf_complement, tmp, src, n_samples);
 					
-					calc_lr_low_pass_filter(&trans->input_lpf, low, tmp, n_samples);
-					calc_lr_high_pass_filter(&trans->input_hpf_complement, band, tmp, n_samples);
+					calc_lr_high_pass_filter(&trans->input_hpf, high, tmp, n_samples);
+					calc_lr_low_pass_filter (&trans->input_lpf_complement, local_src, tmp, n_samples);
 					
-					m_add_f32(rest, high, low, n_samples);
+					m_add_f32(rest, high, low, n_samples);					
 					break;
 			}
 		}
