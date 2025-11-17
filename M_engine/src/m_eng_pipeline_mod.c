@@ -96,6 +96,7 @@ int apply_pipeline_mod(m_pipeline *pipeline, m_pipeline_mod mod, int *err_code)
 	{
 		case PIPELINE_MOD_APPEND_TRANSFORMER:
 			ret_val = pipeline_append_transformer_type(pipeline, mod.data);
+			
 			if (ret_val < 0)
 			{
 				if (err_code)

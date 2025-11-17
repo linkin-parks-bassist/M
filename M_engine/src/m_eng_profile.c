@@ -120,7 +120,7 @@ int profile_print_job_list(m_eng_profile *profile)
 				break;
 				
 			default:
-				m_printf("ERROR! Unrecognised job!\n");
+				m_printf("ERROR! Unrecognised job %d\n", current->data.type);
 				break;
 		}
 		current = current->next;
@@ -154,8 +154,12 @@ int profile_print_ujob_list(m_eng_profile *profile)
 				m_printf("move transformer %d to position %d\n", current->data.tid, current->data.data);
 				break;
 			
+			case PIPELINE_MOD_CHANGE_TRANSFORMER_SETTING:
+				m_printf("change setting %d.%d to %d\n", current->data.tid, current->data.data, current->data.sdata);
+				break;
+				
 			default:
-				m_printf("ERROR! Unrecognised job!\n");
+				m_printf("ERROR! Unrecognised job %d\n", current->data.type);
 				break;
 		}
 		current = current->next;
@@ -174,22 +178,22 @@ int profile_print_ujob_list(m_eng_profile *profile)
  * ("mods", encoded by #m_pipeline_mod) are applied in the background - to an inactive
  * copy of the profile's pipeline (the "back pipeline"), and the outputs from the front
  * and back pipeline are smoothly cross-faded between, after which it can be safely
- * applied to the now back (previously front) pipeline, keeping the two in sync.
+ * applied to the (now back, previously front) pipeline, keeping the two in sync.
  * 
  * To achieve this, #profile_apply_pipeline_mod calls #apply_pipeline_mod to apply
  * the mod to the back pipeline,  calls #profile_trigger_pipeline_swap to trigger 
- * the pipeline swap and saved the mod in a linked list (\ref m_profile::jobs).
+ * the pipeline swap, and saves the mod in a linked list (\ref m_eng_profile::jobs).
  * After the swap is complete, #profile_update will retrieve the job from the list
  * and apply it to the back (previously front) pipeline.
  * 
  * If, however, when #profile_apply_pipeline_mod is called, a pipeline swap is already
  * in progress, the mod is *not* applied, but rather stored in a second linked list,
- * (\ref profile::blocked_jobs), whereupon #profile_update will apply it (only after
- * the swap is finished, and any jobs waiting in (\ref profile::jobs) have been applied)
- * by calling #profile_apply_pipeline_mod.
+ * (\ref m_eng_profile::blocked_jobs), whereupon #profile_update will apply it (after
+ * the swap is finished and any jobs waiting in (\ref m_eng_profile::jobs) have been
+ * applied) by calling #profile_apply_pipeline_mod.
  * 
- * @param mod A struct describing the modofication to apply
- * @param profile The profile 
+ * @param profile The profile to be modified
+ * @param mod A struct describing the modification to apply
  */
 
 int profile_apply_pipeline_mod(m_eng_profile *profile, m_pipeline_mod mod)
@@ -204,11 +208,12 @@ int profile_apply_pipeline_mod(m_eng_profile *profile, m_pipeline_mod mod)
 	
 	m_pipeline_mod_ll *nl;
 	int err_code = NO_ERROR;
+	int ret_val = NO_ERROR;
 	
 	if (!profile->active)
 	{
 		m_printf("Profile is not active; apply willy-nilly\n");
-		apply_pipeline_mod(profile->front_pipeline, mod, &err_code);
+		ret_val = apply_pipeline_mod(profile->front_pipeline, mod, &err_code);
 		
 		if (err_code != NO_ERROR)
 		{
@@ -217,13 +222,18 @@ int profile_apply_pipeline_mod(m_eng_profile *profile, m_pipeline_mod mod)
 		
 		apply_pipeline_mod(profile->back_pipeline, mod, &err_code);
 		
-		RETURN_ERR_CODE(err_code);
+		if (err_code != NO_ERROR)
+		{
+			RETURN_ERR_CODE(err_code);
+		}
+		
+		RETURN_INT(ret_val);
 	}
 	
 	if (!profile->pipelines_swapping)
 	{
 		m_printf("Profile is active; pipelines are not swapping. Apply with care\n");
-		apply_pipeline_mod(profile->back_pipeline, mod, &err_code);
+		ret_val = apply_pipeline_mod(profile->back_pipeline, mod, &err_code);
 		
 		if (err_code != NO_ERROR)
 		{
@@ -260,7 +270,7 @@ int profile_apply_pipeline_mod(m_eng_profile *profile, m_pipeline_mod mod)
 		profile_print_ujob_list(profile);
 	}
 	
-	RETURN_ERR_CODE(err_code);
+	RETURN_INT(ret_val);
 }
 
 int profile_update(m_eng_profile *profile)
@@ -376,6 +386,7 @@ int profile_process(m_eng_profile *profile, float *dest, float *src)
 		
 		if (profile->pipeline_swap_type == TRANSITION_TAIL)
 		{
+			m_voice_printf(M_VOICE_PR, "YO! TAIL TRANSITION!\n");
 			input_buffers[0] = allocate_buffer();
 			
 			if (!input_buffers[0])
@@ -521,6 +532,8 @@ int profile_trigger_pipeline_swap(m_eng_profile *profile)
 	int transition_policy = profile->front_pipeline->transition_policy;
 	if (profile->back_pipeline->transition_policy > transition_policy)
 		transition_policy = profile->back_pipeline->transition_policy;
+	
+	printf("Transition policy: %d\n", transition_policy);
 	
 	switch (transition_policy)
 	{

@@ -75,7 +75,7 @@ float *allocate_buffer()
 	}
 	else
 	{
-		m_printf("BUFFER ALLOCATION FAIL\n");
+		M_LOG("Out of buffers!\n");
 	}
 	
 	RETURN_PTR(ret_buffer);

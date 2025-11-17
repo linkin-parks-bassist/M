@@ -12,10 +12,7 @@ int init_distortion_str(m_eng_distortion_str *str)
 		RETURN_ERR_CODE(ERR_NULL_PTR);
 	}
 	
-	init_setting(&str->type, DISTORTION_TANH);
-	
 	init_waveshaper_str(&str->dist);
-	str->dist.shape = tanhf;
 	
 	init_lr_low_pass_filter_str(&str->low_pass);
 	reconfigure_lr_low_pass_filter((void*)&str->low_pass);
@@ -28,6 +25,29 @@ int reconfigure_distortion(void *data_struct)
 	FUNCTION_START();
 
 	m_eng_distortion_str *str = (m_eng_distortion_str*)data_struct;
+	
+	printf("Reconfigure_distortion. str->function.updated = %d\n", str->function.updated);
+	if (str->function.updated)
+	{
+		switch (str->function.value)
+		{
+			case M_DISTORTION_CLIP:
+				str->dist.shape = hard_clip;
+				break;
+			case M_DISTORTION_TANH:
+				str->dist.shape = tanhf;
+				break;
+			case M_DISTORTION_ARCTAN:
+				str->dist.shape = normalised_arctan;
+				break;
+			case M_DISTORTION_FOLD:
+				str->dist.shape = soft_fold;
+				break;
+			default:
+				str->dist.shape = hard_clip;
+				break;
+		}
+	}
 	
 	if (!str)
 	{

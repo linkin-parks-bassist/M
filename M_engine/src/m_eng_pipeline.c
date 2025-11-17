@@ -226,6 +226,8 @@ int pipeline_update_transition_policy(m_pipeline *pipeline)
 	
 	int tp = 0;
 	
+	m_voice_printf(M_VOICE_PL, "pipeline_update_transition_policy. current policy: %d\n", pipeline->transition_policy);
+	
 	for (int i = 0; i < pipeline->n_transformers; i++)
 	{
 		if (!pipeline->transformers[i])
@@ -234,6 +236,10 @@ int pipeline_update_transition_policy(m_pipeline *pipeline)
 		if (pipeline->transformers[i]->transition_policy > tp)
 			tp = pipeline->transformers[i]->transition_policy;
 	}
+	
+	pipeline->transition_policy = tp;
+	
+	m_voice_printf(M_VOICE_PL, "pipeline_update_transition_policy done. new policy: %d\n", pipeline->transition_policy);
 	
 	RETURN_ERR_CODE(NO_ERROR);
 }
@@ -421,10 +427,14 @@ int pipeline_append_transformer_type(m_pipeline *pipeline, uint16_t type)
 	
 	ret_val = pipeline_append_transformer(pipeline, trans);
 
+	m_voice_printf(M_VOICE_PL, "appended transformer. n_transformers = %d\n", pipeline->n_transformers);
+
 	if (ret_val < 0)
 	{
 		RETURN_ERR_CODE(-ret_val);
 	}
+	
+	pipeline_update_transition_policy(pipeline);
 	
 	RETURN_INT(ret_val);
 }
@@ -551,18 +561,24 @@ int pipeline_move_transformer(m_pipeline *pipeline, uint16_t id, int new_pos)
 
 m_transformer *pipeline_get_transformer_by_id(m_pipeline *pipeline, uint16_t id)
 {
+	m_voice_printf(M_VOICE_TR, "pipeline_get_transformer_by_id\n");
 	if (!pipeline)
 	{
+		m_voice_printf(M_VOICE_TR, "Error: null pipeline!\n");
 		RETURN_PTR(NULL);
 	}
 	
 	if (!pipeline->transformers)
 	{
+		m_voice_printf(M_VOICE_TR, "Error: pipeline has no transformer array!\n");
 		RETURN_PTR(NULL);
 	}
 	
+	m_voice_printf(M_VOICE_TR, "pipeline->n_transformers = %d\n", pipeline->n_transformers);
+	
 	for (int i = 0; i < pipeline->n_transformers; i++)
 	{
+		m_voice_printf(M_VOICE_TR, "transformer %d has ID %s%d\n", i, pipeline->transformers[i] ? "" : "NUL", pipeline->transformers[i] ? pipeline->transformers[i]->id : 1);
 		if (pipeline->transformers[i] && pipeline->transformers[i]->id == id)
 		{
 			return pipeline->transformers[i];
@@ -848,7 +864,8 @@ int pipeline_clone_transformer_into_position(m_pipeline *pipeline, m_transformer
 
 int pipeline_change_transformer_setting(m_pipeline *pipeline, uint16_t tid, uint16_t sid, int16_t new_val)
 {
-	m_printf("pipeline_change_transformer_setting\n");
+	m_voice_printf(M_VOICE_PL, "pipeline_change_transformer_setting (pipeline=%p, tid=%d, sid=%d, new_val=%d)\n",
+		pipeline, tid, sid, new_val);
 	FUNCTION_START();
 
 	if (!pipeline)
@@ -857,6 +874,11 @@ int pipeline_change_transformer_setting(m_pipeline *pipeline, uint16_t tid, uint
 	}
 	
 	m_transformer *trans = pipeline_get_transformer_by_id(pipeline, tid);
+	
+	if (!trans)
+	{
+		RETURN_ERR_CODE(ERR_INVALID_TRANSFORMER_ID);
+	}
 	
 	m_setting *setting = transformer_get_setting(trans, sid);
 	
@@ -869,7 +891,7 @@ int pipeline_change_transformer_setting(m_pipeline *pipeline, uint16_t tid, uint
 	else
 	{
 		m_printf("transformer_get_setting returned NULL!\n");
-		RETURN_ERR_CODE(ERR_BAD_ARGS);
+		RETURN_ERR_CODE(ERR_INVALID_SETTING_ID);
 	}
 
 	RETURN_ERR_CODE(NO_ERROR);

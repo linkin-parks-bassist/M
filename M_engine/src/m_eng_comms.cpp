@@ -34,7 +34,7 @@ int m_message_sanity_check(m_message msg, int len)
 {
 	FUNCTION_START();
 
-	m_printf("Message sanity check. msg.type = %d. length = %d. expected length = %d.\n", msg.type, len, et_message_data_length(msg));
+	m_voice_printf(M_VOICE_COMMS, "Message sanity check. msg.type = %d. length = %d. expected length = %d.\n", msg.type, len, et_message_data_length(msg));
 	if (!valid_m_message_type(msg.type))
 	{
 		RETURN_INT(0);
@@ -111,10 +111,10 @@ void handle_esp32_message(m_message msg)
 			break;
 		
 		case M_MESSAGE_CREATE_PROFILE:
-			m_printf("Creating new profile...\n");
+			m_voice_printf(M_VOICE_COMMS, "Creating new profile...\n");
 			ret_val = m_eng_context_new_profile(&global_cxt);
 			
-			m_printf("ret_val: %d\n", ret_val);
+			m_voice_printf(M_VOICE_COMMS, "ret_val: %d\n", ret_val);
 			if (ret_val >= 0)	// A positive return is the ID of the new profile
 			{
 				response = create_m_response(M_RESPONSE_PROFILE_ID, "s", ret_val);
@@ -126,25 +126,25 @@ void handle_esp32_message(m_message msg)
 			break;
 		
 		case M_MESSAGE_APPEND_TRANSFORMER:
-			m_printf("Creating new transformer of type %s to profile %d...\n", transformer_type_to_string(arg16_2), arg16_1);
+			m_voice_printf(M_VOICE_COMMS, "Creating new transformer of type %s to profile %d...\n", transformer_type_to_string(arg16_2), arg16_1);
 			
 			ret_val = cxt_append_transformer_to_profile(&global_cxt, arg16_1, arg16_2);
 			
 			if (ret_val < 0)
 			{
-				m_printf("Appending transformer failed with error %s\n", m_error_code_to_string(-ret_val));
+				m_voice_printf(M_VOICE_COMMS, "Appending transformer failed with error %s\n", m_error_code_to_string(-ret_val));
 				response = create_m_response_error(-ret_val);
 			}
 			else
 			{
-				m_printf("Success. Obtained transformer id %d; sending back\n", ret_val);
+				m_voice_printf(M_VOICE_COMMS, "Success. Obtained transformer id %d; sending back\n", ret_val);
 				response = create_m_response_transformer_id(arg16_1, ret_val);
-				m_printf("Response created\n");
+				m_voice_printf(M_VOICE_COMMS, "Response created\n");
 			}
 			break;
 		
 		case M_MESSAGE_MOVE_TRANSFORMER:
-			m_printf("Moving transformer...\n");
+			m_voice_printf(M_VOICE_COMMS, "Moving transformer...\n");
 			
 			ret_val = cxt_move_transformer(&global_cxt, arg16_1, arg16_2);
 			
@@ -152,7 +152,7 @@ void handle_esp32_message(m_message msg)
 			break;
 			
 		case M_MESSAGE_REMOVE_TRANSFORMER:
-			m_printf("Removing transformer...\n");
+			m_voice_printf(M_VOICE_COMMS, "Removing transformer...\n");
 			
 			ret_val = cxt_remove_transformer_from_profile(&global_cxt, arg16_1, arg16_2);
 			
@@ -160,48 +160,48 @@ void handle_esp32_message(m_message msg)
 			break;
 		
 		case M_MESSAGE_GET_N_PROFILES:
-			m_printf("esp32 asks: how many profiles? answer: %d\n", global_cxt.n_profiles);
+			m_voice_printf(M_VOICE_COMMS, "esp32 asks: how many profiles? answer: %d\n", global_cxt.n_profiles);
 			response = create_m_response(M_RESPONSE_N_PROFILES, "s", global_cxt.n_profiles);
 			break;
 		
 		case M_MESSAGE_GET_N_TRANSFORMERS:
-			m_printf("esp32 asks: how many transformers in profile %d? answer: %d\n", arg16_1, cxt_get_n_profile_transformers(&global_cxt, arg16_1));
+			m_voice_printf(M_VOICE_COMMS, "esp32 asks: how many transformers in profile %d? answer: %d\n", arg16_1, cxt_get_n_profile_transformers(&global_cxt, arg16_1));
 			response = create_m_response(M_RESPONSE_N_TRANSFORMERS, "ss", arg16_1,
 									 cxt_get_n_profile_transformers(&global_cxt, arg16_1));
 			break;
 		
 		case M_MESSAGE_GET_TRANSFORMER_ID:
-			m_printf("esp32 asks: what is the id of the transformer in position %d in profile %d? answer: %d\n", arg16_2, arg16_1, cxt_get_tid_by_pos(&global_cxt, arg16_1, arg16_2));
+			m_voice_printf(M_VOICE_COMMS, "esp32 asks: what is the id of the transformer in position %d in profile %d? answer: %d\n", arg16_2, arg16_1, cxt_get_tid_by_pos(&global_cxt, arg16_1, arg16_2));
 			response = create_m_response(M_RESPONSE_TRANSFORMER_TYPE, "sss", arg16_1, arg16_2,
 									 cxt_get_tid_by_pos(&global_cxt, arg16_1, arg16_2));
 			break;
 		
 		case M_MESSAGE_GET_TRANSFORMER_TYPE:
-			m_printf("esp32 asks: what is the type of transformer %d.%d? answer: %d\n", arg16_1, arg16_2, cxt_get_transformer_type(&global_cxt, arg16_1, arg16_2));
+			m_voice_printf(M_VOICE_COMMS, "esp32 asks: what is the type of transformer %d.%d? answer: %d\n", arg16_1, arg16_2, cxt_get_transformer_type(&global_cxt, arg16_1, arg16_2));
 			response = create_m_response(M_RESPONSE_TRANSFORMER_TYPE, "sss", arg16_1, arg16_2,
 									 cxt_get_transformer_type(&global_cxt, arg16_1, arg16_2));
 			break;
 		
 		case M_MESSAGE_GET_N_PARAMETERS:
-			m_printf("esp32 asks: what is the n_parameters of transformer %d.%d? answer: %d\n", arg16_1, arg16_2, cxt_get_n_transformer_params(&global_cxt, arg16_1, arg16_2));
+			m_voice_printf(M_VOICE_COMMS, "esp32 asks: what is the n_parameters of transformer %d.%d? answer: %d\n", arg16_1, arg16_2, cxt_get_n_transformer_params(&global_cxt, arg16_1, arg16_2));
 			response = create_m_response(M_RESPONSE_N_PARAMETERS, "sss", arg16_1, arg16_2,
 									 cxt_get_n_transformer_params(&global_cxt, arg16_1, arg16_2));
 			break;
 		
 		case M_MESSAGE_GET_PARAM_VALUE:
-			m_printf("Request for value of parameter %d.%d.%d...\n", arg16_1, arg16_2, arg16_3);
+			m_voice_printf(M_VOICE_COMMS, "Request for value of parameter %d.%d.%d...\n", arg16_1, arg16_2, arg16_3);
 			
 			param = cxt_get_parameter_by_id(&global_cxt, arg16_1, arg16_2, arg16_3);
 			
 			if (param)
 			{
-				m_printf("Request valid. Parameter ptr: 0x%08x, value %f\n", param, param->value);
+				m_voice_printf(M_VOICE_COMMS, "Request valid. Parameter ptr: 0x%08x, value %f\n", param, param->value);
 				response = create_m_response(M_RESPONSE_PARAM_VALUE, "sss", arg16_1, arg16_2, arg16_3);
 				memcpy(&response.data[6], &param->value, sizeof(float));
 			}
 			else
 			{
-				m_printf("Requested parameter doesn't exist !\n");
+				m_voice_printf(M_VOICE_COMMS, "Requested parameter doesn't exist !\n");
 				response.type = M_RESPONSE_BAD_REQUEST;
 			}
 			break;
@@ -209,13 +209,13 @@ void handle_esp32_message(m_message msg)
 		case M_MESSAGE_SET_PARAM_VALUE:
 			memcpy(&value_f, &msg.data[6], sizeof(float));
 			
-			m_printf("Request to set parameter %d.%d.%d to value %f\n", arg16_1, arg16_2, arg16_3, value_f);
+			m_voice_printf(M_VOICE_COMMS, "Request to set parameter %d.%d.%d to value %f\n", arg16_1, arg16_2, arg16_3, value_f);
 			
 			ret_val = cxt_update_parameter_value_by_id(&global_cxt, arg16_1, arg16_2, arg16_3, value_f);
 			
 			if (ret_val != NO_ERROR)
 			{
-				printf("Failed! Error: %s\n", m_error_code_to_string(ret_val));
+				m_voice_printf(M_VOICE_COMMS, "Failed! Error: %s\n", m_error_code_to_string(ret_val));
 				response = create_m_response_error(ret_val);
 			}
 			else
@@ -227,25 +227,24 @@ void handle_esp32_message(m_message msg)
 			break;
 		
 		case M_MESSAGE_GET_N_SETTINGS:
-			m_printf("esp32 asks: what is the n_settings of transformer %d.%d? answer: %d\n", arg16_1, arg16_2, cxt_get_n_transformer_settings(&global_cxt, arg16_1, arg16_2));
+			m_voice_printf(M_VOICE_COMMS, "esp32 asks: what is the n_settings of transformer %d.%d? answer: %d\n", arg16_1, arg16_2, cxt_get_n_transformer_settings(&global_cxt, arg16_1, arg16_2));
 			response = create_m_response(M_RESPONSE_N_SETTINGS, "sss", arg16_1, arg16_2,
 									 cxt_get_n_transformer_settings(&global_cxt, arg16_1, arg16_2));
 			break;
 		
 		case M_MESSAGE_GET_SETTING_VALUE:
-			m_printf("Request for value of setting %d.%d.%d...\n", arg16_1, arg16_2, arg16_3);
+			m_voice_printf(M_VOICE_COMMS, "Request for value of setting %d.%d.%d...\n", arg16_1, arg16_2, arg16_3);
 			
 			setting = cxt_get_setting_by_id(&global_cxt, arg16_1, arg16_2, arg16_3);
 			
 			if (setting)
 			{
-				m_printf("Request valid. Parameter ptr: 0x%08x, value %d\n", setting, setting->value);
-				response = create_m_response(M_RESPONSE_SETTING_VALUE, "sss", arg16_1, arg16_2, arg16_3);
-				memcpy(&response.data[6], &setting->value, sizeof(uint16_t));
+				m_voice_printf(M_VOICE_COMMS, "Request valid. Setting ptr: 0x%08x, value %d\n", setting, setting->value);
+				response = create_m_response(M_RESPONSE_SETTING_VALUE, "ssss", arg16_1, arg16_2, arg16_3, setting->value);
 			}
 			else
 			{
-				m_printf("Requested setting doesn't exist !\n");
+				m_voice_printf(M_VOICE_COMMS, "Requested setting doesn't exist !\n");
 				response.type = M_RESPONSE_BAD_REQUEST;
 			}
 			break;
@@ -253,14 +252,14 @@ void handle_esp32_message(m_message msg)
 		case M_MESSAGE_SET_SETTING_VALUE:
 			memcpy(&value_i, &msg.data[6], sizeof(int16_t));
 			
-			m_printf("Request to set setting %d.%d.%d to value %d\n", arg16_1, arg16_2, arg16_3, value_i);
+			m_voice_printf(M_VOICE_COMMS, "Request to set setting %d.%d.%d to value %d\n", arg16_1, arg16_2, arg16_3, value_i);
 			ret_val = cxt_update_setting_value_by_id(&global_cxt, arg16_1, arg16_2, arg16_3, value_i);
 			
 			response = create_m_response_error(ret_val);
 			break;
 		
 		case M_MESSAGE_SWITCH_PROFILE:
-			m_printf("Profile switch requested; to profile %d\n", arg16_1);
+			m_voice_printf(M_VOICE_COMMS, "Profile switch requested; to profile %d\n", arg16_1);
 			if (arg16_1 < global_cxt.n_profiles)
 			{
 				ret_val = cxt_switch_to_profile(&global_cxt, arg16_1);
@@ -270,11 +269,11 @@ void handle_esp32_message(m_message msg)
 				else
 					response = create_m_response(M_RESPONSE_SWITCHING_PROFILE, "s", arg16_1);
 				
-				m_printf("Request valid; swwitching. Error code: %d\n", ret_val);
+				m_voice_printf(M_VOICE_COMMS, "Request valid; swwitching. Error code: %d\n", ret_val);
 			}
 			else
 			{
-				m_printf("No such profile exists!\n");
+				m_voice_printf(M_VOICE_COMMS, "No such profile exists!\n");
 				response = create_m_response_nodata(M_RESPONSE_BAD_REQUEST);
 			}
 			break;
@@ -365,10 +364,12 @@ void i2c_receive_isr(int n)
 	}
 	
 	//for (int i = 0; i < n; i++)
-	//	m_printf("%d%s", receive_buffer[i], (i < n - 1) ? ", " : "\n");
+	//	m_voice_printf(M_VOICE_COMMS, "%d%s", receive_buffer[i], (i < n - 1) ? ", " : "\n");
 	
 	m_eng_enable_software_interrupts();
 }
+
+#define PRINT_RESPONSE_BYTES
 
 void i2c_request_isr()
 {
@@ -385,9 +386,12 @@ void i2c_request_isr()
 		
 		prev_response = response;
 		#ifdef PRINT_RESPONSE_BYTES
-		m_printf("Sent response:\n\t");
-		for (int i = 0; i < M_RESPONSE_MAX_TRANSFER_LEN; i++)
-			m_printf("0x%02x%s", response_buffer[i], (i == M_RESPONSE_MAX_TRANSFER_LEN - 1) ? "\n" : " ");
+		if (response.type != M_RESPONSE_HI)
+		{
+			m_voice_printf(M_VOICE_COMMS, "Sent response:\n\t");
+			for (int i = 0; i < M_RESPONSE_MAX_TRANSFER_LEN; i++)
+				m_voice_printf(M_VOICE_COMMS, "0x%02x%s", response_buffer[i], (i == M_RESPONSE_MAX_TRANSFER_LEN - 1) ? "\n" : " ");
+		}
 		#endif
 	}
 	else

@@ -5,7 +5,6 @@
 
 typedef struct
 {
-	//m_eng_graph pipeline;
 	m_pipeline *front_pipeline;
 	m_pipeline *back_pipeline;
 	
@@ -16,7 +15,7 @@ typedef struct
 	int back_pipeline_warmed_up;
 	
 	m_pipeline_mod_ll *jobs;
-	m_pipeline_mod_ll *ujobs;
+	m_pipeline_mod_ll *blocked_jobs;
 	
 	int active;
 	int transition_policy;
@@ -24,6 +23,8 @@ typedef struct
 	float *prev_block;
 	
 	m_transformer output_amp;
+	
+	int runs;
 } m_eng_profile;
 
 int nullify_profile(m_eng_profile *profile);

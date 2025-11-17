@@ -49,22 +49,24 @@ int init_m_eng_context(m_eng_context *cxt)
 	cxt->profile_maintainance_index = 0;
 	
 	init_low_pass_filter_str(&cxt->input_lpf);
-	cxt->input_lpf.cutoff_frequency.value = 20000.0;
+	cxt->input_lpf.cutoff_frequency.value = 21000.0;
 	reconfigure_low_pass_filter(&cxt->input_lpf);
 	
 	init_high_pass_filter_str(&cxt->output_hpf);
-	cxt->output_hpf.cutoff_frequency.value = 5.0;
+	cxt->output_hpf.cutoff_frequency.value = 1.0;
 	reconfigure_high_pass_filter(&cxt->output_hpf);
 	
 	ret_val = init_transformer(&cxt->output_amp, TRANSFORMER_AMPLIFIER);
 	
 	((m_eng_amplifier_str*)cxt->output_amp.data_struct)->mode.value 	= M_ENG_AMPLIFIER_DB;
-	((m_eng_amplifier_str*)cxt->output_amp.data_struct)->gain.value 	= -90.0;
-	((m_eng_amplifier_str*)cxt->output_amp.data_struct)->gain.old_value = -90.0;
-	((m_eng_amplifier_str*)cxt->output_amp.data_struct)->gain.new_value = -90.0;
+	((m_eng_amplifier_str*)cxt->output_amp.data_struct)->gain.value 	= -60.0;
+	((m_eng_amplifier_str*)cxt->output_amp.data_struct)->gain.old_value = -60.0;
+	((m_eng_amplifier_str*)cxt->output_amp.data_struct)->gain.new_value = -60.0;
 	((m_eng_amplifier_str*)cxt->output_amp.data_struct)->gain.updated 	= 1;
 	
 	cxt->runs = 0;
+	
+	cxt->dc_blocker_avg = 0.0;
 	
 	RETURN_ERR_CODE(ret_val);
 }
@@ -283,6 +285,8 @@ int cxt_update_parameter_value_by_id(m_eng_context *cxt, uint16_t pid, uint16_t 
 {
 	FUNCTION_START();
 
+	printf("cxt_update_parameter_value_by_id\n");
+
 	if (!cxt)
 	{
 		RETURN_ERR_CODE(ERR_NULL_PTR);
@@ -310,8 +314,11 @@ int cxt_update_parameter_value_by_id(m_eng_context *cxt, uint16_t pid, uint16_t 
 	
 	m_transformer *front_trans = pipeline_get_transformer_by_id(cxt->profiles[pid].front_pipeline, tid);
 	
+	
+	
 	if (!front_trans)
 	{
+		m_printf("Could not retrieve transformer; it has invalid ID %d.%d\n", pid, tid);
 		RETURN_ERR_CODE(ERR_INVALID_TRANSFORMER_ID);
 	}
 	
@@ -387,6 +394,8 @@ int cxt_update_setting_value_by_id(m_eng_context *cxt, uint16_t pid, uint16_t ti
 {
 	FUNCTION_START();
 
+	m_voice_printf(M_VOICE_CXT, "cxt_update_setting_value_by_id(cxt=%p, pid=%d, tid=%d, sid=%d, new_value=%d)\n",
+		cxt, pid, tid, sid, new_value);
 	if (!cxt)
 	{
 		RETURN_ERR_CODE(ERR_NULL_PTR);
@@ -890,6 +899,12 @@ int cxt_process(m_eng_context *cxt)
 	
 	run_transformer(&cxt->output_amp, dest, tmp);
 	
+	// Kill off any DC
+	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
+	{
+		cxt->dc_blocker_avg = DC_BLOCKER_ALPHA * cxt->dc_blocker_avg + (1.0 - DC_BLOCKER_ALPHA) * dest[i];
+		dest[i] -= cxt->dc_blocker_avg;
+	}
 	// Finally, clamp the results to [-1, 1]
 	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
 		dest[i] = (dest[i] < -1.0) ? -1.0 : ((dest[i] > 1.0) ? 1.0 : dest[i]);

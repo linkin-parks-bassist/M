@@ -27,6 +27,10 @@ DMAChannel i2s_out_dma(false);
 raw_sample_t i2s_input_blocks [2][AUDIO_BLOCK_SAMPLES];
 raw_sample_t i2s_output_blocks[2][AUDIO_BLOCK_SAMPLES];
 
+static uint64_t blocks_consumed = 0;
+static uint64_t blocks_transmitted = 0;
+static uint64_t underruns = 0;
+
 void configure_i2s_dma()
 {
 	FUNCTION_START();
@@ -315,6 +319,8 @@ void i2s_in_transmit(raw_sample_t *block, unsigned char index)
 	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
 		i2s_input_blocks[index][i] = block[i];
 	
+	blocks_consumed++;
+	
 	RETURN_VOID();
 }
 
@@ -438,6 +444,7 @@ void i2s_output_transmit_mono_int(raw_sample_t *block)
 	{
 		for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
 		{
+			M_LOG("Error: NULL block transmitted");
 			i2s_output_blocks[0][i] = 0;
 			i2s_output_blocks[1][i] = 0;
 		}
@@ -451,6 +458,8 @@ void i2s_output_transmit_mono_int(raw_sample_t *block)
 		}
 	}
 	
+	blocks_transmitted++;
+	
 	RETURN_VOID();
 }
 
@@ -461,6 +470,7 @@ void i2s_output_transmit_mono_float(float *block)
 	{
 		for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
 		{
+			M_LOG("Error: NULL block transmitted");
 			i2s_output_blocks[0][i] = 0;
 			i2s_output_blocks[1][i] = 0;
 		}
@@ -468,6 +478,15 @@ void i2s_output_transmit_mono_float(float *block)
 	
 	convert_block_float_to_int(i2s_output_blocks[0], block);
 	convert_block_float_to_int(i2s_output_blocks[1], block);
+	
+	blocks_transmitted += 2;
+	
+	if (blocks_transmitted + underruns < blocks_consumed)
+	{
+		M_LOG("CATASTROPHE: UNDERRUN. blocks_transmitted + underruns = %llu + %llu < blocks_comsumed = %llu. Total underruns: %d\n",
+			blocks_transmitted, underruns, blocks_consumed, blocks_consumed - blocks_transmitted);
+		underruns = blocks_consumed - blocks_transmitted;
+	}
 	
 	RETURN_VOID();
 }

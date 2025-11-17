@@ -178,4 +178,58 @@ static inline void m_scale_in_place_f32(float *x, float s, uint32_t n)
 	}
 }
 
+static inline void m_linterpolate_f32(float *dest, float *x, float *y, float t, uint32_t n)
+{
+	if (dest && x && y)
+	{
+		if (t <= 0.0)
+		{
+			memcpy(dest, x, n * sizeof(float));
+		}
+		if (t >= 1.0)
+		{
+			memcpy(dest, y, n * sizeof(float));
+		}
+		else
+		{
+			int i = 0;
+			for (; i + 3 < n; i += 4)
+			{
+				dest[i    ] = (1.0 - t) * x[i    ] + t * y[i    ];
+				dest[i + 1] = (1.0 - t) * x[i + 1] + t * y[i + 1];
+				dest[i + 2] = (1.0 - t) * x[i + 2] + t * y[i + 2];
+				dest[i + 3] = (1.0 - t) * x[i + 3] + t * y[i + 3];
+			}
+			for (; i < n; i++) dest[i] = (1.0 - t) * x[i] + t * y[i];
+		}
+	}
+}
+
+static inline void m_mix_in_f32(float *x, float *y, float t, uint32_t n)
+{
+	if (x && y)
+	{
+		if (t <= 0.0)
+		{
+			return;
+		}
+		if (t >= 1.0)
+		{
+			memcpy(x, y, n * sizeof(float));
+		}
+		else
+		{
+			int i = 0;
+			for (; i + 3 < n; i += 4)
+			{
+				x[i    ] = (1.0 - t) * x[i    ] + t * y[i    ];
+				x[i + 1] = (1.0 - t) * x[i + 1] + t * y[i + 1];
+				x[i + 2] = (1.0 - t) * x[i + 2] + t * y[i + 2];
+				x[i + 3] = (1.0 - t) * x[i + 3] + t * y[i + 3];
+			}
+			for (; i < n; i++) x[i] = (1.0 - t) * x[i] + t * y[i];
+		}
+	}
+}
+
 #endif

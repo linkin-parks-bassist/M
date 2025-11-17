@@ -14,6 +14,8 @@
 
 #define CLICK_SLOPE_THRESHOLD 0.5
 
+#define DC_BLOCKER_ALPHA 0.999
+
 //#define PRINT_TIMES
 //#define PRINT_BLOCKS
 //#define PRETTY_PRINT_BLOCKS
@@ -50,6 +52,8 @@ typedef struct
 	m_eng_high_pass_filter_str output_hpf;
 	m_eng_low_pass_filter_str input_lpf;
 	m_transformer output_amp;
+	
+	float dc_blocker_avg;
 } m_eng_context;
 
 int init_m_eng_context(m_eng_context *cxt);

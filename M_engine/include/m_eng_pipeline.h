@@ -26,7 +26,7 @@ m_transformer *pipeline_get_transformer_by_id(m_pipeline *pipeline, uint16_t id)
 
 int pipeline_move_transformer(m_pipeline *pipeline, uint16_t id, int positio);
 
-int pipeline_transition_policy(m_pipeline *pipeline);
+int pipeline_update_transition_policy(m_pipeline *pipeline);
 
 int pipeline_swap_transformers(m_pipeline *pipeline, uint16_t id1, uint16_t id2);
 

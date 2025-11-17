@@ -86,7 +86,7 @@ void print_pipeline_info(m_pipeline *pipeline, int depth)
 {
 	FUNCTION_START();
 	
-	m_printf("\n~~~PIPE_LINE INFO~~~\n");
+	m_printf("\n~~~PIPELINE INFO~~~\n");
 	
 	m_printf("Memory address: %p\n", pipeline);
 	

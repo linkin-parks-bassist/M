@@ -1,5 +1,9 @@
 #include "m_eng.h"
 
+#ifdef M_SIMULATED
+#include <time.h>
+#endif
+
 static const char *FNAME = "m_eng_globals.c";
 
 m_eng_context global_cxt;
@@ -45,8 +49,17 @@ uint64_t current_cycle()
 	
 	return (((uint64_t)cycles_upper << 32) | ARM_DWT_CYCCNT);
 	#else
-	static uint64_t count = 0;
+	static double start = 0.0;
 	
-	return count++;
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	
+	if (start == 0.0)
+	{
+		start = ts.tv_sec + ((double)ts.tv_nsec * 1e-9);
+		clock_gettime(CLOCK_MONOTONIC, &ts);
+	}
+	
+	return (uint64_t)SECONDS_TO_CYCLES(((double)ts.tv_sec + ((double)ts.tv_nsec * 1e-9d)) - start);
 	#endif
 }

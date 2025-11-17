@@ -5,6 +5,8 @@ static const char *FNAME = "m_eng_transformer_init.c";
 
 int init_3_band_eq(m_transformer *trans)
 {
+	FUNCTION_START();
+
 	if (!trans)
 	{
 		RETURN_ERR_CODE(ERR_NULL_PTR);
@@ -63,6 +65,8 @@ int init_3_band_eq(m_transformer *trans)
 
 int init_amplifier(m_transformer *trans)
 {
+	FUNCTION_START();
+
 	if (!trans)
 	{
 		RETURN_ERR_CODE(ERR_NULL_PTR);
@@ -115,6 +119,8 @@ int init_amplifier(m_transformer *trans)
 
 int init_band_pass_filter(m_transformer *trans)
 {
+	FUNCTION_START();
+
 	if (!trans)
 	{
 		RETURN_ERR_CODE(ERR_NULL_PTR);
@@ -167,6 +173,8 @@ int init_band_pass_filter(m_transformer *trans)
 
 int init_compressor(m_transformer *trans)
 {
+	FUNCTION_START();
+
 	if (!trans)
 	{
 		RETURN_ERR_CODE(ERR_NULL_PTR);
@@ -229,8 +237,70 @@ int init_compressor(m_transformer *trans)
 	RETURN_ERR_CODE(ret_val);
 }
 
+int init_delay(m_transformer *trans)
+{
+	FUNCTION_START();
+
+	if (!trans)
+	{
+		RETURN_ERR_CODE(ERR_NULL_PTR);
+	}
+
+	int ret_val = transformer_init_controls(trans);
+	if (ret_val != NO_ERROR)
+	{
+		RETURN_ERR_CODE(ret_val);
+	}
+
+	trans->type = TRANSFORMER_DELAY;
+
+	trans->compute_transformer    = calc_delay;
+	trans->compute_transformer_nl = NULL;
+	trans->transition_policy = TRANSFORMER_TRANSITION_TAIL;
+
+	ret_val = transformer_init_parameter_array(trans, 1);
+	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
+	ret_val = transformer_init_setting_array(trans, 2);
+	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
+	m_eng_delay_str *str = (m_eng_delay_str*)m_alloc(sizeof(m_eng_delay_str));
+	trans->data_struct = (void*)str;
+
+	if (!str)
+	{
+		RETURN_ERR_CODE(ERR_ALLOC_FAIL);
+	}
+
+	trans->reconfigure = reconfigure_delay;
+	trans->free_struct = NULL;
+
+	init_parameter(&str->delay_gain, -6.0, -12, 0.0, 0.006, PARAMETER_SCALE_LINEAR);
+	if ((ret_val = transformer_add_parameter(trans, &str->delay_gain)) != NO_ERROR)
+	{
+		RETURN_ERR_CODE(ret_val);
+	}
+
+	init_setting(&str->tempo, 120);
+	if ((ret_val = transformer_add_setting(trans, &str->tempo)) != NO_ERROR)
+	{
+		RETURN_ERR_CODE(ret_val);
+	}
+
+	init_setting(&str->note, 4);
+	if ((ret_val = transformer_add_setting(trans, &str->note)) != NO_ERROR)
+	{
+		RETURN_ERR_CODE(ret_val);
+	}
+
+	trans->clone_struct = NULL;
+	trans->struct_size = sizeof(m_eng_delay_str);
+	ret_val = init_delay_str(str);
+	RETURN_ERR_CODE(ret_val);
+}
+
 int init_dirty_octave(m_transformer *trans)
 {
+	FUNCTION_START();
+
 	if (!trans)
 	{
 		RETURN_ERR_CODE(ERR_NULL_PTR);
@@ -277,6 +347,8 @@ int init_dirty_octave(m_transformer *trans)
 
 int init_distortion(m_transformer *trans)
 {
+	FUNCTION_START();
+
 	if (!trans)
 	{
 		RETURN_ERR_CODE(ERR_NULL_PTR);
@@ -296,7 +368,7 @@ int init_distortion(m_transformer *trans)
 
 	ret_val = transformer_init_parameter_array(trans, 4);
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
-	ret_val = transformer_init_setting_array(trans, 0);
+	ret_val = transformer_init_setting_array(trans, 1);
 	if (ret_val != NO_ERROR) { RETURN_ERR_CODE(ret_val); }
 	m_eng_distortion_str *str = (m_eng_distortion_str*)m_alloc(sizeof(m_eng_distortion_str));
 	trans->data_struct = (void*)str;
@@ -333,6 +405,12 @@ int init_distortion(m_transformer *trans)
 		RETURN_ERR_CODE(ret_val);
 	}
 
+	init_setting(&str->function, 0);
+	if ((ret_val = transformer_add_setting(trans, &str->function)) != NO_ERROR)
+	{
+		RETURN_ERR_CODE(ret_val);
+	}
+
 	trans->clone_struct = NULL;
 	trans->struct_size = sizeof(m_eng_distortion_str);
 	ret_val = init_distortion_str(str);
@@ -341,6 +419,8 @@ int init_distortion(m_transformer *trans)
 
 int init_envelope(m_transformer *trans)
 {
+	FUNCTION_START();
+
 	if (!trans)
 	{
 		RETURN_ERR_CODE(ERR_NULL_PTR);
@@ -417,6 +497,8 @@ int init_envelope(m_transformer *trans)
 
 int init_flanger(m_transformer *trans)
 {
+	FUNCTION_START();
+
 	if (!trans)
 	{
 		RETURN_ERR_CODE(ERR_NULL_PTR);
@@ -487,6 +569,8 @@ int init_flanger(m_transformer *trans)
 
 int init_high_pass_filter(m_transformer *trans)
 {
+	FUNCTION_START();
+
 	if (!trans)
 	{
 		RETURN_ERR_CODE(ERR_NULL_PTR);
@@ -533,6 +617,8 @@ int init_high_pass_filter(m_transformer *trans)
 
 int init_low_end_compressor(m_transformer *trans)
 {
+	FUNCTION_START();
+
 	if (!trans)
 	{
 		RETURN_ERR_CODE(ERR_NULL_PTR);
@@ -621,6 +707,8 @@ int init_low_end_compressor(m_transformer *trans)
 
 int init_low_pass_filter(m_transformer *trans)
 {
+	FUNCTION_START();
+
 	if (!trans)
 	{
 		RETURN_ERR_CODE(ERR_NULL_PTR);
@@ -667,6 +755,8 @@ int init_low_pass_filter(m_transformer *trans)
 
 int init_noise_suppressor(m_transformer *trans)
 {
+	FUNCTION_START();
+
 	if (!trans)
 	{
 		RETURN_ERR_CODE(ERR_NULL_PTR);
@@ -725,6 +815,8 @@ int init_noise_suppressor(m_transformer *trans)
 
 int init_percussifier(m_transformer *trans)
 {
+	FUNCTION_START();
+
 	if (!trans)
 	{
 		RETURN_ERR_CODE(ERR_NULL_PTR);
@@ -807,6 +899,8 @@ int init_percussifier(m_transformer *trans)
 
 int init_warbler(m_transformer *trans)
 {
+	FUNCTION_START();
+
 	if (!trans)
 	{
 		RETURN_ERR_CODE(ERR_NULL_PTR);
@@ -894,6 +988,7 @@ int init_transformer(m_transformer *trans, uint16_t type)
 		case TRANSFORMER_AMPLIFIER:          return init_amplifier(trans);
 		case TRANSFORMER_BAND_PASS_FILTER:   return init_band_pass_filter(trans);
 		case TRANSFORMER_COMPRESSOR:         return init_compressor(trans);
+		case TRANSFORMER_DELAY:              return init_delay(trans);
 		case TRANSFORMER_DIRTY_OCTAVE:       return init_dirty_octave(trans);
 		case TRANSFORMER_DISTORTION:         return init_distortion(trans);
 		case TRANSFORMER_ENVELOPE:           return init_envelope(trans);

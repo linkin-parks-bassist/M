@@ -1,3 +1,3 @@
 #!/bin/bash
 
-make && make upload && ./monitor.sh
+make && make flash && sleep 0.5 && ./monitor.sh

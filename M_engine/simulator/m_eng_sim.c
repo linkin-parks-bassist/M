@@ -126,24 +126,24 @@ void generate_band_isolation_test_msg_queue(int start)
 	
 	add_message_to_queue(create_m_message(M_MESSAGE_SET_SETTING_VALUE, "ssss", 0, 0, TRANSFORMER_BAND_MODE_SID, TRANSFORMER_MODE_BAND), start + 8 * i + 256 * j + 4);
 	
-	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_HP_CUTOFF_PID, 1000.0), start + 8 * i + 256 * j);
-	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_LP_CUTOFF_PID, 100.0 ), start + 8 * i + 256 * j++ + 4);
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_LP_CUTOFF_PID, 30.0), start + 8 * i + 256 * j);
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_HP_CUTOFF_PID, 100.0 ), start + 8 * i + 256 * j++ + 4);
 	
-	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_HP_CUTOFF_PID, 10000.0), start + 8 * i + 256 * j);
-	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_LP_CUTOFF_PID, 500.0 ), start + 8 * i + 256 * j++ + 4);
-	
-	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_HP_CUTOFF_PID, 30.0), start + 8 * i + 256 * j);
-	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_LP_CUTOFF_PID, 1.0 ), start + 8 * i + 256 * j++ + 4);
-	
-	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_HP_CUTOFF_PID, 3000.0), start + 8 * i + 256 * j);
-	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_LP_CUTOFF_PID, 1.0 ), start + 8 * i + 256 * j++ + 4);
-	
-	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_LP_CUTOFF_PID, 800.0), start + 8 * i + 256 * j);
-	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_HP_CUTOFF_PID, 900.0), start + 8 * i + 256 * j++ + 4);
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_LP_CUTOFF_PID, 30.0), start + 8 * i + 256 * j);
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_HP_CUTOFF_PID, 19000.0 ), start + 8 * i + 256 * j++ + 4);
 	
 	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_LP_CUTOFF_PID, 2000.0), start + 8 * i + 256 * j);
-	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_HP_CUTOFF_PID, 400.0), start + 8 * i + 256 * j++ + 4);
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_HP_CUTOFF_PID, 19000.0 ), start + 8 * i + 256 * j++ + 4);
 	
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_LP_CUTOFF_PID, 15000.0), start + 8 * i + 256 * j);
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_HP_CUTOFF_PID, 19000.0 ), start + 8 * i + 256 * j++ + 4);
+	
+	
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_LP_CUTOFF_PID, 300.0), start + 8 * i + 256 * j);
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_HP_CUTOFF_PID, 1500.0 ), start + 8 * i + 256 * j++ + 4);
+	
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_LP_CUTOFF_PID, 1500.0), start + 8 * i + 256 * j);
+	add_message_to_queue(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0, 0, TRANSFORMER_BAND_HP_CUTOFF_PID, 300.0 ), start + 8 * i + 256 * j++ + 4);
 	
 }
 
@@ -175,7 +175,7 @@ int main(int argc, char **argv)
 		abort();
 	}
 	
-	int n_blocks = 1 << 15;
+	int n_blocks = 12000;
 	
 	m_mute_voice(M_VOICE_COMMS);
 	

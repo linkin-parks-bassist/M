@@ -23,7 +23,16 @@
 #endif
 #endif
 
-#define DC_BLOCKER_ALPHA 0.999
+#ifdef M_SIMULATED
+ #define DMAMEM
+ #define FLASHMEM
+ #define __enable_irq()
+ #define __disable_irq()
+ #define PI   3.14159265
+#else
+ #include <arm_math.h>
+ #include "utility/imxrt_hw.h"
+#endif
 
 #ifdef __cplusplus
  #include <cstdint>
@@ -43,21 +52,25 @@
  #include <math.h>
 #endif
 
-#ifdef M_SIMULATED
- #define DMAMEM
- #define FLASHMEM
- #define __enable_irq()
- #define __disable_irq()
- #define PI   3.14159265
-#else
- #include <arm_math.h>
- #include "utility/imxrt_hw.h"
-#endif
-
 #define LN_2 0.69314718055994530942
 
-#define MS_TO_SAMPLES(x) (((x) / 1000.0) * AUDIO_SAMPLE_RATE)
+#define S_TO_SAMPLES(x) 	((int)(ceilf((float)(x) * AUDIO_SAMPLE_RATE)))
+#define SAMPLES_TO_S(x) 	((float)(x) / (float)AUDIO_SAMPLE_RATE)
+
+#define MS_TO_SAMPLES(x) 	((int)(ceilf((((float)(x) / 1000.0) * AUDIO_SAMPLE_RATE))))
+#define SAMPLES_TO_MS(x) 	(((float)(x)  * 1000.0) / (float)AUDIO_SAMPLE_RATE)
+
 #define AUDIO_BLOCK_MS		(((float)AUDIO_BLOCK_SAMPLES * 1000.0) / (float)AUDIO_SAMPLE_RATE)
+
+#define ALLOW_PRINTLINES
+#define M_VOICE_ERR		0
+#define M_VOICE_COMMS	1
+#define M_VOICE_CXT		2
+#define M_VOICE_TR		3
+#define M_VOICE_PL		4
+#define M_VOICE_PR		5
+#define M_VOICE_LOG		6
+#define M_VOICE_PRF		7
 
 //#define ENABLE_LOGGING
 
@@ -92,6 +105,8 @@
 #include "m_eng_transformer.h"
 #include "m_eng_transformer_init.h"
 
+#include "m_eng_delay_buffer.h"
+
 #include "m_eng_buffer_mixer_amp.h"
 #include "m_eng_linkowitz_riley.h"
 #include "m_eng_equaliser.h"
@@ -109,6 +124,7 @@
 #include "m_eng_envelope.h"
 #include "m_eng_flanger.h"
 #include "m_eng_warbler.h"
+#include "m_eng_delay.h"
 
 #ifdef GRAPH_PIPELINE
 #include "m_eng_graph.h"
@@ -129,12 +145,10 @@
 
 #include "m_eng_transition.h"
 
+#include "m_eng_printf.h"
 #include "m_eng_debugging.h"
 
-#ifndef M_SIMULATED
-#include "m_eng_printf.h"
-#else
-#define m_printf printf
+#ifdef M_SIMULATED
 #include "m_eng_sim.h"
 #endif
 

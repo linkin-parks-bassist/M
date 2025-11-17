@@ -8,7 +8,7 @@
 #ifdef M_SIMULATED
 #define M_BUFFER_POOL_SIZE 8192
 #else
-#define M_BUFFER_POOL_SIZE 96
+#define M_BUFFER_POOL_SIZE 128
 #endif
 
 float *allocate_buffer();

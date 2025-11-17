@@ -1,1 +1,3 @@
-arduino-cli monitor -p /dev/serial/by-id/usb-Teensyduino_USB_Serial_17666120-if00 -c baudrate=115200
+path=/dev/serial/by-id/$(ls /dev/serial/by-id/ | grep Teensy)
+
+arduino-cli monitor -p $path -c baudrate=115200

@@ -3,9 +3,14 @@
 
 #define USE_GLOBAL_TEMP_BUFFERS
 
+#define M_DISTORTION_CLIP	0
+#define M_DISTORTION_TANH   1
+#define M_DISTORTION_ARCTAN 2
+#define M_DISTORTION_FOLD	3
+
 typedef struct
 {
-	m_setting type;
+	m_setting function;
 	
 	m_lr_low_pass_filter_str  low_pass;
 	

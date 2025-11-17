@@ -199,41 +199,51 @@ static inline void write_log_entry
 	increment_log_entry();
 }
 
-void m_eng_trace_log_begin(const char *fname, const char *line, const char *function, int local_trace_depth, uint32_t cycle)
+void m_eng_trace_log_begin(const char *fname, const char *line, const char *function, int local_trace_depth, uint64_t cycle)
 {
 	write_log_entry(M_ENG_TRACE_FUNCTION_ENTER, fname, line, function, "entered", 0, trace_depth, cycle);
 	trace_depth++;
 }
 
-void m_eng_trace_log_return(const char *fname, const char *line, const char *function, int local_trace_depth, uint32_t cycle)
+void m_eng_trace_log_return(const char *fname, const char *line, const char *function, int local_trace_depth, uint64_t cycle)
 {
 	write_log_entry(M_ENG_TRACE_FUNCTION_RETURN, fname, line, function, "returned", 0, trace_depth, cycle);
 	trace_depth--;
 }
 
-void m_eng_log_error_code(const char *fname, const char *line, const char *function, int error_code, uint32_t cycle)
+void m_eng_log_error_code(const char *fname, const char *line, const char *function, int error_code, uint64_t cycle)
 {
 	write_log_entry(M_ENG_LOG_ENTRY_ERROR, fname, line, function, "error: ", error_code, 0, cycle);
 }
 
-void m_eng_log_return_err(const char *fname, const char *line, const char *function, int error_code, uint32_t cycle)
+void m_eng_log_return_err(const char *fname, const char *line, const char *function, int error_code, uint64_t cycle)
 {
 	write_log_entry(M_ENG_LOG_ENTRY_RETURN_ERR, fname, line, function, "returned with error code ", error_code, 0, cycle);
 }
 
-void m_eng_log_return_ptr(const char *fname, const char *line, const char *function, void *ptr, uint32_t cycle)
+void m_eng_log_return_ptr(const char *fname, const char *line, const char *function, void *ptr, uint64_t cycle)
 {
 	write_log_entry(M_ENG_LOG_ENTRY_RETURN_PTR, fname, line, function, "returned with pointer ", (uint32_t)ptr, 0, cycle);
 }
 
-void m_eng_log_return_int(const char *fname, const char *line, const char *function, int val, uint32_t cycle)
+void m_eng_log_return_int(const char *fname, const char *line, const char *function, int val, uint64_t cycle)
 {
 	write_log_entry(M_ENG_LOG_ENTRY_RETURN_PTR, fname, line, function, "returned with integer ", val, 0, cycle);
 }
 
-void m_eng_log_return_(const char *fname, const char *line, const char *function, uint32_t cycle)
+void m_eng_log_return_(const char *fname, const char *line, const char *function, uint64_t cycle)
 {
 	write_log_entry(M_ENG_LOG_ENTRY_RETURN, fname, line, function, "returned something", 0, 0, cycle);
+}
+
+void m_eng_log_message(const char *fname, const char *line, const char *function, uint64_t cycle, const char *fmt, ...)
+{
+	char buf[1024];
+	va_list args;
+	va_start(args, fmt);
+	vsnprintf(buf, sizeof(buf), fmt, args);
+	va_end(args);
+	write_log_entry(M_ENG_LOG_ENTRY_MESSAGE, fname, line, function, m_strndup(buf, 1024), 0, 0, cycle);
 }
 
 #define LOG_ENTRIES_PRINT_BUF_LEN 4096
@@ -297,11 +307,8 @@ log_bufferize:
 		buf[LOG_ENTRIES_PRINT_BUF_LEN - 1] = 0;
 	}
 	
-	#ifndef M_SIMULATED
-	Serial.print(buf);
-	#else
-	puts(buf);
-	#endif
+	m_voice_printf(M_VOICE_LOG, buf);
+	
 	if (buf[(i < LOG_ENTRIES_PRINT_BUF_LEN) ? i - 1 : LOG_ENTRIES_PRINT_BUF_LEN - 2] != '\n')
 	{
 		#ifndef M_SIMULATED
@@ -327,11 +334,12 @@ void m_eng_init_profiler()
 		profiler_entries[i].open_cycle = 0;
 		profiler_entries[i].total_cycles = 0;
 		profiler_entries[i].calls = 0;
+		profiler_entries[i].peak_cycles = 0;
 		profiler_entries[i].ra_cycles = 0.0;
 	}
 }
 
-void m_eng_profiler_log_entry (const char *function_name)
+void m_eng_profiler_log_entry(const char *function_name)
 {
 	int index = -1;
 	
@@ -383,6 +391,19 @@ void m_eng_profiler_log_return(const char *function_name, uint64_t cycle)
 	
 	profiler_entries[index].total_cycles += call_cycles;
 	
+	if (call_cycles > profiler_entries[index].peak_cycles)
+	{
+		profiler_entries[index].peak_cycles = call_cycles;
+	}
+	
+	#if M_ENG_LOG_LEVEL & M_ENG_LOG_SPIKES
+	if (profiler_entries[index].calls > 50 && call_cycles >= 3 * profiler_entries[index].ra_cycles)
+	{
+		M_LOG("Warning: duration spike in function %s; call took %d cycles vs average of %.01f",
+			profiler_entries[index].function_name, call_cycles, profiler_entries[index].ra_cycles);
+	}
+	#endif
+	
 	profiler_entries[index].ra_cycles = M_ENG_PROFILER_RA_CYCLES_ALPHA * profiler_entries[index].ra_cycles + (1.0 - M_ENG_PROFILER_RA_CYCLES_ALPHA) * (double)call_cycles;
 	
 }
@@ -417,16 +438,21 @@ void m_eng_profiler_sort()
 
 void m_eng_profiler_print()
 {
-	m_printf("Profiler data\n\n");
+	m_voice_printf(M_VOICE_PRF, "Profiler data\n\n");
 	
 	m_eng_profiler_sort();
 	
 	for (int i = 0; i < profiler_entries_used; i++)
 	{
-		m_printf("Function: %s\n\tTotal calls: %d\n\tTotal cycles: %llu\n\tTotal time: %.3fms\n\tAverage cycles: %.3f\n\tAverage time: %.3fus\n\tRunning average cycles: %.3f\n\tRunning average time: %.3fus\n\n",
+		m_voice_printf(M_VOICE_PRF, "Function: %s\n\tTotal     calls: %d\n\n\tTotal    cycles: %llu\n\tTotal      time: %.3fms",
 			profiler_entries[i].function_name, profiler_entries[i].calls, profiler_entries[i].total_cycles,
-			CYCLES_TO_SECONDS(profiler_entries[i].total_cycles) * 1000.0, (double)profiler_entries[i].total_cycles / (double)profiler_entries[i].calls,
-			CYCLES_TO_SECONDS((double)profiler_entries[i].total_cycles / (double)profiler_entries[i].calls) * 1000000.0,
+			CYCLES_TO_SECONDS(profiler_entries[i].total_cycles) * 1000.0);
+		m_voice_printf(M_VOICE_PRF, "\n\tAverage  cycles: %.3f\n\tAverage    time: %.3fus",
+			(double)profiler_entries[i].total_cycles / (double)profiler_entries[i].calls,
+			CYCLES_TO_SECONDS((double)profiler_entries[i].total_cycles / (double)profiler_entries[i].calls) * 1000000.0);
+		m_voice_printf(M_VOICE_PRF, "\n\tPeak     cycles: %llu\n\tPeak       time: %.3fus\n",
+			profiler_entries[i].peak_cycles, CYCLES_TO_SECONDS(profiler_entries[i].peak_cycles) * 1000000.0);
+		m_voice_printf(M_VOICE_PRF, "\n\tRunning average cycles: %.3f\n\tRunning average   time: %.3fus\n\n",
 			profiler_entries[i].ra_cycles, CYCLES_TO_SECONDS(profiler_entries[i].ra_cycles) * 1000000.0);
 	}
 }

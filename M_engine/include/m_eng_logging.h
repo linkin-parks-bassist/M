@@ -4,10 +4,11 @@
 #define M_ENG_TRACE_FUNCTION_ENTER  	0
 #define M_ENG_TRACE_FUNCTION_RETURN 	1
 #define M_ENG_LOG_ENTRY_ERROR		 	2
-#define M_ENG_LOG_ENTRY_RETURN_ERR 	3
-#define M_ENG_LOG_ENTRY_RETURN_PTR 	4
-#define M_ENG_LOG_ENTRY_RETURN_INT 	5
+#define M_ENG_LOG_ENTRY_RETURN_ERR 		3
+#define M_ENG_LOG_ENTRY_RETURN_PTR 		4
+#define M_ENG_LOG_ENTRY_RETURN_INT 		5
 #define M_ENG_LOG_ENTRY_RETURN  		6
+#define M_ENG_LOG_ENTRY_MESSAGE  		7
 
 typedef struct
 {
@@ -28,50 +29,56 @@ typedef struct
 	uint64_t open_cycle;
 	uint64_t calls;
 	uint64_t total_cycles;
+	uint64_t peak_cycles;
 	double ra_cycles;
 } m_eng_profiler_entry;
 
-#define M_ENG_LOG_ERRORS 	0b0001
-#define M_ENG_LOG_TRACE  	0b0010
-#define M_ENG_LOG_RETURNS 	0b0100
+#define M_ENG_LOG_ERRORS 	0b00001
+#define M_ENG_LOG_TRACE  	0b00010
+#define M_ENG_LOG_RETURNS 	0b00100
+#define M_ENG_LOG_SPIKES 	0b01000
 
-#define M_ENG_LOG_EVERYTHING (M_ENG_LOG_ERRORS | M_ENG_LOG_TRACE | M_ENG_LOG_RETURNS)
+#define M_ENG_LOG_EVERYTHING (M_ENG_LOG_ERRORS | M_ENG_LOG_TRACE | M_ENG_LOG_RETURNS | M_ENG_LOG_SPIKES)
 
 #define STR(x) #x
 #define XSTR(x) (STR(x))
 
-//#define M_ENG_LOG_LEVEL M_ENG_LOG_ERRORS
+#ifndef M_SIMULATED
+#define M_ENG_LOG_LEVEL (M_ENG_LOG_ERRORS)
 //#define M_ENG_PROFILER
-
+#else
+#define M_ENG_LOG_LEVEL M_ENG_LOG_ERRORS
+#define M_ENG_PROFILER
+#endif
 
 #define M_ENG_LOG_INDENT_TRACE
 
 #ifdef  M_ENG_LOG_LEVEL
-	#if M_ENG_LOG_LEVEL & M_ENG_LOG_TRACE
-		#define M_ENG_TRACE_LOG_ENTRY()  m_eng_trace_log_begin (FNAME, XSTR(__LINE__), __func__, trace_depth, current_cycle());
-		#define M_ENG_TRACE_LOG_RETURN() m_eng_trace_log_return(FNAME, XSTR(__LINE__), __func__, trace_depth, current_cycle());
-	#endif
-	
-	#if M_ENG_LOG_LEVEL & M_ENG_LOG_RETURNS
-		#define M_ENG_LOG_RETURN_ERR_CODE(x)	m_eng_log_return_err(FNAME, XSTR(__LINE__), __func__, x, current_cycle());
-		#define M_ENG_LOG_RETURN_PTR(x) 		m_eng_log_return_ptr(FNAME, XSTR(__LINE__), __func__, x, current_cycle());
-		#define M_ENG_LOG_RETURN_INT(x) 		m_eng_log_return_int(FNAME, XSTR(__LINE__), __func__, x, current_cycle());
-		#define M_ENG_LOG_RETURN(x) 	 		m_eng_log_return_	(FNAME, XSTR(__LINE__), __func__,    current_cycle());
-	#endif
-	
-	#if M_ENG_LOG_LEVEL & M_ENG_LOG_ERRORS
-		#define M_ENG_LOG_ERROR(x) \
-			if (x != NO_ERROR) \
-				m_eng_log_error_code(FNAME, XSTR(__LINE__), __func__, x, current_cycle());
-	#endif
+  #if M_ENG_LOG_LEVEL & M_ENG_LOG_TRACE
+    #define M_ENG_TRACE_LOG_ENTRY()  m_eng_trace_log_begin (FNAME, XSTR(__LINE__), __func__, trace_depth, current_cycle());
+    #define M_ENG_TRACE_LOG_RETURN() m_eng_trace_log_return(FNAME, XSTR(__LINE__), __func__, trace_depth, current_cycle());
+  #endif
+  
+  #if M_ENG_LOG_LEVEL & M_ENG_LOG_RETURNS
+    #define M_ENG_LOG_RETURN_ERR_CODE(x)	m_eng_log_return_err(FNAME, XSTR(__LINE__), __func__, x, current_cycle());
+    #define M_ENG_LOG_RETURN_PTR(x)			m_eng_log_return_ptr(FNAME, XSTR(__LINE__), __func__, x, current_cycle());
+    #define M_ENG_LOG_RETURN_INT(x)			m_eng_log_return_int(FNAME, XSTR(__LINE__), __func__, x, current_cycle());
+    #define M_ENG_LOG_RETURN(x)				m_eng_log_return_   (FNAME, XSTR(__LINE__), __func__,    current_cycle());
+  #endif
+  
+  #if M_ENG_LOG_LEVEL & M_ENG_LOG_ERRORS
+    #define M_ENG_LOG_ERROR(x) \
+      if (x != NO_ERROR) \
+        m_eng_log_error_code(FNAME, XSTR(__LINE__), __func__, x, current_cycle());
+  #endif
 #endif
 
 #ifdef M_ENG_PROFILER
-	#define M_ENG_PROFILER_LOG_ENTRY()  m_eng_profiler_log_entry ( __func__);
-	#define M_ENG_PROFILER_LOG_RETURN() m_eng_profiler_log_return( __func__, current_cycle());
+  #define M_ENG_PROFILER_LOG_ENTRY()  m_eng_profiler_log_entry ( __func__);
+  #define M_ENG_PROFILER_LOG_RETURN() m_eng_profiler_log_return( __func__, current_cycle());
 #else
-	#define M_ENG_PROFILER_LOG_ENTRY()
-	#define M_ENG_PROFILER_LOG_RETURN()
+  #define M_ENG_PROFILER_LOG_ENTRY()
+  #define M_ENG_PROFILER_LOG_RETURN()
 #endif
 
 #ifndef M_ENG_TRACE_LOG_ENTRY
@@ -102,6 +109,9 @@ typedef struct
 #define M_ENG_LOG_ERROR(x)
 #endif
 
+void m_eng_log_message(const char *fname, const char *line, const char *function, uint64_t cycle, const char *fmt, ...);
+
+
 #define FUNCTION_START() 		M_ENG_PROFILER_LOG_ENTRY();  M_ENG_TRACE_LOG_ENTRY();
 #define RETURN_VOID() 			M_ENG_PROFILER_LOG_RETURN(); M_ENG_TRACE_LOG_RETURN(); return;
 #define RETURN_ERR_CODE(x) 		M_ENG_PROFILER_LOG_RETURN(); M_ENG_LOG_ERROR(x); M_ENG_TRACE_LOG_RETURN(); M_ENG_LOG_RETURN_ERR_CODE(x); return x;
@@ -114,14 +124,15 @@ void m_eng_log(const char *fmt, ...);
 void m_eng_print_log();
 void m_eng_print_flush_log();
 
-void m_eng_trace_log_begin	(const char *fname, const char *line, const char *function, int local_trace_depth, uint32_t cycle);
-void m_eng_trace_log_return (const char *fname, const char *line, const char *function, int local_trace_depth, uint32_t cycle);
-void m_eng_log_error_code	(const char *fname, const char *line, const char *function, int error_code, uint32_t cycle);
-void m_eng_log_return_err	(const char *fname, const char *line, const char *function, int error_code, uint32_t cycle);
-void m_eng_log_return_ptr	(const char *fname, const char *line, const char *function, void *ptr, uint32_t cycle);
-void m_eng_log_return_int	(const char *fname, const char *line, const char *function, int val, uint32_t cycle);
-void m_eng_log_return_		(const char *fname, const char *line, const char *function, uint32_t cycle);
+void m_eng_trace_log_begin	(const char *fname, const char *line, const char *function, int local_trace_depth, uint64_t cycle);
+void m_eng_trace_log_return (const char *fname, const char *line, const char *function, int local_trace_depth, uint64_t cycle);
+void m_eng_log_error_code	(const char *fname, const char *line, const char *function, int error_code, uint64_t cycle);
+void m_eng_log_return_err	(const char *fname, const char *line, const char *function, int error_code, uint64_t cycle);
+void m_eng_log_return_ptr	(const char *fname, const char *line, const char *function, void *ptr, uint64_t cycle);
+void m_eng_log_return_int	(const char *fname, const char *line, const char *function, int val, uint64_t cycle);
+void m_eng_log_return_		(const char *fname, const char *line, const char *function, uint64_t cycle);
 
+#define M_LOG(fmt, ...) m_eng_log_message(FNAME, XSTR(__LINE__), __func__, current_cycle(), fmt, ##__VA_ARGS__);
 #define M_LOG_ERROR(x) m_eng_log_error_code(FNAME, XSTR(__LINE__), __func__, x, current_cycle());
 
 #ifdef M_ENG_PROFILER
@@ -133,5 +144,6 @@ void m_eng_profiler_print();
 #endif
 
 #define CYCLES_TO_SECONDS(x) ((double)(x) * 1.66666667e-9)
+#define SECONDS_TO_CYCLES(x) ((double)(x) / 1.66666667e-9)
 
 #endif

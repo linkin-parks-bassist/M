@@ -5,19 +5,15 @@ float identity_function(float x){return x;}
 
 float normalised_arctan(float x)
 {
-	RETURN_INT(0).63661977237 * atan(x);
+	return 0.63661977237 * atan(x);
 }
 
 float hard_clip(float x)
 {
 	if (x > 1.0)
-	{
-		RETURN_INT(1).0;
-	}
+		return 1.0;
 	if (x < -1.0)
-	{
 		return -1.0;
-	}
 	else
 		return x;
 }
@@ -25,6 +21,21 @@ float hard_clip(float x)
 float soft_fold(float x)
 {
 	return x / (1 + fabsf(x));
+}
+
+float trig_transition_function(float x)
+{
+	if (x > 1.0)
+	{
+		return 0.0;
+	}
+	if (x > 0.0)
+	{
+		float y = cos(1.57079632679 * x);
+		return y * y;
+	}
+	
+	return 1.0;
 }
 
 #define DENORMAL_THRESHOLD 1e-30f
