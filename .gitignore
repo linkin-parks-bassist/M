@@ -53,3 +53,20 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# In latex docs folder, I only want the pdfs
+*.tex
+*.aux
+*.ilg
+*.ind
+*.log
+*.toc
+
+# Ignore all Doxygen LaTeX output
+/docs/latex/*
+# But keep the compiled PDFs
+!/docs/latex/*.pdf
+# Ignore all Doxygen LaTeX output
+*/docs/latex/*
+# But keep the compiled PDFs
+!*/docs/latex/*.pdf
