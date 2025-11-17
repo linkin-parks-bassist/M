@@ -46,6 +46,7 @@ typedef struct
 	
 	m_parameter *param;
 	struct m_profile *profile;
+	m_ui_page *parent;
 	
 	char val_label_text[PARAM_WIDGET_LABEL_BUFSIZE];
 	lv_obj_t *val_label;
@@ -55,7 +56,7 @@ typedef struct
 } m_parameter_widget;
 
 int nullify_parameter_widget(m_parameter_widget *pw);
-int configure_parameter_widget(m_parameter_widget *pw, m_parameter *param, struct m_profile *profile);
+int configure_parameter_widget(m_parameter_widget *pw, m_parameter *param, struct m_profile *profile, m_ui_page *parent);
 
 int parameter_widget_create_ui(m_parameter_widget *pw, lv_obj_t *parent);
 int parameter_widget_create_ui_no_callback(m_parameter_widget *pw, lv_obj_t *parent);
@@ -92,6 +93,7 @@ typedef struct
 	
 	m_setting *setting;
 	struct m_profile *profile;
+	m_ui_page *parent;
 	
 	lv_obj_t *container;
 	lv_obj_t *obj;
@@ -99,10 +101,12 @@ typedef struct
 	lv_obj_t *pad;
 	
 	const char *name;
+	
+	char *saved_field_text;
 } m_setting_widget;
 
 int nullify_setting_widget(m_setting_widget *pw);
-int configure_setting_widget(m_setting_widget *pw, m_setting *setting, struct m_profile *profile);
+int configure_setting_widget(m_setting_widget *pw, m_setting *setting, struct m_profile *profile, m_ui_page *parent);
 
 int setting_widget_create_ui(m_setting_widget *pw, lv_obj_t *parent);
 int setting_widget_create_ui_no_callback(m_setting_widget *pw, lv_obj_t *parent);

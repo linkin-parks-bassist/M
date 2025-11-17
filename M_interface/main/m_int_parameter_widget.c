@@ -76,6 +76,7 @@ int nullify_parameter_widget(m_parameter_widget *pw)
 	pw->name_label  = NULL;
 	pw->val_label   = NULL;
 	pw->container   = NULL;
+	pw->parent		= NULL;
 	
 	pw->val_label_text[0] = 0;
 	
@@ -152,13 +153,15 @@ void parameter_widget_update_value_label(m_parameter_widget *pw)
 	lv_label_set_text(pw->val_label, pw->val_label_text);
 }
 
-int configure_parameter_widget(m_parameter_widget *pw, m_parameter *param, m_profile *profile)
+int configure_parameter_widget(m_parameter_widget *pw, m_parameter *param, m_profile *profile, m_ui_page *parent)
 {
 	if (!pw || !param)
 		return ERR_NULL_PTR;
 	
 	pw->param = param;
 	pw->profile = profile;
+	
+	pw->parent = parent;
 	
 	format_float(pw->val_label_text, pw->param->value, PARAM_WIDGET_LABEL_BUFSIZE);
 	
@@ -393,7 +396,6 @@ void param_widget_receive(m_message msg, m_response response)
 
 int param_widget_request_value(m_parameter_widget *pw)
 {
-	printf("param_widget_request_value...\n");
 	if (!pw)
 		return ERR_NULL_PTR;
 	
@@ -403,7 +405,6 @@ int param_widget_request_value(m_parameter_widget *pw)
 
 	queue_msg_to_teensy(msg);
 	
-	printf("param_widget_request_value done!\n");
 	return NO_ERROR;
 }
 
@@ -435,29 +436,75 @@ int nullify_setting_widget(m_setting_widget *sw)
 	sw->obj = NULL;
 	
 	sw->type = SETTING_WIDGET_DROPDOWN;
+	sw->saved_field_text = NULL;
+	
+	sw->parent = NULL;
 	
 	return NO_ERROR;
 }
 
 int setting_widget_update_value(m_setting_widget *sw)
 {
+	printf("setting_widget_update_value(sw = %p)\n", sw);
 	if (!sw)
 		return ERR_NULL_PTR;
 	
+	printf(" ... sw->setting = %p, sw->obj = %p\n", sw->setting, sw->obj);
 	if (!sw->setting || !sw->obj)
 		return ERR_BAD_ARGS;
 	
+	char buf[32];
+	
+	printf("sw->type = %d = %s\n", sw->type, (sw->type == SETTING_WIDGET_DROPDOWN)
+		? "SETTING_WIDGET_DROPDOWN"
+		: ((sw->type == SETTING_WIDGET_SWITCH)
+			? "SETTING_WIDGET_SWITCH"
+			: ((sw->type == SETTING_WIDGET_FIELD)
+				? "SETTING_WIDGET_FIELD"
+				: "??")));
+	switch (sw->type)
+	{
+		case SETTING_WIDGET_DROPDOWN:
+			if (!sw->setting->options)
+				return ERR_BAD_ARGS;
+			
+			for (int i = 0; i < sw->setting->n_options; i++)
+			{
+				if (sw->setting->options[i].value == sw->setting->value)
+				{
+					lv_dropdown_set_selected(sw->obj, i);
+				}
+			}
+			break;
+			
+		case SETTING_WIDGET_SWITCH:
+			break;
+			
+		case SETTING_WIDGET_FIELD:
+			printf("It is a field\n");
+			snprintf(buf, 32, "%d", sw->setting->value);
+			printf("Set textarea text to \"%s\"\n", buf);
+			lv_textarea_set_text(sw->obj, buf);
+			break;
+		
+		default:
+			return ERR_BAD_ARGS;
+			break;
+	}
 	
 	return NO_ERROR;
 }
 
-int configure_setting_widget(m_setting_widget *sw, m_setting *setting, m_profile *profile)
+int configure_setting_widget(m_setting_widget *sw, m_setting *setting, m_profile *profile, m_ui_page *parent)
 {
 	if (!sw || !setting)
 		return ERR_NULL_PTR;
 	
 	sw->setting = setting;
 	sw->profile = profile;
+	sw->parent  = parent;
+	
+	sw->type = sw->setting->widget_type;
 	
 	return NO_ERROR;
 }
@@ -470,9 +517,203 @@ void setting_widget_refresh_cb(lv_event_t *event)
 		return;
 }
 
+int setting_widget_calc_value(m_setting_widget *sw, int16_t *target)
+{
+	if (!sw || !target)
+		return ERR_NULL_PTR;
+	
+	if (!sw->obj)
+		return ERR_BAD_ARGS;
+	
+	m_setting *setting = sw->setting;
+	
+	if (!setting)
+		return ERR_BAD_ARGS;
+	
+	char buf[128];
+	int found = 0;
+	switch (sw->type)
+	{
+		case SETTING_WIDGET_DROPDOWN:
+			lv_dropdown_get_selected_str(sw->obj, buf, 128);
+	
+			for (int i = 0; i < setting->n_options; i++)
+			{
+				if (strncmp(buf, setting->options[i].name, 128) == 0)
+				{
+					found = 1;
+					*target = setting->options[i].value;
+				}
+			}
+			
+			if (!found)
+			{
+				return ERR_BAD_ARGS;
+			}
+			break;
+		
+		default:
+			return ERR_UNIMPLEMENTED;
+	}
+	
+	return NO_ERROR;
+}
+
+
+void sw_field_reject(m_setting_widget *sw)
+{
+	if (!sw)
+		return;
+}
+
+void sw_field_save_cb(lv_event_t *e)
+{
+	m_setting_widget *sw = lv_event_get_user_data(e);
+	
+	if (!sw)
+		return;
+	
+	if (!sw->setting)
+		return;
+	
+	// Parse an int!
+	
+	char *content = m_strndup(lv_textarea_get_text(sw->obj), 32);
+	
+	if (!content)
+	{
+		return;
+	}
+	
+	int read_int = 0;
+	int valid_string = 0;
+	
+	// ... tbh just delete anything not a number
+	for (int i = 0; content[i]; i++)
+	{
+		if (content[i] < '0' || content[i] > '9')
+		{
+			if (content[i] == '.')
+			{
+				content[i] = 0;
+				break;
+			}
+			
+			for (int j = i; content[j]; j++)
+			{
+				content[j] = content[j + 1];
+			}
+		}
+	}
+	
+	if (!content[0])
+	{
+		sw_field_reject(sw);
+		return;
+	}
+	
+	for (int i = 0; content[i]; i++)
+	{
+		read_int = read_int * 10 + (int)((uint8_t)content[i] - (uint8_t)'0');
+	}
+	
+	printf("Read in the int %d\n", read_int);
+	
+	printf("read_int = binary_min(binary_max(read_int, sw->setting->min), sw->setting->max) = binary_min(binary_max(%d, %d), %d) = binary_min(%d, %d) = %d\n",
+		read_int, sw->setting->min, sw->setting->max, binary_max(read_int, sw->setting->min), sw->setting->max, binary_min(binary_max(read_int, sw->setting->min), sw->setting->max));
+	read_int = binary_min(binary_max(read_int, sw->setting->min), sw->setting->max);
+	
+	if (sw->setting->value != read_int)
+	{
+		sw->setting->old_value = sw->setting->value;
+		
+		sw->setting->value = read_int;
+		sw->setting->updated = 1;
+		
+		m_message msg = create_m_message(M_MESSAGE_SET_SETTING_VALUE, "ssss", sw->setting->id.profile_id, sw->setting->id.transformer_id, sw->setting->id.setting_id, read_int);
+		
+		queue_msg_to_teensy(msg);
+	}
+	
+	m_free(content);
+	
+	char buf[32];
+	
+	snprintf(buf, 32, "%d", read_int);
+	printf("setting field value to \"%s\"\n", buf);
+	lv_textarea_set_text(sw->obj, buf);
+	
+	hide_keyboard();
+	lv_obj_clear_state(sw->obj, LV_STATE_FOCUSED);
+	
+	printf("sw_field_save_cb done\n");
+}
+
+void sw_field_cancel_cb(lv_event_t *e)
+{
+	printf("sw_field_cancel_cb\n");
+	m_setting_widget *sw = lv_event_get_user_data(e);
+	
+	if (!sw)
+		return;
+	
+	printf("%s:%d\n", __func__, __LINE__);
+	if (sw->saved_field_text)
+	{
+		printf("%s:%d\n", __func__, __LINE__);
+		lv_textarea_set_text(sw->obj, sw->saved_field_text);
+		printf("%s:%d\n", __func__, __LINE__);
+		m_free(sw->saved_field_text);
+		printf("%s:%d\n", __func__, __LINE__);
+		sw->saved_field_text = NULL;
+		printf("%s:%d\n", __func__, __LINE__);
+	}
+	hide_keyboard();
+	printf("sw_field_cancel_cb done\n");
+}
+
+void edit_sw_field_cb(lv_event_t *e)
+{
+	printf("edit_sw_field_cb\n");
+	m_setting_widget *sw = lv_event_get_user_data(e);
+	
+	if (!sw)
+		return;
+	
+	if (!sw->obj || !sw->parent)
+		return;
+	
+	spawn_numerical_keyboard(sw->parent->screen, sw->obj, sw_field_save_cb, sw, sw_field_cancel_cb, sw);
+	printf("spawned numerical keyboard\n");
+	lv_obj_add_state(sw->obj, LV_STATE_FOCUSED);
+	
+	sw->saved_field_text = m_strndup(lv_textarea_get_text(sw->obj), 32);
+	printf("edit_sw_field_cb done\n");
+}
+
 void setting_widget_change_cb_inner(m_setting_widget *sw)
-{	
-	m_message msg = create_m_message(M_MESSAGE_SET_SETTING_VALUE, "sssf", sw->setting->id.profile_id, sw->setting->id.transformer_id, sw->setting->id.setting_id, sw->setting->value);
+{
+	if (!sw)
+		return;
+	
+	int16_t value;
+	
+	int ret_val;
+	
+	if ((ret_val = setting_widget_calc_value(sw, &value)) != NO_ERROR)
+	{
+		printf("Error %s getting setting widget value\n", m_error_code_to_string(ret_val));
+		return;
+	}
+	
+	if (sw->setting)
+	{
+		sw->setting->value = value;
+		sw->setting->updated = 1;
+	}
+	
+	printf("setting_widget_change_cb_inner. value = %d\n", value);
+	m_message msg = create_m_message(M_MESSAGE_SET_SETTING_VALUE, "ssss", sw->setting->id.profile_id, sw->setting->id.transformer_id, sw->setting->id.setting_id, value);
 
 	queue_msg_to_teensy(msg);
 	
@@ -508,7 +749,21 @@ int setting_widget_create_ui(m_setting_widget *sw, lv_obj_t *parent)
 	if ((ret_val = setting_widget_create_ui_no_callback(sw, parent)) != NO_ERROR)
 		return ret_val;
 	
-	lv_obj_add_event_cb(sw->obj, setting_widget_change_cb, LV_EVENT_VALUE_CHANGED, sw);
+	switch (sw->type)
+	{
+		case SETTING_WIDGET_DROPDOWN:
+			lv_obj_add_event_cb(sw->obj, setting_widget_change_cb, LV_EVENT_VALUE_CHANGED, sw);
+			break;
+		
+		case SETTING_WIDGET_SWITCH:
+			
+			break;
+		
+		case SETTING_WIDGET_FIELD:
+			lv_obj_add_event_cb(sw->obj, edit_sw_field_cb, LV_EVENT_CLICKED, sw);
+			break;
+	}
+	
 	
 	return NO_ERROR;
 }
@@ -522,6 +777,13 @@ int setting_widget_create_ui_no_callback(m_setting_widget *sw, lv_obj_t *parent)
 	lv_obj_remove_style_all(sw->container);
 	lv_obj_clear_flag(sw->container, LV_OBJ_FLAG_SCROLLABLE);
 	
+	printf("sw->type = %d = %s\n", sw->type, (sw->type == SETTING_WIDGET_DROPDOWN)
+		? "SETTING_WIDGET_DROPDOWN"
+		: ((sw->type == SETTING_WIDGET_SWITCH)
+			? "SETTING_WIDGET_SWITCH"
+			: ((sw->type == SETTING_WIDGET_FIELD)
+				? "SETTING_WIDGET_FIELD"
+				: "??")));
 	
 	switch (sw->setting->widget_type)
 	{	
@@ -534,19 +796,16 @@ int setting_widget_create_ui_no_callback(m_setting_widget *sw, lv_obj_t *parent)
 			
 			sw->label = lv_label_create(sw->container);
 			lv_label_set_text(sw->label, sw->setting->name);
-			lv_obj_set_flex_grow(sw->label, 1);
+			lv_obj_set_flex_grow(sw->label, 2);
 			
 			sw->pad = lv_obj_create(sw->container);
 			lv_obj_remove_style_all(sw->pad);
-			//lv_obj_set_flex_grow(sw->pad, 1);
 			
 			sw->obj = lv_dropdown_create(sw->container);
-			lv_obj_set_flex_grow(sw->obj, 2);
 			lv_dropdown_clear_options(sw->obj);
+			lv_obj_set_width(sw->obj, STANDARD_CONTAINER_WIDTH / 3);
 			
 			lv_obj_set_size(sw->container, STANDARD_CONTAINER_WIDTH - 40, STANDARD_BUTTON_SHORT_HEIGHT);
-			
-			//lv_dropdown_set_options(sw->container, "");
 			
 			for (int i = 0; i < sw->setting->n_options; i++)
 			{
@@ -561,16 +820,38 @@ int setting_widget_create_ui_no_callback(m_setting_widget *sw, lv_obj_t *parent)
 			break;
 			
 		case SETTING_WIDGET_FIELD:
+			lv_obj_set_layout(sw->container, LV_LAYOUT_FLEX);
+			lv_obj_set_flex_flow(sw->container, LV_FLEX_FLOW_ROW);
+			lv_obj_set_flex_align(sw->container, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+			
+			
+			printf("Creating label for setting %s\n", sw->setting->name);
+			sw->label = lv_label_create(sw->container);
+			lv_label_set_text(sw->label, sw->setting->name);
+			lv_obj_set_flex_grow(sw->label, 2);
+			
+			sw->pad = lv_obj_create(sw->container);
+			lv_obj_remove_style_all(sw->pad);
+			
+			sw->obj = lv_textarea_create(sw->container);
+			lv_obj_set_style_text_align(sw->obj, LV_TEXT_ALIGN_RIGHT, 0);
+			lv_textarea_set_one_line(sw->obj, true);
+			lv_obj_set_width(sw->obj, STANDARD_CONTAINER_WIDTH / 3);
+			
+			lv_obj_set_size(sw->container, STANDARD_CONTAINER_WIDTH - 40, STANDARD_BUTTON_SHORT_HEIGHT);
 			break;
 	}
 	
 	setting_widget_update_value(sw);
+	setting_widget_request_value(sw);
 	
 	return NO_ERROR;
 }
 
 void setting_widget_receive(m_message msg, m_response response)
 {
+	printf("setting_widget_receive\n");
+	
 	m_setting_widget *sw = (m_setting_widget*)msg.cb_arg;
 	
 	if (!sw || !sw->setting)
@@ -585,27 +866,26 @@ void setting_widget_receive(m_message msg, m_response response)
 	}
 	
 	// Check we're getting values for the right setting
-	uint16_t profile_id, transformer_id, parameter_id;
+	uint16_t profile_id, transformer_id, setting_id;
 	
 	memcpy(&profile_id, 	&response.data[0], sizeof(uint16_t));
 	memcpy(&transformer_id, &response.data[2], sizeof(uint16_t));
-	memcpy(&parameter_id, 	&response.data[4], sizeof(uint16_t));
+	memcpy(&setting_id, 	&response.data[4], sizeof(uint16_t));
 	
 	if (profile_id 	   == sw->setting->id.profile_id
 	 && transformer_id == sw->setting->id.transformer_id
-	 && parameter_id   == sw->setting->id.setting_id)
+	 && setting_id     == sw->setting->id.setting_id)
 	{
 		memcpy(&sw->setting->value, &response.data[6], sizeof(float));
 		
-		printf("Parameter %d.%d.%d value revieced: %f\n", profile_id, transformer_id, parameter_id, sw->setting->value);
+		printf("Setting %d.%d.%d value revieced: %d\n", profile_id, transformer_id, setting_id, sw->setting->value);
 		setting_widget_update_value(sw);
-		setting_widget_update_value_label(sw);
 	}
 	else
 	{
 		#ifndef M_SIMULATED
 		ESP_LOGE(TAG, "Data for setting %d.%d.%d received by setting %d.%d.%d...",
-			profile_id, transformer_id, parameter_id, 
+			profile_id, transformer_id, setting_id, 
 			sw->setting->id.profile_id, sw->setting->id.transformer_id, sw->setting->id.setting_id); 
 		#endif
 	}
