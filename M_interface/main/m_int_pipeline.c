@@ -58,6 +58,7 @@ int m_pipeline_remove_transformer(m_pipeline *pipeline, uint16_t id)
 		current = current->next;
 	}
 	
+	pipeline_update_transition_policy(pipeline);
 	printf("m_pipeline_remove_transformer finished without finding the transformer\n");
 	return ERR_INVALID_TRANSFORMER_ID;
 }

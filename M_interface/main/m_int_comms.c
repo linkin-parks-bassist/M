@@ -89,7 +89,8 @@ int begin_m_int_comms()
 #define M_MESSAGE_SEND_TRIES 		3
 #define M_MESSAGE_RESPONSE_TRIES 	5
 #define M_MESSAGE_I2C_SEND_TRIES 	5
-#define REPORT_I2C
+//#define REPORT_I2C
+//#define PRINT_RESPONSE_BYTES
 
 static int send_msg_to_teensy(m_message *msg, m_response *response_ptr)
 {
@@ -156,13 +157,16 @@ static int send_msg_to_teensy(m_message *msg, m_response *response_ptr)
 		
 		
 		#ifdef REPORT_I2C
-		printf("Obtained teensy response. Type = %s", m_response_code_to_string(response.type));
-		#ifdef PRINT_RESPONSE_BYTES
-		printf(", bytes: ");
-		for (int i = 0; i < M_RESPONSE_MAX_DATA_LEN; i++)
-			printf("0x%02x ", response.data[i]);
-		#endif
-		printf("\n");
+		if (response.type != M_RESPONSE_HI)
+		{
+			printf("Obtained teensy response. Type = %s", m_response_code_to_string(response.type));
+			#ifdef PRINT_RESPONSE_BYTES
+			printf(", bytes: ");
+			for (int i = 0; i < M_RESPONSE_MAX_DATA_LEN; i++)
+				printf("0x%02x ", response.data[i]);
+			#endif
+			printf("\n");
+		}
 		#endif
 		
 		if (response.type != M_RESPONSE_REPEAT_MESSAGE)

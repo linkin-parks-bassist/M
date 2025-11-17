@@ -180,7 +180,7 @@ void sequence_view_set_name(lv_event_t *e)
 	if (str->seq->name)
 		m_free(str->seq->name);
 	
-	str->seq->name = m_int_strndup(new_name, PROFILE_NAM_ENG_MAX_LEN);
+	str->seq->name = m_strndup(new_name, PROFILE_NAM_ENG_MAX_LEN);
 	
 	lv_obj_clear_state(page->panel->title, LV_STATE_FOCUSED);
 	lv_obj_add_state(page->container, LV_STATE_FOCUSED);

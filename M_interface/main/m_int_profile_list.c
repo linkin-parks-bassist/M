@@ -11,7 +11,7 @@ m_int_menu_item *create_profile_listing_menu_item(char *text, m_profile *profile
 	
 	item->type = MENU_ITEM_PROFILE_LISTING;
 	if (text)
-		item->text = m_int_strndup(text, MENU_ITEM_TEXT_MAX_LEN);
+		item->text = m_strndup(text, MENU_ITEM_TEXT_MAX_LEN);
 	else
 		item->text = "Profile";
 	

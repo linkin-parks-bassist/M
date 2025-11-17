@@ -314,7 +314,7 @@ m_int_menu_item *create_page_link_menu_item(char *text, m_ui_page *linked_page, 
 	init_menu_item(item);
 	
 	item->type = MENU_ITEM_PAGE_LINK;
-	item->text = m_int_strndup(text, MENU_ITEM_TEXT_MAX_LEN);
+	item->text = m_strndup(text, MENU_ITEM_TEXT_MAX_LEN);
 	
 	item->linked_page = linked_page;
 	item->parent = parent;
@@ -332,7 +332,7 @@ m_int_menu_item *create_page_link_indirect_menu_item(char *text, m_ui_page **lin
 	init_menu_item(item);
 	
 	item->type = MENU_ITEM_PAGE_LINK_INDIRECT;
-	item->text = m_int_strndup(text, MENU_ITEM_TEXT_MAX_LEN);
+	item->text = m_strndup(text, MENU_ITEM_TEXT_MAX_LEN);
 	item->linked_page_indirect = linked_page;
 	item->parent = parent;
 	
@@ -365,7 +365,7 @@ m_int_menu_item *create_parameter_widget_menu_item(m_parameter *param, m_ui_page
 		
 	item->data = pw;
 	
-	configure_parameter_widget(item->data, param, NULL);
+	configure_parameter_widget(item->data, param, NULL, parent);
 	
 	return item;
 }
@@ -384,7 +384,7 @@ m_int_menu_item *create_danger_button_menu_item(void (*action_cb)(void* arg), vo
 		
 	item->type = MENU_ITEM_DANGER_BUTTON;
 	
-	item->text = m_int_strndup(text, 128);
+	item->text = m_strndup(text, 128);
 	item->action_cb = action_cb;
 	item->cb_arg = arg;
 	item->parent = parent;

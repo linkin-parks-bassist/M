@@ -97,12 +97,19 @@ m_profile *m_int_context_add_profile_rp(m_int_context *cxt)
 	if (!cxt)
 		return NULL;
 	
+	printf("m_int_context_add_profile_rp\n");
+	
 	m_profile *profile = m_alloc(sizeof(m_profile));
 	
 	if (!profile)
 		return NULL;
 	
+	printf("profile = %p\n", profile);
+	
 	init_m_profile(profile);
+	
+	printf("profile->name = %p\n", profile->name);
+	printf("\t\t\t= %s\n", profile->name ? profile->name : "(NULL)");
 	
 	profile_ll *nl = m_profile_pll_append(cxt->profiles, profile);
 	

@@ -133,7 +133,7 @@ int configure_transformer_view(m_ui_page *page, void *data)
 				return ERR_ALLOC_FAIL;
 			
 			nullify_parameter_widget(pw);
-			ret_val = configure_parameter_widget(pw, current_param->data, trans->profile);
+			ret_val = configure_parameter_widget(pw, current_param->data, trans->profile, page);
 			
 			str->parameter_widgets = m_parameter_widget_pll_append(str->parameter_widgets, pw);
 		}
@@ -153,7 +153,7 @@ int configure_transformer_view(m_ui_page *page, void *data)
 				return ERR_ALLOC_FAIL;
 			
 			nullify_setting_widget(sw);
-			ret_val = configure_setting_widget(sw, current_setting->data, trans->profile);
+			ret_val = configure_setting_widget(sw, current_setting->data, trans->profile, page);
 			
 			str->setting_widgets = m_setting_widget_pll_append(str->setting_widgets, sw);
 		}
@@ -198,7 +198,43 @@ int create_transformer_view_ui(m_ui_page *page)
 	
 	int i = 0;
 	int group;
+	
+	m_setting_widget_pll *current_setting = str->setting_widgets;
+	
+	for (int i = 0; i < TRANSFORMER_VIEW_MAX_GROUPS; i++)
+	{
+		str->group_containers[i] = lv_obj_create(page->container);
+		lv_obj_remove_style_all(str->group_containers[i]);
+		lv_obj_set_flex_flow (str->group_containers[i], LV_FLEX_FLOW_ROW_WRAP);
+		lv_obj_set_flex_align(str->group_containers[i], LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_SPACE_EVENLY);
+	}
+	
+	while (current_setting)
+	{
+		printf("Creating setting widget for setting %d...\n", i);
+		if (current_setting->data)
+		{
+			if (current_setting->data->setting)
+			{
+				group = current_setting->data->setting->group;
+				if (0 <= group && group < TRANSFORMER_VIEW_MAX_GROUPS)
+				{
+					printf("Setting widget lives in group %d...\n", group);
+					setting_widget_create_ui(current_setting->data, str->group_containers[group]);
+				}
+				else
+				{
+					printf("Setting widget is free...\n");
+					setting_widget_create_ui(current_setting->data, page->container);
+				}
+			}
+		}
+		current_setting = current_setting->next;
+		i++;
+	}
+	
 	m_parameter_widget_pll *current_param = str->parameter_widgets;
+	i = 0;
 	
 	while (current_param)
 	{
@@ -211,17 +247,7 @@ int create_transformer_view_ui(m_ui_page *page)
 				if (0 <= group && group < TRANSFORMER_VIEW_MAX_GROUPS)
 				{
 					printf("Parameter widget lives in group %d...\n", group);
-					if (!str->group_containers[group])
-					{
-						str->group_containers[group] = lv_obj_create(page->container);
-						lv_obj_remove_style_all(str->group_containers[group]);
-						lv_obj_set_flex_flow (str->group_containers[group], LV_FLEX_FLOW_ROW_WRAP);
-						lv_obj_set_flex_align(str->group_containers[group], LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_SPACE_EVENLY);
-					}
-					
 					parameter_widget_create_ui(current_param->data, str->group_containers[group]);
-					
-					
 				}
 				else
 				{
@@ -231,40 +257,6 @@ int create_transformer_view_ui(m_ui_page *page)
 			}
 		}
 		current_param = current_param->next;
-		i++;
-	}
-	
-	m_setting_widget_pll *current_setting = str->setting_widgets;
-	
-	while (current_setting)
-	{
-		printf("Creating setting widget for setting %d...\n", i);
-		if (current_setting->data)
-		{
-			if (current_setting->data->setting)
-			{
-				group = current_setting->data->setting->group;
-				if (0 <= group && group < TRANSFORMER_VIEW_MAX_GROUPS)
-				{
-					printf("Parameter widget lives in group %d...\n", group);
-					if (!str->group_containers[group])
-					{
-						str->group_containers[group] = lv_obj_create(page->container);
-						lv_obj_remove_style_all(str->group_containers[group]);
-						lv_obj_set_flex_flow (str->group_containers[group], LV_FLEX_FLOW_ROW_WRAP);
-						lv_obj_set_flex_align(str->group_containers[group], LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_SPACE_EVENLY);
-					}
-					
-					setting_widget_create_ui(current_setting->data, str->group_containers[group]);
-				}
-				else
-				{
-					printf("Setting widget is free...\n");
-					setting_widget_create_ui(current_setting->data, page->container);
-				}
-			}
-		}
-		current_setting = current_setting->next;
 		i++;
 	}
 	

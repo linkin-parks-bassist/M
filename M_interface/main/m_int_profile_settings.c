@@ -58,7 +58,7 @@ int configure_profile_settings_page(m_ui_page *page, void *data)
 	char buf[128];
 	snprintf(buf, 128, "%s Settings", profile->name);
 	
-	page->panel->text = m_int_strndup(buf, 128);
+	page->panel->text = m_strndup(buf, 128);
 	
 	m_profile_settings_str *str = (m_profile_settings_str*)page->data_struct;
 	

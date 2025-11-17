@@ -558,7 +558,7 @@ int glide_button_change_label(m_int_glide_button *gb, char *text)
 	if (gb->label_text)
 		m_free(gb->label_text);
 	
-	gb->label_text = m_int_strndup(text, 32);
+	gb->label_text = m_strndup(text, 32);
 	if (gb->label)
 		lv_label_set_text(gb->label, gb->label_text);
 	

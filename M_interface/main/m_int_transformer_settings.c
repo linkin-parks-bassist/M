@@ -50,16 +50,16 @@ int configure_transformer_settings_page(m_ui_page *page, void *data)
 	char title_buf[128];
 	
 	snprintf(title_buf, 128, "%s Settings", transformer_type_name(trans->type));
-	page->panel->text = m_int_strndup(title_buf, 128);
+	page->panel->text = m_strndup(title_buf, 128);
 	
 	trans_settings_page_str *str = (trans_settings_page_str*)page->data_struct;
 	
 	if (!str)
 		return ERR_BAD_ARGS;
 	
-	configure_parameter_widget(&str->band_lp_cutoff, &trans->band_lp_cutoff, trans->profile);
-	configure_parameter_widget(&str->band_hp_cutoff, &trans->band_hp_cutoff, trans->profile);
-	configure_setting_widget(&str->band_mode, &trans->band_mode, trans->profile);
+	configure_parameter_widget(&str->band_lp_cutoff, &trans->band_lp_cutoff, trans->profile, page);
+	configure_parameter_widget(&str->band_hp_cutoff, &trans->band_hp_cutoff, trans->profile, page);
+	configure_setting_widget(&str->band_mode, &trans->band_mode, trans->profile, page);
 	
 	page->configured = 1;
 	

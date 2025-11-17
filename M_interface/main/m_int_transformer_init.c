@@ -103,10 +103,10 @@ int init_amplifier(m_transformer *trans)
 	if (!setting)
 		return ERR_ALLOC_FAIL;
 
-	setting->id.setting_id = 1;
+	setting->id.setting_id = 0;
 
 	setting->value   = 1;
-	setting->max   = 0;
+	setting->max   = 255;
 	setting->min   = 0;
 	setting->name  = "Mode";
 	setting->units = unit_string_;
@@ -251,6 +251,90 @@ int init_compressor(m_transformer *trans)
 }
 
 
+int init_delay(m_transformer *trans)
+{
+	if (!trans)
+		return ERR_NULL_PTR;
+
+	trans->type = TRANSFORMER_DELAY;
+	trans->view_page = NULL;
+
+	m_parameter *param;
+
+	param = transformer_add_parameter(trans);
+
+	if (!param)
+		return ERR_ALLOC_FAIL;
+
+	param->id.parameter_id = 0;
+
+	param->value   = -6.0;
+	param->max   = 0.0;
+	param->min   = -12;
+	param->name  = "Delay Gain";
+	param->units = unit_string_db;
+	param->scale = PARAMETER_SCALE_LINEAR;
+	param->group = 0;
+	param->widget_type = PARAM_WIDGET_VIRTUAL_POT;
+
+
+	m_setting *setting;
+
+	setting = transformer_add_setting(trans);
+
+	if (!setting)
+		return ERR_ALLOC_FAIL;
+
+	setting->id.setting_id = 0;
+
+	setting->value   = 120;
+	setting->max   = 1000;
+	setting->min   = 1;
+	setting->name  = "Tempo";
+	setting->units = unit_string_;
+	setting->group = 1;
+	setting->widget_type = SETTING_WIDGET_FIELD;
+	setting->page = TRANSFORMER_SETTING_PAGE_MAIN;
+	setting->n_options = 0;
+	setting->options = NULL;
+	setting = transformer_add_setting(trans);
+
+	if (!setting)
+		return ERR_ALLOC_FAIL;
+
+	setting->id.setting_id = 1;
+
+	setting->value   = 4;
+	setting->max   = 255;
+	setting->min   = 0;
+	setting->name  = "Note";
+	setting->units = unit_string_;
+	setting->group = 2;
+	setting->widget_type = SETTING_WIDGET_DROPDOWN;
+	setting->page = TRANSFORMER_SETTING_PAGE_MAIN;
+	setting->n_options = 5;
+	setting->options = m_alloc(sizeof(m_setting) * 5);
+	if (!setting->options) return ERR_ALLOC_FAIL;
+
+	setting->options[0].value = 1;
+	setting->options[0].name = "Whole";
+
+	setting->options[1].value = 2;
+	setting->options[1].name = "Half";
+
+	setting->options[2].value = 4;
+	setting->options[2].name = "Quarter";
+
+	setting->options[3].value = 8;
+	setting->options[3].name = "Eighth";
+
+	setting->options[4].value = 16;
+	setting->options[4].name = "Sixteenth";
+
+	return NO_ERROR;
+}
+
+
 int init_dirty_octave(m_transformer *trans)
 {
 	if (!trans)
@@ -354,6 +438,40 @@ int init_distortion(m_transformer *trans)
 	param->scale = PARAMETER_SCALE_LOGARITHMIC;
 	param->group = -1;
 	param->widget_type = PARAM_WIDGET_VIRTUAL_POT;
+
+
+	m_setting *setting;
+
+	setting = transformer_add_setting(trans);
+
+	if (!setting)
+		return ERR_ALLOC_FAIL;
+
+	setting->id.setting_id = 0;
+
+	setting->value   = 0;
+	setting->max   = 255;
+	setting->min   = 0;
+	setting->name  = "Function";
+	setting->units = unit_string_;
+	setting->group = -1;
+	setting->widget_type = SETTING_WIDGET_DROPDOWN;
+	setting->page = TRANSFORMER_SETTING_PAGE_MAIN;
+	setting->n_options = 4;
+	setting->options = m_alloc(sizeof(m_setting) * 4);
+	if (!setting->options) return ERR_ALLOC_FAIL;
+
+	setting->options[0].value = 0;
+	setting->options[0].name = "Clip";
+
+	setting->options[1].value = 1;
+	setting->options[1].name = "Tanh";
+
+	setting->options[2].value = 2;
+	setting->options[2].name = "Arctan";
+
+	setting->options[3].value = 3;
+	setting->options[3].name = "Fold";
 
 	return NO_ERROR;
 }
@@ -551,10 +669,10 @@ int init_flanger(m_transformer *trans)
 	if (!setting)
 		return ERR_ALLOC_FAIL;
 
-	setting->id.setting_id = 4;
+	setting->id.setting_id = 0;
 
 	setting->value   = 4;
-	setting->max   = 0;
+	setting->max   = 255;
 	setting->min   = 0;
 	setting->name  = "Note";
 	setting->units = unit_string_;
@@ -1099,6 +1217,7 @@ int init_transformer_of_type(m_transformer *trans, uint16_t type)
 		case TRANSFORMER_AMPLIFIER:          return init_amplifier(trans);
 		case TRANSFORMER_BAND_PASS_FILTER:   return init_band_pass_filter(trans);
 		case TRANSFORMER_COMPRESSOR:         return init_compressor(trans);
+		case TRANSFORMER_DELAY:              return init_delay(trans);
 		case TRANSFORMER_DIRTY_OCTAVE:       return init_dirty_octave(trans);
 		case TRANSFORMER_DISTORTION:         return init_distortion(trans);
 		case TRANSFORMER_ENVELOPE:           return init_envelope(trans);

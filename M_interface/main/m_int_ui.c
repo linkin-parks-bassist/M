@@ -639,20 +639,36 @@ void spawn_keyboard(lv_obj_t *parent, lv_obj_t *text_area, void (*ok_cb)(lv_even
 	lv_obj_clear_flag(global_cxt.ui_cxt.keyboard, LV_OBJ_FLAG_HIDDEN);
 	lv_keyboard_set_textarea(global_cxt.ui_cxt.keyboard, text_area);
 	
-	lv_obj_add_event_cb(global_cxt.ui_cxt.keyboard, ok_cb, 		LV_EVENT_READY, ok_arg);
-	lv_obj_add_event_cb(global_cxt.ui_cxt.keyboard, cancel_cb, LV_EVENT_CANCEL, cancel_arg);
+	lv_obj_add_event_cb(global_cxt.ui_cxt.keyboard, ok_cb, 		LV_EVENT_READY, 	ok_arg);
+	lv_obj_add_event_cb(global_cxt.ui_cxt.keyboard, cancel_cb, 	LV_EVENT_CANCEL, 	cancel_arg);
+	lv_obj_add_event_cb(text_area, 					cancel_cb, 	LV_EVENT_DEFOCUSED, cancel_arg);
+	lv_obj_add_event_cb(text_area, 					cancel_cb, 	LV_EVENT_LEAVE, 	cancel_arg);
+}
+
+void spawn_numerical_keyboard(lv_obj_t *parent, lv_obj_t *text_area, void (*ok_cb)(lv_event_t*), void *ok_arg, void (*cancel_cb)(lv_event_t*), void *cancel_arg)
+{
+	printf("spawn_numerical_keyboard\n");
+	
+	spawn_keyboard(parent, text_area, ok_cb, ok_arg, cancel_cb, cancel_arg);
+	
+	lv_keyboard_set_mode(global_cxt.ui_cxt.keyboard, LV_KEYBOARD_MODE_NUMBER);
+	printf("spawn_numerical_keyboard done\n");
 }
 
 void hide_keyboard()
 {
 	if (global_cxt.ui_cxt.keyboard)
 		lv_obj_add_flag(global_cxt.ui_cxt.keyboard, LV_OBJ_FLAG_HIDDEN);
+	
+	lv_keyboard_set_mode(global_cxt.ui_cxt.keyboard, LV_KEYBOARD_MODE_TEXT_LOWER);
 }
 
 void hide_keyboard_cb(lv_event_t *e)
 {
 	if (global_cxt.ui_cxt.keyboard)
 		lv_obj_add_flag(global_cxt.ui_cxt.keyboard, LV_OBJ_FLAG_HIDDEN);
+	
+	lv_keyboard_set_mode(global_cxt.ui_cxt.keyboard, LV_KEYBOARD_MODE_TEXT_LOWER);
 }
 
 int create_standard_container(lv_obj_t **cont, lv_obj_t *parent)

@@ -201,9 +201,9 @@ int create_panel_with_back_button_and_page_button(m_ui_page *page, const char *r
 int create_panel_with_left_and_right_buttons(m_ui_page *page,
 	const char *left_button_text, lv_event_cb_t left_cb, void *left_cb_arg,
 	const char *right_button_text, lv_event_cb_t right_cb, void *right_cb_arg);
-void spawn_keyboard(lv_obj_t *parent, lv_obj_t *text_area, void (*ok_cb)(lv_event_t*), void *ok_arg, void (*cancel_cb)(lv_event_t*), void *cancel_arg);
 
 void spawn_keyboard(lv_obj_t *parent, lv_obj_t *text_area, void (*ok_cb)(lv_event_t*), void *ok_arg, void (*cancel_cb)(lv_event_t*), void *cancel_arg);
+void spawn_numerical_keyboard(lv_obj_t *parent, lv_obj_t *text_area, void (*ok_cb)(lv_event_t*), void *ok_arg, void (*cancel_cb)(lv_event_t*), void *cancel_arg);
 void hide_keyboard_cb(lv_event_t *e);
 void hide_keyboard();
 

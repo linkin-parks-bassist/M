@@ -112,9 +112,11 @@ static void save_button_cb(lv_event_t *e)
 	lv_obj_add_flag(str->save->obj, LV_OBJ_FLAG_HIDDEN);
 }
 
-void profile_view_set_name(lv_event_t *e)
+int profile_view_save_name(m_ui_page *page)
 {
-	m_ui_page *page = (m_ui_page*)lv_event_get_user_data(e);
+	if (!page)
+		return ERR_NULL_PTR;
+	
 	m_profile_view_str *str = (m_profile_view_str*)page->data_struct;
 	
 	const char *new_name = lv_textarea_get_text(page->panel->title);
@@ -122,7 +124,7 @@ void profile_view_set_name(lv_event_t *e)
 	if (str->profile->name)
 		m_free(str->profile->name);
 	
-	str->profile->name = m_int_strndup(new_name, PROFILE_NAM_ENG_MAX_LEN);
+	str->profile->name = m_strndup(new_name, PROFILE_NAM_ENG_MAX_LEN);
 	
 	lv_obj_clear_state(page->panel->title, LV_STATE_FOCUSED);
 	lv_obj_add_state(page->container, LV_STATE_FOCUSED);
@@ -131,6 +133,15 @@ void profile_view_set_name(lv_event_t *e)
 	
 	str->profile->unsaved_changes = 1;
 	lv_obj_clear_flag(str->save->obj, LV_OBJ_FLAG_HIDDEN);
+	
+	return NO_ERROR;
+}
+
+
+void profile_view_save_name_cb(lv_event_t *e)
+{
+	m_ui_page *page = (m_ui_page*)lv_event_get_user_data(e);
+	profile_view_save_name(page);
 }
 
 void profile_view_revert_name(lv_event_t *e)
@@ -199,13 +210,6 @@ int configure_profile_view(m_ui_page *page, void *data)
 		return NO_ERROR;
 	
 	m_profile *profile = (m_profile*)data;
-	
-	if (!profile->name)
-	{
-		m_profile_set_default_name_from_id(profile);
-	}
-	
-	page->panel->text = profile->name;
 	
 	m_profile_view_str *str = page->data_struct;
 	
@@ -290,7 +294,7 @@ int configure_profile_view(m_ui_page *page, void *data)
 	str->plus = ui_page_add_bottom_button(page, LV_SYMBOL_PLUS, enter_transformer_selector_cb);
 	str->save = ui_page_add_bottom_button(page, LV_SYMBOL_SAVE, save_button_cb);
 	
-	ui_page_set_title_rw(page, profile_view_set_name, profile_view_revert_name);
+	ui_page_set_title_rw(page, profile_view_save_name_cb, profile_view_revert_name);
 	
 	ui_page_add_left_panel_button(page, LV_SYMBOL_LIST, enter_parent_page_cb);
 	ui_page_add_right_panel_button(page, LV_SYMBOL_SETTINGS, profile_view_enter_settings_page_cb);
@@ -313,9 +317,27 @@ int create_profile_view_ui(m_ui_page *page)
 	
 	if (!str)
 		return ERR_BAD_ARGS;
-		
-	if (!str->profile)
+	
+	m_profile *profile = str->profile;
+	
+	if (!profile)
 		return ERR_BAD_ARGS;
+	
+	if (page->panel->text)
+	{
+		// Prevent a minor memory leak
+		// After I figure out ownership/nullification
+	}
+	
+	if (!profile->name)
+	{
+		printf("create_profile_view_ui. profile->name = NULL\n");
+		m_profile_set_default_name_from_id(profile);
+	}
+	
+	printf("create_profile_view_ui. profile->name = %s\n", profile->name);
+	
+	page->panel->text = m_strndup(profile->name, 32);
 	
 	ui_page_create_base_ui(page);
     

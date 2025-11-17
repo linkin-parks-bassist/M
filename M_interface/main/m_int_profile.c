@@ -195,7 +195,7 @@ int clone_profile(m_profile *dest, m_profile *src)
 	printf("Cloning profile\n");
 	
 	printf("Clone name...\n");
-	dest->name = m_int_strndup(src->name, PROFILE_NAM_ENG_MAX_LEN);
+	dest->name = m_strndup(src->name, PROFILE_NAM_ENG_MAX_LEN);
 	clone_parameter(&dest->volume, &src->volume);
 	dest->id = src->id;
 	

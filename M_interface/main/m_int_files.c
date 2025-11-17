@@ -19,7 +19,7 @@ static const char *TAG = "m_int_files.c";
 		if (!string_read_buffer[i])\
 			break;\
 	}\
-	x = m_int_strndup(string_read_buffer, IO_BUFFER_SIZE);
+	x = m_strndup(string_read_buffer, IO_BUFFER_SIZE);
 
 void dump_file_contents(char *fname)
 {
@@ -359,7 +359,7 @@ int read_profile_from_file(m_profile *profile, char *fname)
 	fclose(file);
 	//printf("Closed. Returning\n");
 	
-	profile->fname = m_int_strndup(fname, 128);
+	profile->fname = m_strndup(fname, 128);
 	profile->unsaved_changes = 0;
 	
 	return ret_val;
