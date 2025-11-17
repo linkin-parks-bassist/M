@@ -22,3 +22,17 @@ parameters:
   default: 125
   min: 20
   max: 250
+
+settings:
+  - name: "Function"
+    page: main
+    default: 0
+    options:
+      - name: "Clip"
+        value: 0
+      - name: "Tanh"
+        value: 1
+      - name: "Arctan"
+        value: 2
+      - name: "Fold"
+        value: 3
