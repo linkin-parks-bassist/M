@@ -21,10 +21,7 @@ typedef struct
 	
 	float t;
 	
-	float **block_memory;
-	int num_blocks;
-	int block_position;
-	int block_index;
+	m_delay_buffer buf;
 } m_eng_flanger_str;
 
 int init_flanger_str(m_eng_flanger_str *str);
