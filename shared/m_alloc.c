@@ -6,60 +6,92 @@
 
 static size_t total_current, total_peak;
 
-void *m_alloc(size_t sz)
+void *m_alloc(size_t size)
 {
-    uint8_t *p = malloc(sz + sizeof(size_t));
+	if (size == 0)
+		return NULL;
+	
+    uint8_t *ptr = malloc(size + sizeof(size_t));
     
-    if (!p)
+    if (!ptr)
 		return NULL;
     
-    *(size_t*)p = sz;
+    *(size_t*)ptr = size;
     
-    total_current += sz;
+    total_current += size;
     
     if (total_current > total_peak)
         total_peak = total_current;
     
-    return p + sizeof(size_t);
+    return ptr + sizeof(size_t);
 }
 
-char *m_int_strndup(const char *s, size_t n)
+void *m_realloc(void *ptr, size_t size)
 {
-    size_t len = strnlen(s, n);
-    char *d = m_alloc(len + 1);
-    if (!d) return NULL;
-    memcpy(d, s, len);
-    d[len] = '\0';
-    return d;
+	if (!ptr)
+		return m_alloc(size);
+	
+	if (size == 0)
+		m_free(ptr);
+	
+    uint8_t *base_ptr = (uint8_t*)ptr - sizeof(size_t);
+    size_t base_size = *(size_t*)base_ptr;
+    
+    uint8_t *new_ptr = realloc(base_ptr, size + sizeof(size_t));
+    
+    if (!new_ptr)
+		return NULL;
+    
+    *(size_t*)new_ptr = size;
+    
+    total_current += (size - base_size);
+    
+    if (total_current > total_peak)
+        total_peak = total_current;
+    
+    return new_ptr + sizeof(size_t);
 }
 
-void m_free(void *q)
+char *m_strndup(const char *str, size_t n)
 {
-    if (!q)
+    size_t len = strnlen(str, n);
+    
+    char *new_str = m_alloc(len + 1);
+    
+    if (!new_str) return NULL;
+    memcpy(new_str, str, len);
+    new_str[len] = '\0';
+    
+    return new_str;
+}
+
+void m_free(void *ptr)
+{
+    if (!ptr)
 		return;
     
-    uint8_t *p = (uint8_t*)q - sizeof(size_t);
+    uint8_t *base_ptr = (uint8_t*)ptr - sizeof(size_t);
     
-    size_t sz = *(size_t*)p;
+    size_t size = *(size_t*)base_ptr;
     
-    total_current -= sz;
+    total_current -= size;
     
-    free(p);
+    free(base_ptr);
 }
 
 #ifdef M_INTERFACE
-void *m_int_lv_malloc(size_t sz)
+void *m_int_lv_malloc(size_t size)
 {
-    return heap_caps_malloc(sz, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    return heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
 }
 
-void m_int_lv_free(void *p)
+void m_int_lv_free(void *ptr)
 {
-    heap_caps_free(p);
+    heap_caps_free(ptr);
 }
 #endif
 
 void print_memory_report()
-{      
-    printf("Memory usage: %d alloc'd, %d at peak\n", total_current, total_peak);
+{
+    m_printf("Memory usage: %d alloc'd, %d at peak\n", total_current, total_peak);
 }

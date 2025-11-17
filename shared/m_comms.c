@@ -437,6 +437,9 @@ int te_message_data_length(m_response msg)
 
 		case M_RESPONSE_PARAM_VALUE:
 			return 3 * sizeof(uint16_t) + sizeof(float);
+
+		case M_RESPONSE_SETTING_VALUE:
+			return 3 * sizeof(uint16_t) + sizeof(int16_t);
 		
 		case M_RESPONSE_STRING_CONTINUING:
 			return MESSAGE_LEN_VARIABLE;

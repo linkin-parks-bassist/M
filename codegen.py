@@ -222,6 +222,9 @@ def load_setting(setting):
 	s.group = setting.get('group', -1)
 	s.widget = "SETTING_WIDGET_" + enum_sanitize(setting.get('widget', "dropdown"))
 	
+	s.max_val = setting.get('max', 0xFF)
+	s.min_val = setting.get('min', 0)
+	
 	i = 0
 	for option in setting.get('options', []):
 		o = setting_option()
@@ -285,6 +288,7 @@ def load_transformer(transformer):
 def m_eng_transformer_init_function(trans):
 	output  = []
 	output += [f"int {trans.init_fn}(m_transformer *trans)", "{"]
+	output += ["	FUNCTION_START();", ""]
 	output += ["	if (!trans)", "	{", "		RETURN_ERR_CODE(ERR_NULL_PTR);", "	}", ""]
 	output += ["	int ret_val = transformer_init_controls(trans);", "	if (ret_val != NO_ERROR)", "	{", "		RETURN_ERR_CODE(ret_val);", "	}", "", f"	trans->type = {trans.enum_name};", ""]
 	
@@ -406,6 +410,7 @@ def m_int_transformer_init_function(trans):
 	if len(trans.settings) > 0:
 		output += ["", "	m_setting *setting;", ""]
 	
+	i = 0
 	for setting in trans.settings:
 		output.append( "	setting = transformer_add_setting(trans);")
 		output.append( "")

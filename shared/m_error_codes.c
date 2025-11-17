@@ -76,8 +76,8 @@ const char *m_error_code_to_string(int error_code)
 
 		case ERR_INVALID_PARAMETER_ID:
 			return "ERR_INVALID_PARAMETER_ID";
-		case ERR_INVALID_OPTION_ID:
-			return "ERR_INVALID_OPTION_ID";
+		case ERR_INVALID_SETTING_ID:
+			return "ERR_INVALID_SETTING_ID";
 		case ERR_INVALID_TRANSFORMER_ID:
 			return "ERR_INVALID_TRANSFORMER_ID";
 		case ERR_INVALID_PROFILE_ID:
