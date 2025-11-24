@@ -35,11 +35,41 @@ m_ui_page *create_profile_view_for(m_profile *profile)
 	return page;
 }
 
+int profile_view_transformer_click_cb(m_active_button *button)
+{
+	if (!button)
+		return ERR_NULL_PTR;
+	
+	if (!button->data)
+		return ERR_BAD_ARGS;
+	
+	enter_ui_page(((m_transformer*)button->data)->view_page);
+	
+	return NO_ERROR;
+}
+
+int profile_view_transformer_moved_cb(m_active_button *button)
+{
+	if (!button)
+		return ERR_NULL_PTR;
+	
+	m_transformer *trans = button->data;
+	
+	if (!trans)
+		return ERR_BAD_ARGS;
+	
+	queue_msg_to_teensy(create_m_message(M_MESSAGE_MOVE_TRANSFORMER, "sss", trans->profile->id, trans->id, button->index));
+	
+	return NO_ERROR;
+}
+
 int init_profile_view(m_ui_page *page)
 {
 	//printf("init_profile_view...\n");
 	if (!page)
 		return ERR_NULL_PTR;
+	
+	init_ui_page(page);
 	
 	m_profile_view_str *str = m_alloc(sizeof(m_profile_view_str));
 	
@@ -63,34 +93,36 @@ int init_profile_view(m_ui_page *page)
 	
 	page->data_struct = (void*)str;
 	
-	str->n_transformer_widgets = 0;
-	str->left_button_mode = LEFT_BUTTON_MENU;
-	
 	str->profile 			= NULL;
-	page->container 		= NULL;
-	str->profile 			= NULL;
-	str->tws 				= NULL;
 
-	
 	page->configure  			= configure_profile_view;
 	page->create_ui  			= create_profile_view_ui;
 	page->enter_page 			= enter_profile_view;
-	page->enter_page_forward 	= enter_profile_view_forward;
-	page->enter_page_back 		= enter_profile_view_back;
 	page->free_all				= free_profile_view;
 	
 	str->save 		= NULL;
 	str->plus		= NULL;
 	str->play 		= NULL;
 	
-	str->accessed_from = NULL;
-	
 	str->menu_button 		= NULL;
 	str->menu_button_label 	= NULL;
 	
 	page->panel = new_panel();
 	
-	//printf("success\n");
+	str->array = m_active_button_array_new();
+	
+	m_active_button_array_set_length(str->array, 32);
+	
+	str->array->flags |= M_ACTIVE_BUTTON_ARRAY_FLAG_DELETEABLE;
+	str->array->flags |= M_ACTIVE_BUTTON_ARRAY_FLAG_MOVEABLE;
+	
+	str->array->clicked_cb = profile_view_transformer_click_cb;
+	str->array->moved_cb   = profile_view_transformer_moved_cb;
+	
+	str->rep.representee = NULL;
+	str->rep.representer = page;
+	str->rep.update = profile_view_rep_update;
+	
 	return NO_ERROR;
 }
 
@@ -107,9 +139,7 @@ static void save_button_cb(lv_event_t *e)
 		return;
 	
 	//printf("Saving profile...\n");
-	save_profile(str->profile);
-	
-	lv_obj_add_flag(str->save->obj, LV_OBJ_FLAG_HIDDEN);
+	m_profile_save(str->profile);
 }
 
 int profile_view_save_name(m_ui_page *page)
@@ -174,7 +204,7 @@ void profile_view_enter_settings_page_cb(lv_event_t *e)
 
 void profile_view_enter_main_menu_cb(lv_event_t *e)
 {
-	enter_ui_page(global_cxt.ui_cxt.main_menu);
+	enter_ui_page(&global_cxt.pages.main_menu);
 }
 
 void profile_view_activate_profile_cb(lv_event_t *e)
@@ -190,7 +220,6 @@ void profile_view_activate_profile_cb(lv_event_t *e)
 	if (str->profile)
 	{
 		set_active_profile(str->profile);
-		profile_view_refresh_play_button(page);
 	}
 	else
 	{
@@ -222,10 +251,6 @@ int configure_profile_view(m_ui_page *page, void *data)
 	
 	profile->view_page = page;
 	
-	m_transformer_widget *tw;
-	
-	m_transformer_widget_pll *nl;
-	
 	int ret_val;
 	int alloc_fail = 0;
 	
@@ -238,6 +263,9 @@ int configure_profile_view(m_ui_page *page, void *data)
 	{
 		trans = current->data;
 		
+		m_active_button_array_append_new(str->array, trans, transformer_type_name(trans->type));
+		
+		/*
 		tw = m_alloc(sizeof(m_transformer_widget));
 		
 		if (!tw)
@@ -284,11 +312,10 @@ int configure_profile_view(m_ui_page *page, void *data)
 		}
 		
 		current = current->next;
-		i++;
+		i++;*/
 	}
 	
 	configure_profile_settings_page(str->settings_page, profile);
-	
 	
 	str->play = ui_page_add_bottom_button(page, LV_SYMBOL_PLAY, profile_view_activate_profile_cb);
 	str->plus = ui_page_add_bottom_button(page, LV_SYMBOL_PLUS, enter_transformer_selector_cb);
@@ -298,6 +325,10 @@ int configure_profile_view(m_ui_page *page, void *data)
 	
 	ui_page_add_left_panel_button(page, LV_SYMBOL_LIST, enter_parent_page_cb);
 	ui_page_add_right_panel_button(page, LV_SYMBOL_SETTINGS, profile_view_enter_settings_page_cb);
+	
+	str->rep.representee = profile;
+	
+	m_profile_add_representation(profile, &str->rep);
 	
 	page->configured = 1;
 	return alloc_fail ? ERR_ALLOC_FAIL : NO_ERROR;
@@ -311,7 +342,7 @@ int create_profile_view_ui(m_ui_page *page)
 	if (page->ui_created)
 		return NO_ERROR;
 	
-	page->parent = global_cxt.ui_cxt.main_menu;
+	page->parent = &global_cxt.pages.main_menu;
 	
 	m_profile_view_str *str = (m_profile_view_str*)page->data_struct;
 	
@@ -337,24 +368,22 @@ int create_profile_view_ui(m_ui_page *page)
 	
 	printf("create_profile_view_ui. profile->name = %s\n", profile->name);
 	
-	page->panel->text = m_strndup(profile->name, 32);
+	page->panel->text = profile->name;
 	
 	ui_page_create_base_ui(page);
-    
-    m_transformer_widget_pll *current = str->tws;
-    
-    int i = 0;
-    while (current)
-    {
-		create_transformer_widget_ui(current->data, page->container);
-		current = current->next;
-		i++;
+	m_active_button_array_create_ui(str->array, page->container);
+	
+	printf("profile->active = %d\n", profile->active);
+	
+	if (profile->active)
+	{
+		m_button_disable(str->play);
 	}
 	
-	printf("%d transformer widgets\n", i);
-	
 	if (!str->profile->unsaved_changes)
-		lv_obj_add_flag(str->save->obj, LV_OBJ_FLAG_HIDDEN);
+	{
+		m_button_disable(str->save);
+	}
 	
 	page->ui_created = 1;
 	
@@ -368,25 +397,12 @@ int enter_profile_view(m_ui_page *page)
 	
 	m_profile_view_str *str = (m_profile_view_str*)page->data_struct;
 	
-	//printf("Entering profile view. Profile: %p. Profile name: %s\n", str->profile, str->profile->name);
-	
-	m_transformer_pll *current = str->profile->pipeline.transformers;
-	
-	int i = 0;
-	while (current)
-	{
-		current = current->next;
-		i++;
-	}
-	
-	//printf("Profile has %d transformers. The view page has %d transformer widgets\n", i, str->n_transformer_widgets);
-	
 	lv_scr_load(page->screen);
 	
 	if (str)
 		global_cxt.working_profile = str->profile;
 	
-	global_cxt.ui_cxt.transformer_selector.parent = page;
+	global_cxt.pages.transformer_selector.parent = page;
 	
 	profile_view_refresh_play_button(page);
 	profile_view_refresh_save_button(page);
@@ -394,22 +410,43 @@ int enter_profile_view(m_ui_page *page)
 	return NO_ERROR;
 }
 
+int enter_profile_view_from(m_ui_page *page, m_ui_page *prev)
+{
+	if (!page)
+		return ERR_NULL_PTR;
+	
+	if (prev)
+	{
+		switch (prev->type)
+		{
+			case M_UI_PAGE_MAIN_MENU:
+				page->parent = NULL;
+				break;
+			
+			default:
+				break;
+		}
+	}
+	
+	enter_profile_view(page);
+	
+	return NO_ERROR;
+}
+
 int enter_profile_view_forward(m_ui_page *page)
 {
-	//printf("Entering profile view...\n");
 	if (!page)
 		return ERR_NULL_PTR;
 	
 	m_profile_view_str *str = page->data_struct;
 	
-	//printf("Load page...\n");
 	lv_scr_load_anim(page->screen, LV_SCR_LOAD_ANIM_MOVE_LEFT, UI_PAGE_TRANSITION_ANIM_MS, 0, false);
 	
 	if (str)
 		global_cxt.working_profile = str->profile;
 	
-	global_cxt.ui_cxt.transformer_selector.parent = page;
-	global_cxt.ui_cxt.main_menu->parent = page;
+	global_cxt.pages.transformer_selector.parent = page;
+	global_cxt.pages.main_menu.parent = page;
 	
 	profile_view_refresh_play_button(page);
 	profile_view_refresh_save_button(page);
@@ -430,8 +467,8 @@ int enter_profile_view_back(m_ui_page *page)
 	if (str)
 		global_cxt.working_profile = str->profile;
 	
-	global_cxt.ui_cxt.transformer_selector.parent = page;
-	global_cxt.ui_cxt.main_menu->parent = page;
+	global_cxt.pages.transformer_selector.parent = page;
+	global_cxt.pages.main_menu.parent = page;
 	
 	profile_view_refresh_play_button(page);
 	profile_view_refresh_save_button(page);
@@ -446,42 +483,7 @@ int profile_view_reorder_tw_list(m_ui_page *page)
 	
 	m_profile_view_str *str = page->data_struct;
 	
-	if (!str)
-		return ERR_BAD_ARGS;
 	
-	m_transformer_widget_pll *current;
-	m_transformer_widget_pll **current_ptr;
-	m_transformer_widget_pll *list_array[str->n_transformer_widgets];
-	
-	current = str->tws;
-	
-	int i = 0;
-	while (current && i < str->n_transformer_widgets)
-	{
-		list_array[i] = current;
-		current = current->next;
-		i++;
-	}
-	
-	int j;
-	current_ptr = &str->tws;
-	for (int index = 0; index < str->n_transformer_widgets; index++)
-	{
-		j = -1;
-		for (i = 0; i < str->n_transformer_widgets; i++)
-		{
-			if (list_array[i]->data->index == index)
-				j = i;
-		}
-		
-		if (j == -1)
-			return ERR_BAD_ARGS;
-		
-		*current_ptr = list_array[j];
-		current_ptr = &((*current_ptr)->next);
-	}
-	
-	*current_ptr = NULL;
 	
 	return NO_ERROR;
 }
@@ -496,19 +498,7 @@ int profile_view_print_tw_list(m_ui_page *page)
 	if (!str)
 		return ERR_BAD_ARGS;
 	
-	m_transformer_widget_pll *current = str->tws;
-	
-	//printf("Printing transformer widget linked list. n_tramsformer_widgets = %d\n", str->n_transformer_widgets);
-	
-	int i = 0;
-	while (current)
-	{
-		//printf("Transformer widget %d. pointer: %p.\n", i, current->data);
-		//printf("Transformer ptr %p, index %d, y_pos %d\n",
-		//	current->data->trans, current->data->index, (int)current->data->pos_y);
-		current = current->next;
-		i++;
-	}
+
 	
 	return NO_ERROR;
 }
@@ -523,75 +513,15 @@ int profile_view_append_transformer(m_ui_page *page, m_transformer *trans)
 	if (!str)
 		return ERR_BAD_ARGS;
 	
-	//printf("profile_view_append_transformer... n_transformer_widgets = %d\n", str->n_transformer_widgets);
+	m_active_button *button = m_active_button_array_append_new(str->array, trans, transformer_type_name(trans->type));
 	
-	m_transformer_widget *tw = m_alloc(sizeof(m_transformer_widget));
-	
-	if (!tw)
-		return ERR_ALLOC_FAIL;
-	
-	init_transformer_widget(tw, page, trans, str->n_transformer_widgets++);
-	create_transformer_widget_ui(tw, page->container);
-	
-	str->tws = m_transformer_widget_pll_append(str->tws, tw);
-	
-	str->n_transformer_widgets = 0;
-	tw_ll *current = str->tws;
-	while (current)
+	if (page->ui_created)
 	{
-		current = current->next;
-		str->n_transformer_widgets++;
+		m_active_button_create_ui(button, page->container);
 	}
 	
-	profile_view_print_tw_list(page);
 	
-	return NO_ERROR;
-}
-
-int profile_view_index_y_position(int index)
-{
-	return PROFILE_VIEW_BUTTON_BASE_Y + index * PROFILE_VIEW_BUTTON_DISTANCE;
-}
-
-int profile_view_remove_tw_from_list(m_ui_page *page, m_transformer_widget *tw)
-{
-	if (!page)
-		return ERR_NULL_PTR;
 	
-	m_profile_view_str *str = page->data_struct;
-	
-	if (!str)
-		return ERR_BAD_ARGS;
-	
-	m_transformer_widget_pll *current = str->tws;
-	m_transformer_widget_pll *prev = NULL;
-	
-	while (current)
-	{
-		if (current->data == tw)
-		{
-			if (prev)
-				prev->next = current->next;
-			else
-				str->tws = current->next;
-			
-			m_free(current);
-			break;
-		}
-		
-		prev = current;
-		current = current->next;
-	}
-	
-	str->n_transformer_widgets = 0;
-	current = str->tws;
-	while (current)
-	{
-		current = current->next;
-		str->n_transformer_widgets++;
-	}
-	
-	profile_view_recalculate_indices(page);
 	
 	return NO_ERROR;
 }
@@ -601,33 +531,7 @@ int profile_view_recalculate_indices(m_ui_page *page)
 	if (!page)
 		return ERR_NULL_PTR;
 	
-	m_profile_view_str *str = page->data_struct;
 	
-	if (!str)
-		return ERR_BAD_ARGS;
-	
-	m_transformer_widget_pll *current = str->tws;
-	m_transformer_widget_pll *other;
-	
-	int j = 0;
-	while (current)
-	{
-		int i = 0;
-		other = str->tws;
-		
-		while (other)
-		{
-			if (current != other && other->data->pos_y < current->data->pos_y)
-				i++;
-			
-			other = other->next;
-		}
-		
-		transformer_widget_set_index(current->data, i);
-		
-		current = current->next;
-		j++;
-	}
 	
 	return NO_ERROR;
 }
@@ -640,16 +544,7 @@ int free_profile_view(m_ui_page *page)
 	
 	m_profile_view_str *str = page->data_struct;
 	
-	if (str)
-	{
-		if (str->tws)
-			destructor_free_m_transformer_widget_pll(str->tws, free_transformer_widget);
-	}
-	
-	if (page->screen)
-		lv_obj_del(page->screen);
-	
-	m_free(page);
+	return ERR_UNIMPLEMENTED;
 	
 	return NO_ERROR;
 }
@@ -659,37 +554,7 @@ int profile_view_refresh_play_button(m_ui_page *page)
 	if (!page)
 		return ERR_NULL_PTR;
 	
-	m_profile_view_str *str = page->data_struct;
 	
-	if (str)
-	{
-		if (str->profile)
-		{
-			if (str->save->obj)
-			{
-				if (str->profile->active)
-				{
-					lv_obj_add_flag(str->play->obj, LV_OBJ_FLAG_HIDDEN);
-				}
-				else
-				{
-					lv_obj_clear_flag(str->play->obj, LV_OBJ_FLAG_HIDDEN);
-				}
-			}
-			else
-			{
-				return ERR_BAD_ARGS;
-			}
-		}
-		else
-		{
-			return ERR_BAD_ARGS;
-		}
-	}
-	else
-	{
-		return ERR_BAD_ARGS;
-	}
 	
 	return NO_ERROR;
 }
@@ -700,37 +565,6 @@ int profile_view_refresh_save_button(m_ui_page *page)
 	if (!page)
 		return ERR_NULL_PTR;
 	
-	m_profile_view_str *str = page->data_struct;
-	
-	if (str)
-	{
-		if (str->profile)
-		{
-			if (str->save->obj)
-			{
-				if (str->profile->unsaved_changes)
-				{
-					lv_obj_clear_flag(str->save->obj, LV_OBJ_FLAG_HIDDEN);
-				}
-				else
-				{
-					lv_obj_add_flag(str->save->obj, LV_OBJ_FLAG_HIDDEN);
-				}
-			}
-			else
-			{
-				return ERR_BAD_ARGS;
-			}
-		}
-		else
-		{
-			return ERR_BAD_ARGS;
-		}
-	}
-	else
-	{
-		return ERR_BAD_ARGS;
-	}
 	
 	return NO_ERROR;
 }
@@ -743,13 +577,7 @@ int profile_view_change_name(m_ui_page *page, char *name)
 	if (!page->panel)
 		return ERR_BAD_ARGS;
 	
-	printf("Setting profile view name to %s\n", name);
-	page->panel->text = name;
-	
-	if (page->ui_created && page->panel->title)
-	{
-		lv_textarea_set_text(page->panel->title, name);
-	}
+
 	
 	return NO_ERROR;
 }
@@ -761,31 +589,46 @@ int profile_view_set_left_button_mode(m_ui_page *page, int mode)
 	
 	m_profile_view_str *str = (m_profile_view_str*)page->data_struct;
 	
-	if (str)
-	{
-		str->left_button_mode = mode;
-	}
 	
-	if (page->panel && page->panel->lb)
-	{
-		lv_obj_remove_event_cb(page->panel->lb->obj, page->panel->lb->clicked_cb);
-		if (mode == LEFT_BUTTON_MENU)
-		{
-			page->panel->lb->label_text = LV_SYMBOL_LEFT;
-			page->panel->lb->clicked_cb = enter_main_menu_cb;
-		}
-		else
-		{
-			page->panel->lb->label_text = LV_SYMBOL_LEFT;
-			page->panel->lb->clicked_cb = enter_parent_page_cb;
-		}
-		
-		if (page->panel->lb->obj && page->panel->lb->label)
-		{
-			lv_label_set_text(page->panel->lb->label, page->panel->lb->label_text);
-			lv_obj_add_event_cb(page->panel->lb->obj, page->panel->lb->clicked_cb, LV_EVENT_CLICKED, page);
-		}
-	}
 	
 	return NO_ERROR;
+}
+
+void profile_view_rep_update(void *representer, void *representee)
+{
+	printf("profile_view_rep_update. representer = %p, representee = %p\n", representer, representee);
+	
+	m_ui_page *page = (m_ui_page*)representer;
+	m_profile *profile = (m_profile*)representee;
+	
+	if (!page || !profile)
+		return;
+	
+	ui_page_set_title(page, profile->name);
+	
+	m_profile_view_str *str = (m_profile_view_str*)page->data_struct;
+	printf("profile->active = %d,  str = %p, \n", profile->active, str);
+	if (!str)
+		return;
+	
+	if (profile->active)
+	{
+		printf("profile is active! disabling play button,,,\n");
+		m_button_disable(str->play);
+	}
+	else
+	{
+		m_button_enable(str->play);
+	}
+	
+	if (profile->unsaved_changes)
+	{
+		m_button_disable(str->save);
+	}
+	else
+	{
+		m_button_enable(str->save);
+	}
+	
+	printf("profile_view_rep_update done\n");
 }

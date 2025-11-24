@@ -1,28 +1,6 @@
 #ifndef M_INT_PROFILE_VIEW_H_
 #define M_INT_PROFILE_VIEW_H_
 
-#define PROFILE_VIEW_TRANSFORMER_LIST_WIDTH  500
-#define PROFILE_VIEW_TRANSFORMER_LIST_HEIGHT 700
-
-#define PROFILE_VIEW_BUTTON_WIDTH	TRANSFORMER_WIDGET_WIDTH
-#define PROFILE_VIEW_BUTTON_HEIGHT	TRANSFORMER_WIDGET_HEIGHT
-
-#define PROFILE_VIEW_BUTTON_V_PAD	20
-
-#define PROFILE_VIEW_BUTTON_BASE_X 		((PROFILE_VIEW_TRANSFORMER_LIST_WIDTH - TRANSFORMER_WIDGET_WIDTH) / 2)
-#define PROFILE_VIEW_BUTTON_BASE_Y 		PROFILE_VIEW_BUTTON_V_PAD
-#define PROFILE_VIEW_BUTTON_DISTANCE 	(PROFILE_VIEW_BUTTON_HEIGHT + PROFILE_VIEW_BUTTON_V_PAD)
-
-#define PROFILE_VIEW_TW_MIN_Y PROFILE_VIEW_BUTTON_V_PAD
-#define PROFILE_VIEW_TW_MAX_Y (PROFILE_VIEW_TRANSFORMER_LIST_HEIGHT - PROFILE_VIEW_BUTTON_DISTANCE)
-
-#define LEFT_BUTTON_MENU 0
-#define LEFT_BUTTON_BACK 1
-
-typedef m_transformer_widget_pll transformer_widget_ll;
-
-typedef m_transformer_widget_pll tw_ll;
-
 typedef struct m_profile_view_str
 {
 	m_profile *profile;
@@ -34,35 +12,26 @@ typedef struct m_profile_view_str
 	lv_obj_t *menu_button;
 	lv_obj_t *menu_button_label;
 	
-	m_transformer_widget *add_button;
-	
-	lv_coord_t plus_button_x;
-	lv_coord_t plus_button_y;
-	
 	char *name_saved;
-	int n_transformer_widgets;
-	m_transformer_widget_pll *tws;
-	
-	int left_button_mode;
-	
-	m_ui_page *accessed_from;
 	
 	m_ui_page *settings_page;
+	
+	m_active_button_array *array;
+	
+	m_representation rep;
 } m_profile_view_str;
 
 m_ui_page *create_profile_view_for(m_profile *profile);
 
-int init_profile_view(m_ui_page *page);
-int configure_profile_view(m_ui_page *page, void *data);
-int create_profile_view_ui(m_ui_page *page);
-int free_profile_view_ui(m_ui_page *page);
-int free_profile_view(m_ui_page *page);
-int enter_profile_view(m_ui_page *page);
-int enter_profile_view_forward(m_ui_page *page);
-int enter_profile_view_back(m_ui_page *page);
-int refresh_profile_view(m_ui_page *page);
+int init_profile_view		(m_ui_page *page);
+int configure_profile_view	(m_ui_page *page, void *data);
+int create_profile_view_ui	(m_ui_page *page);
+int free_profile_view_ui	(m_ui_page *page);
+int free_profile_view		(m_ui_page *page);
+int enter_profile_view		(m_ui_page *page);
+int enter_profile_view_from	(m_ui_page *page, m_ui_page *prev);
+int refresh_profile_view	(m_ui_page *page);
 
-int profile_view_remove_tw_from_list(m_ui_page *page, m_transformer_widget *tw);
 int profile_view_recalculate_indices(m_ui_page *page);
 
 int profile_view_append_transformer(m_ui_page *page, m_transformer *trans);
@@ -77,5 +46,7 @@ int profile_view_refresh_save_button(m_ui_page *page);
 int profile_view_change_name(m_ui_page *page, char *name);
 
 int profile_view_set_left_button_mode(m_ui_page *page, int mode);
+
+void profile_view_rep_update(void *representer, void *representee);
 
 #endif
