@@ -2,17 +2,33 @@
 
 IMPLEMENT_LINKED_PTR_LIST(lv_obj_t);
 
+typedef struct
+{
+	m_active_button_array *array;
+} test_page_str;
+
 m_ui_page test_page;
 
-int create_test_page_ui(m_ui_page *page)
+lv_obj_t *keyboard;
+
+int create_test_page_ui()
 {
-	ui_page_create_base_ui(page);
+	ui_page_create_base_ui(&test_page);
+	test_page_str *str = test_page.data_struct;
+	
+	m_active_button_array_create_ui(str->array, test_page.container);
+	
 	return NO_ERROR;
 }
 
 void init_test_page()
 {
 	init_ui_page(&test_page);
+	
+	test_page.data_struct = m_alloc(sizeof(test_page_str));
+	
+	test_page_str *str = test_page.data_struct;
+	
 	test_page.configured = 1;
 	
 	test_page.create_ui = &create_test_page_ui;
@@ -22,36 +38,19 @@ void init_test_page()
 	
 	ui_page_add_bottom_button(&test_page, "Test1", NULL);
 	ui_page_add_bottom_button(&test_page, "Test2", NULL);
-	//ui_page_add_bottom_button(&test_page, "Test3");
-	//ui_page_add_bottom_button(&test_page, "Test4");
-	//ui_page_add_bottom_button(&test_page, "Test5");
-	//ui_page_add_bottom_button(&test_page, "Test6");
-}
-
-int init_ui_context(m_int_ui_context *cxt)
-{
-	if (!cxt)
-		return ERR_NULL_PTR;
 	
-	init_ui_page(&cxt->transformer_selector);
+	str->array = m_active_button_array_new();
 	
-	cxt->transformer_selector.create_ui = create_transformer_selector_ui;
-	cxt->transformer_selector.enter_page = enter_transformer_selector;
+	m_active_button_array_set_length(str->array, 7);
 	
-	init_transformer_selector(&cxt->transformer_selector);
+	str->array->flags |= M_ACTIVE_BUTTON_ARRAY_FLAG_DELETEABLE;
+	str->array->flags |= M_ACTIVE_BUTTON_ARRAY_FLAG_MOVEABLE;
 	
-	cxt->main_menu = m_alloc(sizeof(m_ui_page));
-	
-	init_main_menu(cxt->main_menu);
-	
-	cxt->prev_page = NULL;
-	
-	cxt->profile_list  = NULL;
-	cxt->sequence_list = NULL;
-	
-	cxt->backstage = NULL;
-	
-	return NO_ERROR;
+	m_active_button_array_append_new(str->array, NULL, "Test1");
+	m_active_button_array_append_new(str->array, NULL, "Test2");
+	m_active_button_array_append_new(str->array, NULL, "Test3");
+	m_active_button_array_append_new(str->array, NULL, "Test4");
+	m_active_button_array_append_new(str->array, NULL, "Test5");
 }
 
 int m_ui_page_set_background_default(m_ui_page *page)
@@ -68,37 +67,23 @@ int m_ui_page_set_background_default(m_ui_page *page)
 	return NO_ERROR;
 }
 
-void create_ui(lv_disp_t *disp)
+int m_init_global_pages(m_global_pages *pages)
 {
-	global_cxt.ui_cxt.backstage = lv_obj_create(NULL);
+	if (!pages)
+		return ERR_NULL_PTR;
 	
-	//printf("Setting up UI...\n");
+	init_main_menu(&pages->main_menu);
+	init_transformer_selector(&pages->transformer_selector);
 	
-	//lv_disp_set_antialiasing(disp, false);
-	lv_theme_default_init(disp,
-                      lv_palette_main(LV_PALETTE_GREY),  // primary
-                      lv_palette_main(LV_PALETTE_GREEN), // secondary
-                      LV_THEME_DEFAULT_DARK,
-                      LV_FONT_DEFAULT);
-	lv_disp_set_theme(disp, lv_theme_default_get());
+	init_profile_list(&pages->profile_list);
+	init_sequence_list(&pages->sequence_list);
 	
-	configure_ui_page(global_cxt.ui_cxt.main_menu, global_cxt.active_profile->view_page);
-	configure_transformer_selector(&global_cxt.ui_cxt.transformer_selector, global_cxt.active_profile);
-	//create_page_ui(global_cxt.ui_cxt.main_menu);
-	
-	//create_page_uicxt->transformer_selector.create_ui(&cxt->transformer_selector);
-	m_profile_set_active(global_cxt.active_profile);
-	
-	init_test_page();
-	
-	//enter_ui_page(&test_page);
-	
-	enter_ui_page(global_cxt.working_profile->view_page);
+	return NO_ERROR;
 }
 
 static lv_style_t bg_style;
 
-static void screen_load_cb(lv_event_t * e)
+static void screen_load_cb(lv_event_t *e)
 {
     lv_obj_t *scr = lv_event_get_target(e);
     lv_obj_add_style(scr, &bg_style, LV_PART_MAIN);
@@ -121,10 +106,36 @@ void init_global_bg(lv_disp_t *disp)
                         NULL);
 }
 
+void m_create_ui(lv_disp_t *disp)
+{
+	global_cxt.pages.backstage = lv_obj_create(NULL);
+	
+	init_global_bg(disp);
+	lv_theme_default_init(disp,
+                      lv_palette_main(LV_PALETTE_GREY),
+                      lv_palette_main(LV_PALETTE_GREEN),
+                      LV_THEME_DEFAULT_DARK,
+                      GLOBAL_MAIN_FONT);
+    
+	lv_disp_set_theme(disp, lv_theme_default_get());
+	
+	configure_profile_list(&global_cxt.pages.profile_list, &global_cxt.pages.main_menu);
+	configure_sequence_list(&global_cxt.pages.sequence_list, &global_cxt.pages.main_menu);
+	configure_ui_page(&global_cxt.pages.main_menu, global_cxt.active_profile->view_page);
+	
+	init_test_page();
+	create_test_page_ui();
+	enter_ui_page(&test_page);
+	
+	enter_ui_page(global_cxt.working_profile->view_page);
+}
+
 int init_ui_page(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
+	
+	page->type = M_UI_PAGE_GENERIC;
 	
 	page->screen 			= NULL;
 	page->panel				= NULL;
@@ -134,6 +145,7 @@ int init_ui_page(m_ui_page *page)
 	page->free_ui 			= NULL;
 	page->free_all 			= NULL;
 	page->enter_page 		= NULL;
+	page->enter_page_from	= NULL;
 	page->refresh			= NULL;
 	
 	page->data_struct 		= NULL;
@@ -260,6 +272,8 @@ int enter_ui_page(m_ui_page *page)
 		lv_scr_load(page->screen);
 	}
 	
+	global_cxt.pages.current_page = page;
+	
 	return NO_ERROR;
 }
 
@@ -275,56 +289,6 @@ int enter_ui_page_indirect(m_ui_page **_page)
 	return NO_ERROR;
 }
 
-
-
-int enter_ui_page_indirect_forward(m_ui_page **_page)
-{
-	//printf("enter ui page indirect...\n");
-	
-	if (!_page)
-		return ERR_NULL_PTR;
-	
-	m_ui_page *page = *_page;
-	
-	if (!page)
-		return ERR_NULL_PTR;
-	
-	if (!page->screen)
-		return ERR_BAD_ARGS;
-	
-	if (page->enter_page)
-		page->enter_page(page);
-	else
-		lv_scr_load_anim(page->screen, LV_SCR_LOAD_ANIM_MOVE_LEFT, UI_PAGE_TRANSITION_ANIM_MS, 0, false);
-	
-	return NO_ERROR;
-}
-
-int enter_ui_page_indirect_back(m_ui_page **_page)
-{
-	//printf("enter ui page indirect...\n");
-	
-	if (!_page)
-		return ERR_NULL_PTR;
-	
-	m_ui_page *page = *_page;
-	
-	if (!page)
-		return ERR_NULL_PTR;
-	
-	if (!page->screen)
-		return ERR_BAD_ARGS;
-	
-	if (page->enter_page_back)
-		page->enter_page_back(page);
-	else if (page->enter_page)
-		page->enter_page(page);
-	else
-		lv_scr_load_anim(page->screen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, UI_PAGE_TRANSITION_ANIM_MS, 0, false);
-	
-	return NO_ERROR;
-}
-
 void enter_ui_page_cb(lv_event_t *e)
 {
 	printf("enter ui page callback triggered\n");
@@ -332,22 +296,6 @@ void enter_ui_page_cb(lv_event_t *e)
 	printf("Given page: %p\n", page);
 	if (page)
 		enter_ui_page(page);
-}
-
-void enter_ui_page_forward_cb(lv_event_t *e)
-{
-	//printf("enter ui page callback triggered\n");
-	m_ui_page **_page = (m_ui_page**)lv_event_get_user_data(e);
-	enter_ui_page_indirect_forward(_page);
-}
-
-void enter_ui_page_back_cb(lv_event_t *e)
-{
-	printf("enter ui page callback triggered\n");
-	m_ui_page **_page = (m_ui_page**)lv_event_get_user_data(e);
-	
-	printf("_page = %p, *_page = %p\n", _page, _page ? *_page : NULL);
-	enter_ui_page_indirect_back(_page);
 }
 
 void enter_parent_page_cb(lv_event_t *e)
@@ -370,7 +318,7 @@ void enter_parent_page_cb(lv_event_t *e)
 	if (page->parent)
 		enter_ui_page(page->parent);
 	else
-		enter_ui_page(global_cxt.ui_cxt.main_menu);
+		enter_ui_page(&global_cxt.pages.main_menu);
 }
 
 void m_ui_page_return_to_parent(m_ui_page *page)
@@ -439,9 +387,11 @@ int set_panel_text(m_ui_page *page, const char *text)
 	
 	page->panel->text = text;
     
-    if (text)
+    if (text && page->ui_created && page->panel->panel)
     {
-		page->panel->title = lv_label_create(page->panel->panel);
+		if (!page->panel->title)
+			page->panel->title = lv_label_create(page->panel->panel);
+			
 		lv_label_set_text(page->panel->title, page->panel->text);
 		
 		lv_obj_set_style_text_color(page->panel->title, lv_color_hex(GLOBAL_MAIN_TEXT_COLOUR), 0);
@@ -625,22 +575,22 @@ int create_panel_with_left_and_right_buttons(m_ui_page *page,
 
 void spawn_keyboard(lv_obj_t *parent, lv_obj_t *text_area, void (*ok_cb)(lv_event_t*), void *ok_arg, void (*cancel_cb)(lv_event_t*), void *cancel_arg)
 {
-	if (!global_cxt.ui_cxt.keyboard)
+	if (!keyboard)
 	{
-		global_cxt.ui_cxt.keyboard = lv_keyboard_create(parent);
-		lv_obj_set_size(global_cxt.ui_cxt.keyboard, LV_PCT(100), LV_PCT(33));
-		lv_obj_add_flag(global_cxt.ui_cxt.keyboard, LV_OBJ_FLAG_HIDDEN);
+		keyboard = lv_keyboard_create(parent);
+		lv_obj_set_size(keyboard, LV_PCT(100), LV_PCT(33));
+		lv_obj_add_flag(keyboard, LV_OBJ_FLAG_HIDDEN);
 	}
 	else
 	{
-		lv_obj_set_parent(global_cxt.ui_cxt.keyboard, parent);
+		lv_obj_set_parent(keyboard, parent);
 	}
 	
-	lv_obj_clear_flag(global_cxt.ui_cxt.keyboard, LV_OBJ_FLAG_HIDDEN);
-	lv_keyboard_set_textarea(global_cxt.ui_cxt.keyboard, text_area);
+	lv_obj_clear_flag(keyboard, LV_OBJ_FLAG_HIDDEN);
+	lv_keyboard_set_textarea(keyboard, text_area);
 	
-	lv_obj_add_event_cb(global_cxt.ui_cxt.keyboard, ok_cb, 		LV_EVENT_READY, 	ok_arg);
-	lv_obj_add_event_cb(global_cxt.ui_cxt.keyboard, cancel_cb, 	LV_EVENT_CANCEL, 	cancel_arg);
+	lv_obj_add_event_cb(keyboard, ok_cb, 		LV_EVENT_READY, 	ok_arg);
+	lv_obj_add_event_cb(keyboard, cancel_cb, 	LV_EVENT_CANCEL, 	cancel_arg);
 	lv_obj_add_event_cb(text_area, 					cancel_cb, 	LV_EVENT_DEFOCUSED, cancel_arg);
 	lv_obj_add_event_cb(text_area, 					cancel_cb, 	LV_EVENT_LEAVE, 	cancel_arg);
 }
@@ -651,24 +601,24 @@ void spawn_numerical_keyboard(lv_obj_t *parent, lv_obj_t *text_area, void (*ok_c
 	
 	spawn_keyboard(parent, text_area, ok_cb, ok_arg, cancel_cb, cancel_arg);
 	
-	lv_keyboard_set_mode(global_cxt.ui_cxt.keyboard, LV_KEYBOARD_MODE_NUMBER);
+	lv_keyboard_set_mode(keyboard, LV_KEYBOARD_MODE_NUMBER);
 	printf("spawn_numerical_keyboard done\n");
 }
 
 void hide_keyboard()
 {
-	if (global_cxt.ui_cxt.keyboard)
-		lv_obj_add_flag(global_cxt.ui_cxt.keyboard, LV_OBJ_FLAG_HIDDEN);
+	if (keyboard)
+		lv_obj_add_flag(keyboard, LV_OBJ_FLAG_HIDDEN);
 	
-	lv_keyboard_set_mode(global_cxt.ui_cxt.keyboard, LV_KEYBOARD_MODE_TEXT_LOWER);
+	lv_keyboard_set_mode(keyboard, LV_KEYBOARD_MODE_TEXT_LOWER);
 }
 
 void hide_keyboard_cb(lv_event_t *e)
 {
-	if (global_cxt.ui_cxt.keyboard)
-		lv_obj_add_flag(global_cxt.ui_cxt.keyboard, LV_OBJ_FLAG_HIDDEN);
+	if (keyboard)
+		lv_obj_add_flag(keyboard, LV_OBJ_FLAG_HIDDEN);
 	
-	lv_keyboard_set_mode(global_cxt.ui_cxt.keyboard, LV_KEYBOARD_MODE_TEXT_LOWER);
+	lv_keyboard_set_mode(keyboard, LV_KEYBOARD_MODE_TEXT_LOWER);
 }
 
 int create_standard_container(lv_obj_t **cont, lv_obj_t *parent)
@@ -861,148 +811,6 @@ int create_standard_button_long_press_release(lv_obj_t **obj, lv_obj_t **label, 
 	return NO_ERROR;
 }
 
-int init_button(m_int_button *button)
-{
-	if (!button)
-		return ERR_NULL_PTR;
-	
-	button->obj 				= NULL;
-	button->label 				= NULL;
-	button->label_text 			= NULL;
-	button->clicked_cb 			= NULL;
-	button->clicked_cb_arg 		= NULL;
-	button->pressing_cb 		= NULL;
-	button->pressing_cb_arg 	= NULL;
-	button->long_pressed_cb 	= NULL;
-	button->long_pressed_cb_arg = NULL;
-	button->released_cb 		= NULL;
-	button->released_cb_arg 	= NULL;
-	
-	button->hider = NULL;
-	button->clickable = 1;
-	
-	button->long_pressed = 0;
-	
-	button->draggable_x = 0;
-	button->draggable_y = 0;
-	
-	button->n_sub_buttoms = 0;
-	button->sub_buttons = NULL;
-	
-	button->width  = LV_PCT(100);
-	button->height = STANDARD_BUTTON_HEIGHT;
-	
-	button->alignment = LV_ALIGN_CENTER;
-	
-	return NO_ERROR;
-}
-
-m_int_button *new_button(const char *label)
-{
-	m_int_button *button = malloc(sizeof(m_int_button));
-	
-	if (!button)
-		return NULL;
-	
-	init_button(button);
-	
-	button->label_text = label;
-	
-	return button;
-}
-
-int create_button_ui(m_int_button *button, lv_obj_t *parent)
-{
-	if (!button)
-		return ERR_NULL_PTR;
-	
-	button->obj = lv_btn_create(parent);
-	
-	if (!button->obj)
-		return ERR_ALLOC_FAIL;
-	
-	lv_obj_set_size(button->obj, button->width, button->height);
-	
-	button->label = lv_label_create(button->obj);
-	
-	if (!button->label)
-	{
-		lv_obj_del(button->obj);
-		button->obj = NULL;
-		return ERR_ALLOC_FAIL;
-	}
-	
-	lv_label_set_text(button->label, button->label_text);
-	lv_obj_center(button->label);
-	
-	if (button->clicked_cb)
-		lv_obj_add_event_cb(button->obj, button->clicked_cb, LV_EVENT_CLICKED, button->clicked_cb_arg);
-	
-	if (button->pressing_cb)
-		lv_obj_add_event_cb(button->obj, button->pressing_cb, LV_EVENT_PRESSING, button->pressing_cb_arg);
-	
-	if (button->long_pressed_cb)
-		lv_obj_add_event_cb(button->obj, button->long_pressed_cb, LV_EVENT_LONG_PRESSED, button->long_pressed_cb_arg);
-	
-	if (button->released_cb)
-		lv_obj_add_event_cb(button->obj, button->released_cb, LV_EVENT_RELEASED, button->released_cb_arg);
-	
-	if (button->sub_buttons)
-	{
-		for (int i = 0; i < button->n_sub_buttoms; i++)
-		{
-			if (button->sub_buttons[i])
-				create_button_ui(button->sub_buttons[i], button->obj);
-		}
-	}
-	
-	return NO_ERROR;
-}
-
-int button_set_clicked_cb(m_int_button *button, lv_event_cb_t cb, void *cb_arg)
-{
-	if (!button)
-		return ERR_NULL_PTR;
-	
-	button->clicked_cb = cb;
-	button->clicked_cb_arg = cb_arg;
-	
-	return NO_ERROR;
-}
-
-int button_set_pressing_cb(m_int_button *button, lv_event_cb_t cb, void *cb_arg)
-{
-	if (!button)
-		return ERR_NULL_PTR;
-	
-	button->pressing_cb = cb;
-	button->pressing_cb_arg = cb_arg;
-	
-	return NO_ERROR;
-}
-
-int button_set_long_pressed_cb(m_int_button *button, lv_event_cb_t cb, void *cb_arg)
-{
-	if (!button)
-		return ERR_NULL_PTR;
-	
-	button->long_pressed_cb = cb;
-	button->long_pressed_cb_arg = cb_arg;
-	
-	return NO_ERROR;
-}
-
-int button_set_released_cb(m_int_button *button, lv_event_cb_t cb, void *cb_arg)
-{
-	if (!button)
-		return ERR_NULL_PTR;
-	
-	button->released_cb = cb;
-	button->released_cb_arg = cb_arg;
-	
-	return NO_ERROR;
-}
-
 int init_panel(m_ui_page_panel *panel)
 {
 	if (!panel)
@@ -1044,6 +852,58 @@ static void edit_rw_text_cb(lv_event_t *e)
 	
 	spawn_keyboard(page->screen, page->panel->title, page->panel->rw_save_cb, page, page->panel->rw_cancel_cb, page);
 	lv_obj_add_state(page->panel->title, LV_STATE_FOCUSED);
+}
+
+int ui_page_set_title(m_ui_page *page, const char *text)
+{
+	if (!page)
+		return ERR_NULL_PTR;
+	
+	if (!page->panel)
+		return ERR_BAD_ARGS;
+	
+	page->panel->text = text;
+    
+    if (text && page->ui_created && page->panel->panel)
+    {
+		if (page->panel->flags & TOP_PANEL_FLAG_RW_TITLE)
+		{
+			if (!page->panel->title)
+				page->panel->title = lv_textarea_create(page->panel->panel);
+			
+			lv_textarea_set_text(page->panel->title, page->panel->text);
+			
+			lv_obj_set_style_text_color(page->panel->title, lv_color_hex(GLOBAL_MAIN_TEXT_COLOUR), 0);
+			lv_obj_set_style_text_font(page->panel->title, GLOBAL_MAIN_FONT, 0);
+			
+			lv_obj_set_style_border_width(page->panel->title, 0, 0);
+			lv_obj_set_style_bg_color	 (page->panel->title, lv_color_hex(TOP_PANEL_COLOUR), 0);
+			lv_obj_set_size(page->panel->title, LV_SIZE_CONTENT, TOP_PANEL_HEIGHT * 0.7);
+			lv_textarea_set_one_line(page->panel->title, true);
+			lv_textarea_set_align(page->panel->title, LV_TEXT_ALIGN_CENTER);
+			
+			lv_obj_align_to(page->panel->title, page->panel->panel, LV_ALIGN_CENTER, 0, 0);
+		}
+		else
+		{
+			if (!page->panel->title)
+				page->panel->title = lv_label_create(page->panel->panel);
+				
+			lv_label_set_text(page->panel->title, page->panel->text);
+			
+			lv_obj_set_style_text_color(page->panel->title, lv_color_hex(GLOBAL_MAIN_TEXT_COLOUR), 0);
+			lv_obj_set_style_text_font(page->panel->title, GLOBAL_MAIN_FONT, 0);
+			
+			lv_obj_set_style_text_align(page->panel->title, LV_TEXT_ALIGN_CENTER, 0);
+			lv_obj_align_to(page->panel->title, page->panel->panel, LV_ALIGN_CENTER, 0, 0);
+		}
+	}
+	else
+	{
+		page->panel->title = NULL;
+	}
+	
+	return NO_ERROR;
 }
 
 
