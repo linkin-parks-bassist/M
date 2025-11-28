@@ -200,7 +200,7 @@ void m_eng_i2s_input_isr()
 		src = (raw_sample_t *)&i2s_rx_buffer[AUDIO_BLOCK_SAMPLES/2];
 		end = (raw_sample_t *)&i2s_rx_buffer[AUDIO_BLOCK_SAMPLES];
 		
-		if (i2s_in_update_responsibility) update_all();
+		cxt_process(&global_cxt);
 	}
 	else
 	{
@@ -250,7 +250,6 @@ void m_eng_i2s_output_isr()
 		// DMA is transmitting the first half of the buffer
 		// so we must fill the second half
 		dest = (int16_t*)&i2s_tx_buffer[AUDIO_BLOCK_SAMPLES/2];
-		if (i2s_out_update_responsibility) update_all();
 	}
 	else
 	{

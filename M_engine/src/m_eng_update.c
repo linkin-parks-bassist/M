@@ -6,7 +6,7 @@ void update_all()
 {
 	#ifndef M_SIMULATED
 	
-	NVIC_SET_PENDING(IRQ_SOFTWARE);
+	
 	#else
 	
 	#endif
