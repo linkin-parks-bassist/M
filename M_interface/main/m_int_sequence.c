@@ -2,32 +2,34 @@
 
 IMPLEMENT_LINKED_PTR_LIST(m_int_sequence);
 
-int init_m_int_sequence(m_int_sequence *seq)
+int init_m_int_sequence(m_int_sequence *sequence)
 {
-	if (!seq)
+	if (!sequence)
 		return ERR_NULL_PTR;
 	
-	seq->name 	  = NULL;
-	seq->profiles = NULL;
+	sequence->name 	  = NULL;
+	sequence->profiles = NULL;
 	
-	seq->active = 0;
-	seq->unsaved_changes = 1;
-	seq->position = NULL;
+	sequence->active = 0;
+	sequence->unsaved_changes = 1;
+	sequence->position = NULL;
 	
-	seq->view_page = NULL;
+	sequence->view_page = NULL;
 	
-	seq->fname = NULL;
+	sequence->fname = NULL;
 	
-	seq->listings = NULL;
+	sequence->listings = NULL;
 	
-	seq->main_sequence = 0;
+	sequence->main_sequence = 0;
+	
+	sequence->representations = NULL;
 	
 	return NO_ERROR;
 }
 
-int sequence_append_profile(m_int_sequence *seq, m_profile *profile)
+int sequence_append_profile(m_int_sequence *sequence, m_profile *profile)
 {
-	if (!seq || !profile)
+	if (!sequence || !profile)
 		return ERR_NULL_PTR;
 	
 	seq_profile_ll *new_node = malloc(sizeof(seq_profile_ll));
@@ -39,13 +41,13 @@ int sequence_append_profile(m_int_sequence *seq, m_profile *profile)
 	new_node->next = NULL;
 	new_node->prev = NULL;
 	
-	if (!seq->profiles)
+	if (!sequence->profiles)
 	{
-		seq->profiles = new_node;
+		sequence->profiles = new_node;
 		return NO_ERROR;
 	}
 	
-	seq_profile_ll *current = seq->profiles;
+	seq_profile_ll *current = sequence->profiles;
 	
 	while (current)
 	{
@@ -57,15 +59,15 @@ int sequence_append_profile(m_int_sequence *seq, m_profile *profile)
 	current->next = new_node;
 	new_node->prev = current;
 	
-	profile->sequence = seq;
+	profile->sequence = sequence;
 	
 	return NO_ERROR;
 }
 
 
-seq_profile_ll *sequence_append_profile_rp(m_int_sequence *seq, m_profile *profile)
+seq_profile_ll *sequence_append_profile_rp(m_int_sequence *sequence, m_profile *profile)
 {
-	if (!seq || !profile)
+	if (!sequence || !profile)
 		return NULL;
 	
 	seq_profile_ll *new_node = malloc(sizeof(seq_profile_ll));
@@ -77,13 +79,13 @@ seq_profile_ll *sequence_append_profile_rp(m_int_sequence *seq, m_profile *profi
 	new_node->next = NULL;
 	new_node->prev = NULL;
 	
-	if (!seq->profiles)
+	if (!sequence->profiles)
 	{
-		seq->profiles = new_node;
+		sequence->profiles = new_node;
 		return new_node;
 	}
 	
-	seq_profile_ll *current = seq->profiles;
+	seq_profile_ll *current = sequence->profiles;
 	
 	while (current)
 	{
@@ -98,15 +100,15 @@ seq_profile_ll *sequence_append_profile_rp(m_int_sequence *seq, m_profile *profi
 	return new_node;
 }
 
-int sequence_move_profile(m_int_sequence *seq, int pos, int new_pos)
+int sequence_move_profile(m_int_sequence *sequence, int pos, int new_pos)
 {
-	if (!seq)
+	if (!sequence)
 		return ERR_NULL_PTR;
 	
 	if (pos < 0 || new_pos < 0)
 		return ERR_BAD_ARGS;
 	
-	seq_profile_ll *target = seq->profiles;
+	seq_profile_ll *target = sequence->profiles;
 	seq_profile_ll *prev = NULL;
 	
 	for (int i = 0; i < pos; i++)
@@ -128,12 +130,12 @@ int sequence_move_profile(m_int_sequence *seq, int pos, int new_pos)
 	
 	if (new_pos == 0)
 	{
-		target->next = seq->profiles;
-		seq->profiles = target;
+		target->next = sequence->profiles;
+		sequence->profiles = target;
 		return NO_ERROR;
 	}
 	
-	seq_profile_ll *current = seq->profiles;
+	seq_profile_ll *current = sequence->profiles;
 	
 	for (int i = 0; i < new_pos; i++)
 	{
@@ -156,7 +158,7 @@ int sequence_move_profile(m_int_sequence *seq, int pos, int new_pos)
 	}
 }
 
-void free_sequence(m_int_sequence *seq)
+void free_sequence(m_int_sequence *sequence)
 {
 	
 }
@@ -177,94 +179,177 @@ int m_int_sequence_add_menu_listing(m_int_sequence *sequence, m_int_menu_item *l
 }
 
 
-int m_sequence_begin(m_int_sequence *seq)
+int m_sequence_begin(m_int_sequence *sequence)
 {
-	if (!seq)
+	if (!sequence)
 		return ERR_NULL_PTR;
 	
-	if (!seq->profiles)
+	if (!sequence->profiles)
 	{
 		printf("Error: empty sequence\n");
 		return ERR_BAD_ARGS;
 	}
 	
-	if (!seq->profiles)
+	if (!sequence->profiles)
 	{
 		printf("Sequence is empty !\n");
 		return NO_ERROR;
 	}
 	
-	global_cxt.sequence = seq;
-	seq->active = 1;
+	global_cxt.sequence = sequence;
+	sequence->active = 1;
 	
-	set_active_profile(seq->profiles->data);
+	set_active_profile(sequence->profiles->data);
 	
-	seq->position = seq->profiles;
+	sequence->position = sequence->profiles;
+	
+	m_sequence_update_representations(sequence);
 	
 	return NO_ERROR;
 }
 
 
-int m_sequence_regress(m_int_sequence *seq)
+int m_sequence_regress(m_int_sequence *sequence)
 {
-	if (!seq)
+	if (!sequence)
 		return ERR_NULL_PTR;
 	
 	printf("regressing sequence\n");
 	
-	if (!seq->profiles)
+	if (!sequence->profiles)
 	{
 		printf("Error: empty sequence\n");
 		return ERR_BAD_ARGS;
 	}
 	
-	if (!seq->active || !seq->position)
+	if (!sequence->active || !sequence->position)
 	{
 		printf("Error: sequence not active\n");
 		return ERR_BAD_ARGS;
 	}
 	
-	if (!seq->position->prev)
+	if (!sequence->position->prev)
 	{
 		printf("Can't regress sequence; sequence at start already\n");
 		return NO_ERROR;
 	}
 	
-	seq->position = seq->position->prev;
+	sequence->position = sequence->position->prev;
 	
-	set_active_profile(seq->position->data);
+	set_active_profile(sequence->position->data);
 	
 	return NO_ERROR;
 }
 
-int m_sequence_advance(m_int_sequence *seq)
+int m_sequence_advance(m_int_sequence *sequence)
 {
-	if (!seq)
+	if (!sequence)
 		return ERR_NULL_PTR;
 	
 	printf("advancing sequence\n");
 	
-	if (!seq->profiles)
+	if (!sequence->profiles)
 	{
 		printf("Error: empty sequence\n");
 		return ERR_BAD_ARGS;
 	}
 	
-	if (!seq->active || !seq->position)
+	if (!sequence->active || !sequence->position)
 	{
 		printf("Error: sequence not active\n");
 		return ERR_BAD_ARGS;
 	}
 	
-	if (!seq->position->next)
+	if (!sequence->position->next)
 	{
 		printf("Can't regress sequence; sequence at end already\n");
 		return NO_ERROR;
 	}
 	
-	seq->position = seq->position->next;
+	sequence->position = sequence->position->next;
 	
-	set_active_profile(seq->position->data);
+	set_active_profile(sequence->position->data);
+	
+	return NO_ERROR;
+}
+
+int m_sequence_stop(m_int_sequence *sequence)
+{
+	if (!sequence)
+		return ERR_NULL_PTR;
+	
+	global_cxt.sequence = NULL;
+	sequence->active = 0;
+	
+	set_active_profile(NULL);
+	
+	sequence->position = NULL;
+	
+	m_sequence_update_representations(sequence);
+	
+	return NO_ERROR;
+}
+
+
+int m_sequence_stop_from_profile(m_int_sequence *sequence)
+{
+	if (!sequence)
+		return ERR_NULL_PTR;
+	
+	global_cxt.sequence = NULL;
+	sequence->active = 0;
+	
+	sequence->position = NULL;
+	
+	m_sequence_update_representations(sequence);
+	
+	return NO_ERROR;
+}
+
+int m_sequence_activate_at(m_int_sequence *sequence, m_profile *profile)
+{
+	if (!sequence)
+		return ERR_NULL_PTR;
+	
+	seq_profile_ll *current = sequence->profiles;
+	
+	while (current)
+	{
+		if (current->data && current->data == profile)
+		{
+			sequence->position = current;
+			sequence->active = 1;
+			
+			m_sequence_update_representations(sequence);
+			return NO_ERROR;
+		}
+	}
+	
+	return ERR_BAD_ARGS;
+}
+
+int m_sequence_add_representation(m_int_sequence *sequence, m_representation *rep)
+{
+	if (!sequence)
+		return ERR_NULL_PTR;
+	
+	m_representation_pll *nl = m_representation_pll_append(sequence->representations, rep);
+	
+	if (nl)
+		sequence->representations = nl;
+	else
+		return ERR_ALLOC_FAIL;
+	
+	return NO_ERROR;
+}
+
+int m_sequence_update_representations(m_int_sequence *sequence)
+{
+	if (!sequence)
+		return ERR_NULL_PTR;
+	
+	if (sequence->representations)
+		queue_representation_list_update(sequence->representations);
 	
 	return NO_ERROR;
 }

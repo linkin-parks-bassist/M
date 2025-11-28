@@ -26,10 +26,6 @@ int m_init_context(m_context *cxt)
 	
 	init_settings(&cxt->settings);
 	
-	init_parameter(&cxt->settings.global_volume, "Volume", -90.0, -12.0, 12.0);
-	cxt->settings.global_volume.units = " dB";
-	cxt->settings.global_volume.id = (m_parameter_id){.profile_id = 0xFFFF, .transformer_id = 0, .parameter_id = 0};
-	
 	cxt->pages.backstage = NULL;
 	cxt->pages.current_page = NULL;
 	
@@ -403,19 +399,23 @@ int cxt_remove_transformer(m_context *cxt, uint16_t pid, uint16_t tid)
 int set_active_profile(m_profile *profile)
 {
 	printf("set_active_profile\n");
-	if (!profile)
-		return ERR_NULL_PTR;
 	
-	m_profile_set_active(profile);
-	printf("set_active_profile line %d\n", __LINE__);
+	if (profile)
+		m_profile_set_active(profile);
+	
 	if (profile == global_cxt.active_profile)
 		return NO_ERROR;
+	
+	if (profile && profile->sequence)
+		m_sequence_activate_at(profile->sequence, profile);
 	
 	m_profile_set_inactive(global_cxt.active_profile);
 	
 	global_cxt.active_profile = profile;
 	
-	return queue_msg_to_teensy(create_m_message(M_MESSAGE_SWITCH_PROFILE, "s", profile->id));
+	uint16_t id = profile ? profile->id : 0;
+	
+	return queue_msg_to_teensy(create_m_message(M_MESSAGE_SWITCH_PROFILE, "s", id));
 }
 
 int set_working_profile(m_profile *profile)

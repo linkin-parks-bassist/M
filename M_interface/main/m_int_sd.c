@@ -161,6 +161,10 @@ int init_sd_card()
 
 string_ll *list_files_in_directory(char *dir)
 {
+	#ifndef USE_SD_CARD
+	return NULL;
+	#endif
+	
 	if (!dir)
 		return NULL;
 	
@@ -222,7 +226,9 @@ string_ll *list_files_in_directory(char *dir)
 
 void erase_sd_card_void_cb(void *data)
 {
+	#ifdef USE_SDCARD
 	erase_sd_card();
+	#endif
 }
 
 void erase_sd_card()

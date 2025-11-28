@@ -77,6 +77,21 @@ int create_button_ui(m_int_button *button, lv_obj_t *parent)
 	if (!button->obj)
 		return ERR_ALLOC_FAIL;
 	
+		
+	if (button->flags & M_BUTTON_FLAG_HIDDEN)
+		lv_obj_add_flag(button->obj, LV_OBJ_FLAG_HIDDEN);
+	else
+		lv_obj_set_style_opa(button->obj, button->opacity, 0);
+		
+	if (button->flags & M_BUTTON_FLAG_DISABLED)
+		lv_obj_add_state(button->obj, LV_STATE_DISABLED);
+	
+	if (button->flags & M_BUTTON_FLAG_UNCLICKABLE)
+		lv_obj_clear_flag(button->obj, LV_OBJ_FLAG_CLICKABLE);
+	
+	if (!(button->flags & M_BUTTON_FLAG_NO_ALIGN))
+		lv_obj_align(button->obj, button->alignment, button->align_offs_x, button->align_offs_y);
+	
 	printf("create_button_ui: button->obj = %p\n", button->obj);
 	
 	button->label = lv_label_create(button->obj);
@@ -105,7 +120,6 @@ int create_button_ui(m_int_button *button, lv_obj_t *parent)
 	}
 	
 	lv_obj_set_size(button->obj, button->width, button->height);
-	lv_obj_align(button->obj, button->alignment, button->align_offs_x, button->align_offs_y);
 	lv_label_set_text(button->label, button->label_text);
 	lv_obj_center(button->label);
 	
@@ -120,17 +134,6 @@ int create_button_ui(m_int_button *button, lv_obj_t *parent)
 	
 	if (button->released_cb)
 		lv_obj_add_event_cb(button->obj, button->released_cb, LV_EVENT_RELEASED, button->released_cb_arg);
-	
-	if (button->flags & M_BUTTON_FLAG_HIDDEN)
-		lv_obj_add_flag(button->obj, LV_OBJ_FLAG_HIDDEN);
-	else
-		lv_obj_set_style_opa(button->obj, button->opacity, 0);
-	
-	if (button->flags & M_BUTTON_FLAG_UNCLICKABLE)
-		lv_obj_clear_flag(button->obj, LV_OBJ_FLAG_CLICKABLE);
-	
-	if (button->flags & M_BUTTON_FLAG_DISABLED)
-		lv_obj_add_state(button->obj, LV_STATE_DISABLED);
 	
 	return NO_ERROR;
 }
@@ -223,11 +226,23 @@ int m_button_set_label(m_int_button *button, const char *label)
 	return NO_ERROR;
 }
 
+
+int m_button_disable_alignment(m_int_button *button)
+{
+	if (!button)
+		return ERR_NULL_PTR;
+	
+	button->flags |= M_BUTTON_FLAG_NO_ALIGN;
+	
+	return NO_ERROR;
+}
+
 int m_button_set_alignment(m_int_button *button, lv_align_t align, int offs_x, int offs_y)
 {
 	if (!button)
 		return ERR_NULL_PTR;
 	
+	button->flags &= ~M_BUTTON_FLAG_NO_ALIGN;
 	button->alignment = align;
 	
 	button->align_offs_x = offs_x;
@@ -434,6 +449,77 @@ int m_button_delete_ui(m_int_button *button)
 	}
 	
 	return NO_ERROR;
+}
+
+//
+// Buttons with "are you sure?" popups
+//
+
+int init_danger_button(m_danger_button *button, void (*action_cb)(void *data), void *cb_arg, m_ui_page *parent)
+{
+	if (!button)
+		return ERR_NULL_PTR;
+	
+	init_button(&button->button);
+	
+	button->parent = parent;
+	button->popup  = NULL;
+	
+	button->action_cb = action_cb;
+	button->cb_arg = cb_arg;
+	
+	button_set_clicked_cb(&button->button, m_danger_button_activate_popup_cb, NULL);
+	
+	return NO_ERROR;
+}
+
+int m_danger_button_create_ui(m_danger_button *button, lv_obj_t *parent)
+{
+	if (!button)
+		return ERR_NULL_PTR;
+	
+	create_button_ui(&button->button, parent);
+	
+	return NO_ERROR;
+}
+
+void m_danger_button_value_changed_cb(lv_event_t *e)
+{
+	m_danger_button *button = lv_event_get_user_data(e);
+	
+	if (!button)
+		return;
+	
+	if (!button->popup)
+		return;
+	
+	const char *button_text = lv_msgbox_get_active_btn_text(button->popup);
+	
+	if (strncmp(DANGER_BUTTON_CONFIRM_TEXT, button_text, strlen(DANGER_BUTTON_CONFIRM_TEXT) + 1) == 0)
+	{
+		if (button->action_cb)
+			button->action_cb(button->cb_arg);
+	}
+	
+	lv_msgbox_close(button->popup);
+	button->popup = NULL;
+}
+
+void m_danger_button_activate_popup_cb(lv_event_t *e)
+{
+	m_danger_button *button = lv_event_get_user_data(e);
+	
+	if (!button)
+		return;
+	
+	if (!button->parent)
+		return;
+	
+	static const char *btns[] = {DANGER_BUTTON_CONFIRM_TEXT, DANGER_BUTTON_CANCEL_TEXT, NULL};
+	button->popup = lv_msgbox_create(button->parent->screen, button->button.label_text, "Are you sure?", btns, 1);
+	
+	lv_obj_add_event_cb(button->popup, m_danger_button_value_changed_cb, LV_EVENT_VALUE_CHANGED, button);
+	lv_obj_center(button->popup);
 }
 
 void m_active_button_scale_cb(void *data, int32_t value)

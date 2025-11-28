@@ -16,6 +16,8 @@ typedef struct
 	
 	lv_obj_t *save_button;
 	lv_obj_t *save_button_label;
+	
+	m_representation rep;
 } m_profile_settings_str;
 
 int init_profile_settings_page(m_ui_page *page);

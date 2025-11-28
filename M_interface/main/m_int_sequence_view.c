@@ -1,17 +1,17 @@
 #include "m_int.h"
 
-int create_sequence_view_for(m_int_sequence *seq)
+int create_sequence_view_for(m_int_sequence *sequence)
 {
-	if (!seq)
+	if (!sequence)
 		return ERR_NULL_PTR;
 	
-	seq->view_page = malloc(sizeof(m_ui_page));
+	sequence->view_page = malloc(sizeof(m_ui_page));
 	
-	if (!seq->view_page)
+	if (!sequence->view_page)
 		return ERR_ALLOC_FAIL;
 	
-	init_sequence_view(seq->view_page);
-	configure_sequence_view(seq->view_page, seq);
+	init_sequence_view(sequence->view_page);
+	configure_sequence_view(sequence->view_page, sequence);
 	
 	return NO_ERROR;
 }
@@ -51,7 +51,7 @@ int seq_view_moved_cb(m_active_button *button)
 	
 	m_int_sequence_view_str *str = (m_int_sequence_view_str*)button->array->parent->data_struct;
 	
-	m_int_sequence *sequence = str->seq;
+	m_int_sequence *sequence = str->sequence;
 	
 	seq_profile_ll *current = sequence->profiles;
 	seq_profile_ll *node = NULL;
@@ -116,7 +116,7 @@ int init_sequence_view(m_ui_page *page)
 	if (!str)
 		return ERR_ALLOC_FAIL;
 	
-	str->seq = NULL;
+	str->sequence = NULL;
 	
 	str->play = NULL;
 	str->plus = NULL;
@@ -156,13 +156,16 @@ void seq_play_cb(lv_event_t *e)
 	if (!str)
 		return;
 	
-	if (!str->seq)
+	if (!str->sequence)
 	{
 		printf("ERROR: no sequence\n");
 		return;
 	}
 	
-	m_sequence_begin(str->seq);
+	if (str->sequence->active)
+		m_sequence_stop(str->sequence);
+	else
+		m_sequence_begin(str->sequence);
 }
 
 void seq_plus_cb(lv_event_t *e)
@@ -182,9 +185,9 @@ void seq_plus_cb(lv_event_t *e)
 	if (!new_profile)
 		return;
 	
-	new_profile->sequence = str->seq;
+	new_profile->sequence = str->sequence;
 	
-	seq_profile_ll *node = sequence_append_profile_rp(str->seq, new_profile);
+	seq_profile_ll *node = sequence_append_profile_rp(str->sequence, new_profile);
 	
 	if (!node)
 		return;
@@ -211,7 +214,7 @@ void seq_save_cb(lv_event_t *e)
 	if (!str)
 		return;
 	
-	m_int_sequence *sequence = str->seq;
+	m_int_sequence *sequence = str->sequence;
 	
 	save_sequence(sequence);
 }
@@ -243,17 +246,17 @@ void sequence_view_set_name(lv_event_t *e)
 	
 	const char *new_name = lv_textarea_get_text(page->panel->title);
 	
-	if (str->seq->name)
-		m_free(str->seq->name);
+	if (str->sequence->name)
+		m_free(str->sequence->name);
 	
-	str->seq->name = m_strndup(new_name, PROFILE_NAME_MAX_LEN);
+	str->sequence->name = m_strndup(new_name, PROFILE_NAME_MAX_LEN);
 	
 	lv_obj_clear_state(page->panel->title, LV_STATE_FOCUSED);
 	lv_obj_add_state(page->container, LV_STATE_FOCUSED);
 	
 	hide_keyboard();
 	
-	str->seq->unsaved_changes = 1;
+	str->sequence->unsaved_changes = 1;
 	lv_obj_clear_flag(str->save->obj, LV_OBJ_FLAG_HIDDEN);
 }
 
@@ -262,7 +265,7 @@ void sequence_view_revert_name(lv_event_t *e)
 	m_ui_page *page = (m_ui_page*)lv_event_get_user_data(e);
 	m_int_sequence_view_str *str = (m_int_sequence_view_str*)page->data_struct;
 	
-	lv_textarea_set_text(page->panel->title, str->seq->name);
+	lv_textarea_set_text(page->panel->title, str->sequence->name);
 	
 	lv_obj_clear_state(page->panel->title, LV_STATE_FOCUSED);
 	lv_obj_add_state(page->container, LV_STATE_FOCUSED);
@@ -275,9 +278,9 @@ int configure_sequence_view(m_ui_page *page, void *data)
 	if (!page)
 		return ERR_NULL_PTR;
 	
-	m_int_sequence *seq = (m_int_sequence*)data;
+	m_int_sequence *sequence = (m_int_sequence*)data;
 	
-	if (!seq)
+	if (!sequence)
 		return ERR_BAD_ARGS;
 	
 	m_int_sequence_view_str *str = (m_int_sequence_view_str*)page->data_struct;
@@ -285,9 +288,9 @@ int configure_sequence_view(m_ui_page *page, void *data)
 	if (!str)
 		return ERR_ALLOC_FAIL;
 	
-	str->seq = seq;
+	str->sequence = sequence;
 	
-	seq->view_page = page;
+	sequence->view_page = page;
 	
 	page->panel = new_panel();
 	
@@ -304,10 +307,10 @@ int configure_sequence_view(m_ui_page *page, void *data)
 	str->plus = ui_page_add_bottom_button(page, LV_SYMBOL_PLUS, seq_plus_cb);
 	str->save = ui_page_add_bottom_button(page, LV_SYMBOL_SAVE, seq_save_cb);
 	
-	page->panel->text = seq->name;
+	page->panel->text = sequence->name;
 	ui_page_set_title_rw(page, sequence_view_set_name, sequence_view_revert_name);
 	
-	seq_profile_ll *current = seq->profiles;
+	seq_profile_ll *current = sequence->profiles;
 	
 	m_active_button *button;
 	
@@ -331,7 +334,9 @@ int configure_sequence_view(m_ui_page *page, void *data)
 		}
 	}
 	
-	str->rep.representee = seq;
+	str->rep.representee = sequence;
+	
+	m_sequence_add_representation(sequence, &str->rep);
 	
 	page->configured = 1;
 	
@@ -350,6 +355,10 @@ int create_sequence_view_ui(m_ui_page *page)
 		return ERR_BAD_ARGS;
 	
 	ui_page_create_base_ui(page);
+	
+	#ifndef USE_SDCARD
+	m_button_disable(str->save);
+	#endif
 	
 	m_active_button_array_create_ui(str->array, page->container);
 	
@@ -409,21 +418,23 @@ void sequence_view_rep_update(void *representer, void *representee)
 	
 	if (sequence->active)
 	{
-		m_button_disable(str->play);
+		m_button_set_label(str->play, LV_SYMBOL_STOP);
 	}
 	else
 	{
-		m_button_enable(str->play);
+		m_button_set_label(str->play, LV_SYMBOL_PLAY);
 	}
 	
-	/*if (sequence->unsaved_changes)
+	#ifdef USE_SDCARD
+	if (sequence->unsaved_changes)
 	{
 		m_button_disable(str->save);
 	}
 	else
 	{
 		m_button_enable(str->save);
-	}*/
+	}
+	#endif
 }
 
 

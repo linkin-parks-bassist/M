@@ -319,12 +319,6 @@ void enter_parent_page_cb(lv_event_t *e)
 		return;
 	}
 	
-	if (!page->parent)
-	{
-		printf("No parent !\n");
-		return;
-	}
-	
 	if (page->parent)
 		enter_ui_page(page->parent);
 	else

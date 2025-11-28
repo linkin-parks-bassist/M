@@ -128,6 +128,10 @@ int init_profile_view(m_ui_page *page)
 
 static void save_button_cb(lv_event_t *e)
 {
+	#ifndef USE_SDCARD
+	return;
+	#endif
+	
 	m_ui_page *page = lv_event_get_user_data(e);
 	
 	if (!page)
@@ -139,7 +143,10 @@ static void save_button_cb(lv_event_t *e)
 		return;
 	
 	//printf("Saving profile...\n");
-	m_profile_save(str->profile);
+	int ret_val;
+	
+	if ((ret_val = m_profile_save(str->profile)) == NO_ERROR)
+		m_button_disable(str->save);
 }
 
 static void menu_button_cb(lv_event_t *e)
@@ -192,7 +199,10 @@ int profile_view_save_name(m_ui_page *page)
 	hide_keyboard();
 	
 	str->profile->unsaved_changes = 1;
-	lv_obj_clear_flag(str->save->obj, LV_OBJ_FLAG_HIDDEN);
+	
+	#ifdef USE_SDCARD
+	m_button_enable(str->save);
+	#endif
 	
 	return NO_ERROR;
 }
@@ -237,9 +247,9 @@ void profile_view_enter_main_menu_cb(lv_event_t *e)
 	enter_ui_page(&global_cxt.pages.main_menu);
 }
 
-void profile_view_activate_profile_cb(lv_event_t *e)
+void profile_view_play_button_cb(lv_event_t *e)
 {
-	printf("profile_view_activate_profile_cb\n");
+	printf("profile_view_play_button_cb\n");
 	m_ui_page *page = (m_ui_page*)lv_event_get_user_data(e);
 	
 	if (!page)
@@ -247,13 +257,29 @@ void profile_view_activate_profile_cb(lv_event_t *e)
 	
 	m_profile_view_str *str = (m_profile_view_str*)page->data_struct;
 	
-	if (str->profile)
+	if (!str)
+		return;
+	
+	if (!str->profile)
 	{
-		set_active_profile(str->profile);
+		set_active_profile(NULL);
+		return;
+	}
+	
+	if (str->profile->active)
+	{
+		if (str->profile->sequence)
+		{
+			m_sequence_stop(str->profile->sequence);
+		}
+		else
+		{
+			set_active_profile(NULL);
+		}
 	}
 	else
 	{
-		ESP_LOGE("profile_view_activate_profile_cb", "str->profile is NULL");
+		set_active_profile(str->profile);
 	}
 	
 	printf("done\n");
@@ -347,9 +373,11 @@ int configure_profile_view(m_ui_page *page, void *data)
 	
 	configure_profile_settings_page(str->settings_page, profile);
 	
-	str->play = ui_page_add_bottom_button(page, LV_SYMBOL_PLAY, profile_view_activate_profile_cb);
+	str->play = ui_page_add_bottom_button(page, LV_SYMBOL_PLAY, profile_view_play_button_cb);
 	str->plus = ui_page_add_bottom_button(page, LV_SYMBOL_PLUS, enter_transformer_selector_cb);
 	str->save = ui_page_add_bottom_button(page, LV_SYMBOL_SAVE, save_button_cb);
+	
+	m_button_disable(str->save);
 	
 	ui_page_set_title_rw(page, profile_view_save_name_cb, profile_view_revert_name);
 	
@@ -407,7 +435,7 @@ int create_profile_view_ui(m_ui_page *page)
 	
 	if (profile->active)
 	{
-		m_button_disable(str->play);
+		m_button_set_label(str->play, LV_SYMBOL_STOP);
 	}
 	
 	if (!str->profile->unsaved_changes)
@@ -642,14 +670,14 @@ void profile_view_rep_update(void *representer, void *representee)
 	
 	if (profile->active)
 	{
-		printf("profile is active! disabling play button,,,\n");
-		m_button_disable(str->play);
+		m_button_set_label(str->play, LV_SYMBOL_STOP);
 	}
 	else
 	{
-		m_button_enable(str->play);
+		m_button_set_label(str->play, LV_SYMBOL_PLAY);
 	}
 	
+	#ifdef USE_SDCARD
 	if (profile->unsaved_changes)
 	{
 		m_button_disable(str->save);
@@ -658,6 +686,7 @@ void profile_view_rep_update(void *representer, void *representee)
 	{
 		m_button_enable(str->save);
 	}
+	#endif
 	
 	printf("profile_view_rep_update done\n");
 }

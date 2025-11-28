@@ -153,9 +153,6 @@ void parameter_widget_change_cb_settings_wrapper(lv_event_t *e)
 	xSemaphoreGive(settings_mutex);
 }
 
-#define DANGER_BUTTON_CONFIRM_TEXT "Yes"
-#define DANGER_BUTTON_CANCEL_TEXT  "Cancel"
-
 void danger_button_value_changed_cb(lv_event_t *e)
 {
 	m_int_menu_item *item = lv_event_get_user_data(e);
@@ -748,9 +745,13 @@ void enter_main_menu_cb(lv_event_t *e)
 
 int init_main_menu(m_ui_page *page)
 {
-	init_menu_page(page);
+	init_ui_page(page);
 	
+	page->create_ui = create_main_menu_ui;
 	page->configure = configure_main_menu;
+	page->enter_page = enter_main_menu;
+	
+	page->data_struct = NULL;
 	
 	return NO_ERROR;
 }
@@ -762,25 +763,49 @@ int configure_main_menu(m_ui_page *page, void *data)
 	
 	page->parent = data;
 	
-	m_int_menu_page_str *str = (m_int_menu_page_str*)page->data_struct;
+	m_main_menu_str *str = m_alloc(sizeof(m_main_menu_str));
 	
 	if (!str)
-		return ERR_BAD_ARGS;
+		return ERR_ALLOC_FAIL;
 	
-	str->name = "Main Menu";
+	page->data_struct = str;
+	
+	str->gains_container = NULL;
 	
 	page->panel = new_panel();
-	page->panel->text = str->name;
+	page->panel->text = "Main Menu";
 	page->container_type = CONTAINER_TYPE_STD_BTN_LIST;
 	
 	ui_page_add_back_button(page);
 	
-	m_int_menu_item *item = create_pad_menu_item(20);
+	nullify_parameter_widget(&str->input_gain);
+	nullify_parameter_widget(&str->output_gain);
 	
+	configure_parameter_widget(&str->input_gain, &global_cxt.settings.input_gain, NULL, page);
+	configure_parameter_widget(&str->output_gain, &global_cxt.settings.output_gain, NULL, page);
+	
+	init_button(&str->profiles_button);
+	init_button(&str->sequences_button);
+	init_danger_button(&str->erase_sd_card_button, erase_sd_card_void_cb, NULL, page);
+	
+	m_button_set_label(&str->profiles_button, "Profiles");
+	m_button_disable_alignment(&str->profiles_button);
+	m_button_set_label(&str->sequences_button, "Sequences");
+	m_button_disable_alignment(&str->sequences_button);
+	m_button_set_label(&str->erase_sd_card_button.button, "Erase SD card");
+	m_button_disable_alignment(&str->erase_sd_card_button.button);
+	
+	button_set_clicked_cb(&str->profiles_button, enter_ui_page_cb, &global_cxt.pages.main_sequence_view);
+	button_set_clicked_cb(&str->sequences_button, enter_ui_page_cb, &global_cxt.pages.sequence_list);
+	
+	/*
+	m_int_menu_item *item = create_pad_menu_item(20);
 	menu_page_add_item(str, item);
 	
-	item = create_parameter_widget_menu_item(&global_cxt.settings.global_volume, page);
+	item = create_parameter_widget_menu_item(&global_cxt.settings.input_gain, page);
+	menu_page_add_item(str, item);
 	
+	item = create_parameter_widget_menu_item(&global_cxt.settings.output_gain, page);
 	menu_page_add_item(str, item);
 	
 	m_ui_page *profile_list = &global_cxt.pages.main_sequence_view;
@@ -801,7 +826,67 @@ int configure_main_menu(m_ui_page *page, void *data)
 	
 	item = create_danger_button_menu_item(erase_sd_card_void_cb, NULL, "Erase SD card", page);
 	
-	menu_page_add_item(str, item);
+	menu_page_add_item(str, item);*/
+	
+	page->configured = 1;
+	
+	return NO_ERROR;
+}
+
+int create_main_menu_ui(m_ui_page *page)
+{
+	if (!page)
+		return ERR_NULL_PTR;
+	
+	if (page->ui_created)
+	{
+		return NO_ERROR;
+	}
+	
+	m_main_menu_str *str = (m_main_menu_str*)page->data_struct;
+	
+	if (!str)
+	{
+		return ERR_BAD_ARGS;
+	}
+	
+	ui_page_create_base_ui(page);
+	
+	str->top_pad = lv_obj_create(page->container);
+	
+	lv_obj_remove_style_all(str->top_pad);
+	lv_obj_set_size(str->top_pad, LV_PCT(100), 20);
+	
+	/*
+	lv_obj_set_layout(page->container, LV_LAYOUT_FLEX);
+    lv_obj_set_flex_flow(page->container, LV_FLEX_FLOW_ROW_WRAP);
+	lv_obj_set_flex_align(page->container,
+		LV_FLEX_ALIGN_SPACE_EVENLY,
+		LV_FLEX_ALIGN_CENTER,
+		LV_FLEX_ALIGN_START);
+	*/
+	str->gains_container = lv_obj_create(page->container);
+	
+	lv_obj_remove_style_all(str->gains_container);
+	lv_obj_set_layout(str->gains_container, LV_LAYOUT_FLEX);
+	lv_obj_set_flex_flow (str->gains_container, LV_FLEX_FLOW_ROW_WRAP);
+	lv_obj_set_flex_align(str->gains_container, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_SPACE_EVENLY);
+	
+	parameter_widget_create_ui( &str->input_gain, str->gains_container);
+	parameter_widget_create_ui(&str->output_gain, str->gains_container);
+	
+	lv_obj_set_size(str->gains_container, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+	
+	str->top_pad = lv_obj_create(page->container);
+	
+	lv_obj_remove_style_all(str->top_pad);
+	lv_obj_set_size(str->top_pad, LV_PCT(100), 20);
+	
+	create_button_ui(&str->profiles_button, page->container);
+	create_button_ui(&str->sequences_button, page->container);
+	m_danger_button_create_ui(&str->erase_sd_card_button, page->container);
+	
+	page->ui_created = 1;
 	
 	return NO_ERROR;
 }

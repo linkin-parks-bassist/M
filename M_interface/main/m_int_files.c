@@ -252,7 +252,8 @@ int save_settings_to_file(m_settings *settings, const char *fname)
 	
 	write_byte(M_INT_WRITE_UNFINISHED_BYTE);
 	
-	write_float(settings->global_volume.value);
+	write_float(settings->input_gain.value);
+	write_float(settings->output_gain.value);
 	
 	fseek(file, 1, SEEK_SET);
 	write_byte(M_INT_WRITE_FINISHED_BYTE);
@@ -279,7 +280,8 @@ int load_settings_from_file(m_settings *settings, const char *fname)
 	if (!file)
 	{
 		printf("Failed to open file %s\n", fname);
-		settings->global_volume.value = 0.0;
+		settings->input_gain.value = 0.0;
+		settings->output_gain.value = -60.0;
 		return ERR_FOPEN_FAIL;
 	}
 	
@@ -303,9 +305,11 @@ int load_settings_from_file(m_settings *settings, const char *fname)
 		goto read_settings_exit;
 	}
 	
-	read_float(settings->global_volume.value);
+	read_float(settings->input_gain.value);
+	read_float(settings->output_gain.value);
 
-	printf("read global volume: %f\n", settings->global_volume.value);
+	printf("read input gain: %f\n", settings->input_gain.value);
+	printf("read output gain: %f\n", settings->output_gain.value);
 	
 read_settings_exit:
 	fclose(file);

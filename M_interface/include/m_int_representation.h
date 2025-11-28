@@ -20,4 +20,6 @@ int queue_representation_list_update(m_representation_pll *reps);
 
 extern QueueHandle_t m_rep_update_queue;
 
+m_representation_pll *m_representation_pll_remove(m_representation_pll *reps, m_representation *rep);
+
 #endif

@@ -3,7 +3,8 @@
 
 typedef struct
 {
-	m_parameter global_volume;
+	m_parameter input_gain;
+	m_parameter output_gain;
 	
 	const char *default_profile;
 	uint16_t default_profile_id;

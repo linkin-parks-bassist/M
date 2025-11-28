@@ -11,6 +11,16 @@ int init_settings(m_settings *settings)
 	settings->default_profile = NULL;
 	settings->default_profile_id = 0;
 	
+	
+	init_parameter(&settings->input_gain, "Input Gain", 0.0, -24.0, 24.0);
+	settings->input_gain.units = " dB";
+	settings->input_gain.id = (m_parameter_id){.profile_id = 0xFFFF, .transformer_id = 0, .parameter_id = 0};
+	
+	init_parameter(&settings->output_gain, "Output Gain", -60.0, -24.0, 24.0);
+	settings->output_gain.units = " dB";
+	settings->output_gain.id = (m_parameter_id){.profile_id = 0xFFFF, .transformer_id = 0, .parameter_id = 1};
+	
+	
 	settings_mutex = xSemaphoreCreateMutex();
 	assert(settings_mutex != NULL);
 	
@@ -23,7 +33,8 @@ int send_settings(m_settings *settings)
 		return ERR_NULL_PTR;
 	
 	xSemaphoreTake(settings_mutex, portMAX_DELAY);
-	queue_msg_to_teensy(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0xFFFF, 0, 0, settings->global_volume.value));
+	queue_msg_to_teensy(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0xFFFF, 0, 0, settings->input_gain.value));
+	queue_msg_to_teensy(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0xFFFF, 0, 1, settings->output_gain.value));
 	xSemaphoreGive(settings_mutex);
 	
 	return NO_ERROR;
@@ -34,7 +45,8 @@ int copy_settings_struct(m_settings *dest, m_settings *src)
 	if (!dest || !src)
 		return ERR_NULL_PTR;
 	
-	dest->global_volume.value = src->global_volume.value;
+	dest->input_gain.value = src->input_gain.value;
+	dest->output_gain.value = src->output_gain.value;
 	dest->default_profile = src->default_profile;
 	
 	return NO_ERROR;

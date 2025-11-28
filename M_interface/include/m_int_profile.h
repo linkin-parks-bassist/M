@@ -33,10 +33,18 @@ struct m_int_menu_item;
 int m_profile_add_representation(m_profile *profile, m_representation *rep);
 int m_profile_remove_representation(m_profile *profile, m_representation *rep);
 
+int m_profile_add_name_representation(m_profile *profile, m_representation *rep);
+int m_profile_remove_name_representation(m_profile *profile, m_representation *rep);
+
+int m_profile_add_id_representation(m_profile *profile, m_representation *rep);
+int m_profile_remove_id_representation(m_profile *profile, m_representation *rep);
+
 m_profile *create_new_profile_with_teensy();
 
 int m_profile_save(m_profile *profile);
 
-int m_profile_update_representations(m_profile *profile);
+int m_profile_update_representations		(m_profile *profile);
+int m_profile_update_name_representations	(m_profile *profile);
+int m_profile_update_id_representations		(m_profile *profile);
 
 #endif

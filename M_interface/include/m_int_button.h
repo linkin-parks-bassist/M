@@ -31,9 +31,12 @@
 
 #define M_BUTTON_DISABLED_OPACITY 128
 
-#define M_BUTTON_FLAG_HIDDEN 		0b001
-#define M_BUTTON_FLAG_DISABLED	 	0b010
-#define M_BUTTON_FLAG_UNCLICKABLE 	0b100
+#define M_BUTTON_FLAG_HIDDEN 		0b0001
+#define M_BUTTON_FLAG_DISABLED	 	0b0010
+#define M_BUTTON_FLAG_UNCLICKABLE 	0b0100
+#define M_BUTTON_FLAG_NO_ALIGN	 	0b1000
+
+struct m_ui_page;
 
 typedef struct m_int_button
 {
@@ -88,6 +91,7 @@ int button_set_long_pressed_cb(m_int_button *button, lv_event_cb_t cb, void *cb_
 int button_set_released_cb	  (m_int_button *button, lv_event_cb_t cb, void *cb_arg);
 
 int m_button_set_label(m_int_button *button, const char *label);
+int m_button_disable_alignment(m_int_button *button);
 int m_button_set_alignment(m_int_button *button, lv_align_t align, int offs_x, int offs_y);
 int m_button_set_size(m_int_button *button, int width, int height);
 
@@ -104,6 +108,23 @@ int m_button_enable(m_int_button *button);
 int m_button_disable(m_int_button *button);
 
 int m_button_delete_ui(m_int_button *button);
+
+#define DANGER_BUTTON_CONFIRM_TEXT "Yes"
+#define DANGER_BUTTON_CANCEL_TEXT  "Cancel"
+
+typedef struct 
+{
+	m_int_button button;
+	struct m_ui_page *parent;
+	lv_obj_t *popup;
+	void (*action_cb)(void *data);
+	void *cb_arg;
+} m_danger_button;
+
+int init_danger_button(m_danger_button *button, void (*action_cb)(void *data), void *cb_arg, struct m_ui_page *parent);
+int m_danger_button_create_ui(m_danger_button *button, lv_obj_t *parent);
+void m_danger_button_activate_popup_cb(lv_event_t *e);
+void m_danger_button_value_changed_cb(lv_event_t *e);
 
 struct m_active_button_array;
 
@@ -155,8 +176,6 @@ void m_active_button_free(m_active_button *button);
 
 void m_active_button_set_representation(m_active_button *button,
 	void *representer, void *representee, void (*update)(void*, void*));
-
-struct m_ui_page;
 
 #define M_ACTIVE_BUTTON_ARRAY_FLAG_DELETEABLE 0b0001
 #define M_ACTIVE_BUTTON_ARRAY_FLAG_MOVEABLE   0b0010

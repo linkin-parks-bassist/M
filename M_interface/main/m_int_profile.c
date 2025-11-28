@@ -27,11 +27,11 @@ int init_m_profile(m_profile *profile)
 	if (ret_val != NO_ERROR)
 		return ret_val;
 	
-	init_parameter(&profile->volume, "Volume", 0.0, -12.0, 12.0);
+	init_parameter(&profile->volume, "Gain", 0.0, -12.0, 12.0);
 	profile->volume.units = " dB";
 	profile->volume.id = (m_parameter_id){.profile_id = 0, .transformer_id = 0xFFFF, .parameter_id = 0};
 	
-	profile->representations = NULL;
+	profile->representations 		= NULL;
 	
 	return NO_ERROR;
 }
@@ -42,6 +42,7 @@ int profile_set_id(m_profile *profile, uint16_t id)
 		return ERR_NULL_PTR;
 	
 	profile->id = id;
+	profile->volume.id.profile_id = id;
 	
 	return NO_ERROR;
 }
@@ -65,7 +66,7 @@ int m_profile_set_inactive(m_profile *profile)
 	
 	profile->active = 0;
 	
-	m_representation_pll_update_all(profile->representations);
+	m_profile_update_representations(profile);
 	
 	return NO_ERROR;
 }
@@ -82,6 +83,8 @@ int m_profile_add_representation(m_profile *profile, m_representation *rep)
 	else
 		return ERR_ALLOC_FAIL;
 	
+	printf("profile->representations = %p\n", profile->representations);
+	
 	return NO_ERROR;
 }
 
@@ -90,7 +93,8 @@ int m_profile_update_representations(m_profile *profile)
 	if (!profile)
 		return ERR_NULL_PTR;
 	
-	queue_representation_list_update(profile->representations);
+	if (profile->representations)
+		queue_representation_list_update(profile->representations);
 	
 	return NO_ERROR;
 }
@@ -100,25 +104,7 @@ int m_profile_remove_representation(m_profile *profile, m_representation *rep)
 	if (!profile)
 		return ERR_NULL_PTR;
 	
-	m_representation_pll *current = profile->representations;
-	m_representation_pll *prev = NULL;
-	
-	while (current)
-	{
-		if (current->data == rep)
-		{
-			if (prev)
-				prev->next = current->next;
-			else
-				profile->representations = current->next;
-			
-			m_free(current);
-			return NO_ERROR;
-		}
-		
-		prev = current;
-		current = current->next;
-	}
+	profile->representations = m_representation_pll_remove(profile->representations, rep);
 	
 	return NO_ERROR;
 }
@@ -149,8 +135,6 @@ int m_profile_set_default_name_from_id(m_profile *profile)
 	sprintf(profile->name, "Profile %d", profile->id);
 	
 	printf("Resulting name: %s\n", profile->name);
-	
-	queue_representation_list_update(profile->representations);
 	
 	return NO_ERROR;
 }
@@ -253,6 +237,9 @@ void new_profile_receive_id(m_message msg, m_response response)
 	
 	profile_set_id(profile, id);
 	m_profile_set_default_name_from_id(profile);
+	
+	
+	m_profile_update_representations(profile);
 }
 
 m_profile *create_new_profile_with_teensy()

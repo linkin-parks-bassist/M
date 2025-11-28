@@ -8,6 +8,7 @@ void m_representation_pll_update_all(m_representation_pll *reps)
 {
 	m_representation_pll *current = reps;
 	
+	printf("update representation pll %p\n", reps);
 	while (current)
 	{
 		if (current->data && current->data->update)
@@ -39,6 +40,7 @@ int init_representation_updater()
 
 int queue_representation_list_update(m_representation_pll *reps)
 {
+	printf("Queueing representation list %p for updating...\n", reps);
 	if (xQueueSend(m_rep_update_queue, (void*)&reps, (TickType_t)10) != pdPASS)
 	{
 		printf("Representation list queueing failed!\n");
@@ -48,3 +50,31 @@ int queue_representation_list_update(m_representation_pll *reps)
 	return NO_ERROR;
 }
 
+m_representation_pll *m_representation_pll_remove(m_representation_pll *reps, m_representation *rep)
+{
+	if (!reps)
+		return NULL;
+	
+	m_representation_pll *current = reps;
+	m_representation_pll *prev = NULL;
+	m_representation_pll *head = reps;
+	
+	while (current)
+	{
+		if (current->data == rep)
+		{
+			if (prev)
+				prev->next = current->next;
+			else
+				head = current->next;
+			
+			m_free(current);
+			return head;
+		}
+		
+		prev = current;
+		current = current->next;
+	}
+	
+	return head;
+}

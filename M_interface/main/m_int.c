@@ -18,18 +18,20 @@ void app_main()
 	
 	lv_disp_t *disp;
 	init_display(&disp);
+	init_representation_updater();
 	
 	m_init_context(&global_cxt);
 	
 	init_m_int_msg_queue();
 	begin_m_int_comms();
+	
+	#ifdef USE_SD_CARD
 	init_sd_card();
 	
 	#ifdef ERASE_SD_CARD
 	erase_sd_card();
 	#endif
 	
-	init_representation_updater();
 	
 	if (load_settings_from_file(&global_cxt.settings, SETTINGS_FNAME) == ERR_FOPEN_FAIL)
 	{
@@ -47,6 +49,7 @@ void app_main()
 	send_settings(&global_cxt.settings);
 	
 	init_settings_save_task();
+	#endif
 	
 	#ifdef M_SIMULATED
     while (1)

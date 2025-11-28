@@ -61,6 +61,20 @@ typedef struct m_int_menu_page_str
 	
 } m_int_menu_page_str;
 
+typedef struct m_main_menu_str
+{
+	lv_obj_t *top_pad;
+	lv_obj_t *pw_pad;
+	lv_obj_t *gains_container;
+	m_parameter_widget input_gain;
+	m_parameter_widget output_gain;
+	
+	m_int_button profiles_button;
+	m_int_button sequences_button;
+	
+	m_danger_button erase_sd_card_button;
+} m_main_menu_str;
+
 int init_menu_item(m_int_menu_item *item);
 int create_menu_item_ui(m_int_menu_item *item, lv_obj_t *parent);
 int delete_menu_item_ui(m_int_menu_item *item);
@@ -80,6 +94,8 @@ int menu_page_add_item(m_int_menu_page_str *str, m_int_menu_item *item);
 
 int init_main_menu(m_ui_page *page);
 int configure_main_menu(m_ui_page *page, void *data);
+int create_main_menu_ui(m_ui_page *page);
+int enter_main_menu(m_ui_page *page);
 
 int menu_page_remove_item(m_ui_page *page, m_int_menu_item *item);
 

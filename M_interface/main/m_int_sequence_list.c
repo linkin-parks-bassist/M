@@ -18,6 +18,8 @@ m_int_menu_item *create_sequence_listing_menu_item(char *text, m_int_sequence *s
 	item->linked_page_indirect = &sequence->view_page;
 	item->data = sequence;
 	
+	
+	
 	if (sequence)
 		m_int_sequence_add_menu_listing(sequence, item);
 	

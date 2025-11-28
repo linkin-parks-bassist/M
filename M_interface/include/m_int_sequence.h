@@ -23,24 +23,33 @@ typedef struct m_int_sequence
 	
 	int unsaved_changes;
 	int main_sequence;
+	
+	m_representation_pll *representations;
 } m_int_sequence;
 
 DECLARE_LINKED_PTR_LIST(m_int_sequence);
 
 typedef m_int_sequence_pll sequence_ll;
 
-int init_m_int_sequence(m_int_sequence *seq);
+int init_m_int_sequence(m_int_sequence *sequence);
 
-int sequence_append_profile(m_int_sequence *seq, m_profile *profile);
-seq_profile_ll *sequence_append_profile_rp(m_int_sequence *seq, m_profile *profile);
-int sequence_move_profile(m_int_sequence *seq, int pos, int new_pos);
+int sequence_append_profile(m_int_sequence *sequence, m_profile *profile);
+seq_profile_ll *sequence_append_profile_rp(m_int_sequence *sequence, m_profile *profile);
+int sequence_move_profile(m_int_sequence *sequence, int pos, int new_pos);
 
-int m_int_sequence_add_menu_listing(m_int_sequence *seq, struct m_int_menu_item *listing);
+int m_int_sequence_add_menu_listing(m_int_sequence *sequence, struct m_int_menu_item *listing);
 
-void free_sequence(m_int_sequence *seq);
+void free_sequence(m_int_sequence *sequence);
 
-int m_sequence_begin(m_int_sequence *seq);
-int m_sequence_regress(m_int_sequence *seq);
-int m_sequence_advance(m_int_sequence *seq);
+int m_sequence_begin(m_int_sequence *sequence);
+int m_sequence_regress(m_int_sequence *sequence);
+int m_sequence_advance(m_int_sequence *sequence);
+int m_sequence_stop(m_int_sequence *sequence);
+int m_sequence_stop_from_profile(m_int_sequence *sequence);
+
+int m_sequence_activate_at(m_int_sequence *sequence, m_profile *profile);
+
+int m_sequence_add_representation(m_int_sequence *sequence, m_representation *rep);
+int m_sequence_update_representations(m_int_sequence *sequence);
 
 #endif
