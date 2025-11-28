@@ -75,6 +75,8 @@ extern const lv_font_t manrope_24;
 #include "m_linked_list.h"
 #include "m_error_codes.h"
 
+#include "m_int_representation.h"
+
 #include "m_parameter.h"
 #include "m_transformer.h"
 #include "m_pipeline.h"
@@ -95,15 +97,14 @@ extern const lv_font_t manrope_24;
 
 #include "m_int_comms.h"
 
+#include "m_int_button.h"
 #include "m_int_ui.h"
 #include "m_int_parameter_widget.h"
-#include "m_int_glide_button.h"
 
 #include "m_int_transformer.h"
 #include "m_int_transformer_init.h"
 #include "m_int_transformer_table.h"
 #include "m_int_transformer_view.h"
-#include "m_int_transformer_widget.h"
 #include "m_int_transformer_settings.h"
 
 #include "m_int_pipeline.h"
@@ -119,7 +120,6 @@ extern const lv_font_t manrope_24;
 #include "m_int_files.h"
 #include "m_int_profile_send.h"
 
-#include "m_int_profile_list.h"
 #include "m_int_sequence_list.h"
 #include "m_int_menu.h"
 

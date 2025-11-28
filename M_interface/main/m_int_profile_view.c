@@ -142,6 +142,36 @@ static void save_button_cb(lv_event_t *e)
 	m_profile_save(str->profile);
 }
 
+static void menu_button_cb(lv_event_t *e)
+{
+	printf("menu_button_cb\n");
+	m_ui_page *page = lv_event_get_user_data(e);
+	
+	if (!page)
+		return;
+	
+	m_profile_view_str *str = (m_profile_view_str*)page->data_struct;
+	
+	if (!str)
+		return;
+	
+	m_profile *profile = str->profile;
+	
+	if (!profile)
+		return;
+	
+	if (profile->sequence)
+	{
+		printf("profile has a sequence; enter sequence view %p\n", profile->sequence->view_page);
+		enter_ui_page(profile->sequence->view_page);
+	}
+	else
+	{
+		printf("profile has no sequence. enter ... whatevery. %p\n", page->parent);
+		enter_ui_page(page->parent);
+	}
+}
+
 int profile_view_save_name(m_ui_page *page)
 {
 	if (!page)
@@ -154,7 +184,7 @@ int profile_view_save_name(m_ui_page *page)
 	if (str->profile->name)
 		m_free(str->profile->name);
 	
-	str->profile->name = m_strndup(new_name, PROFILE_NAM_ENG_MAX_LEN);
+	str->profile->name = m_strndup(new_name, PROFILE_NAME_MAX_LEN);
 	
 	lv_obj_clear_state(page->panel->title, LV_STATE_FOCUSED);
 	lv_obj_add_state(page->container, LV_STATE_FOCUSED);
@@ -323,7 +353,7 @@ int configure_profile_view(m_ui_page *page, void *data)
 	
 	ui_page_set_title_rw(page, profile_view_save_name_cb, profile_view_revert_name);
 	
-	ui_page_add_left_panel_button(page, LV_SYMBOL_LIST, enter_parent_page_cb);
+	ui_page_add_left_panel_button(page, LV_SYMBOL_LIST, menu_button_cb);
 	ui_page_add_right_panel_button(page, LV_SYMBOL_SETTINGS, profile_view_enter_settings_page_cb);
 	
 	str->rep.representee = profile;
@@ -392,21 +422,20 @@ int create_profile_view_ui(m_ui_page *page)
 
 int enter_profile_view(m_ui_page *page)
 {
+	printf("enter_profile_view\n");
 	if (!page)
 		return ERR_NULL_PTR;
 	
 	m_profile_view_str *str = (m_profile_view_str*)page->data_struct;
 	
+	printf("load screen...\n");
 	lv_scr_load(page->screen);
-	
+	printf("screen loaded\n");
 	if (str)
 		global_cxt.working_profile = str->profile;
-	
+	printf("set working profile\n");
 	global_cxt.pages.transformer_selector.parent = page;
-	
-	profile_view_refresh_play_button(page);
-	profile_view_refresh_save_button(page);
-	
+	printf("enter_profile_view done\n");
 	return NO_ERROR;
 }
 

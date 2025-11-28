@@ -130,7 +130,7 @@ int refresh_menu_item(m_int_menu_item *item)
 	switch (item->type)
 	{
 		case MENU_ITEM_PROFILE_LISTING:
-			profile_listing_menu_item_refresh_active(item);
+			//profile_listing_menu_item_refresh_active(item);
 			break;
 		
 		default:
@@ -202,6 +202,155 @@ void danger_button_activate_popup_cb(lv_event_t *e)
 	item->extra[0] = lv_msgbox_create(item->parent->screen, item->text, "Are you sure?", btns, 1);
 	lv_obj_add_event_cb(item->extra[0], danger_button_value_changed_cb, LV_EVENT_VALUE_CHANGED, item);
 	lv_obj_center(item->extra[0]);
+}
+
+m_int_menu_item *create_profile_listing_menu_item(char *text, m_profile *profile, m_ui_page *parent)
+{
+	m_int_menu_item *item = m_alloc(sizeof(m_int_menu_item));
+	
+	if (!item || !profile)
+		return NULL;
+	
+	init_menu_item(item);
+	
+	item->type = MENU_ITEM_PROFILE_LISTING;
+	if (text)
+		item->text = m_strndup(text, MENU_ITEM_TEXT_MAX_LEN);
+	else
+		item->text = "Profile";
+	
+	item->linked_page_indirect = &profile->view_page;
+	item->data = profile;
+	
+	item->parent = parent;
+	
+	return item;
+}
+
+int profile_listing_menu_item_refresh_active(m_int_menu_item *item)
+{
+	printf("profile_listing_menu_item_refresh_active\n");
+	if (!item)
+		return ERR_NULL_PTR;
+	
+	if (!item->extra)
+		return NO_ERROR;
+		
+	if (!item->extra[1])
+		return NO_ERROR;
+	
+	if (item->data && ((m_profile*)item->data)->active)
+	{
+		printf("profile is active. going about it\n");
+		lv_label_set_text(item->extra[1], LV_SYMBOL_PLAY);
+		lv_obj_clear_flag(item->extra[0], LV_OBJ_FLAG_HIDDEN);
+		lv_obj_clear_flag(item->extra[0], LV_OBJ_FLAG_CLICKABLE);
+	}
+	else
+	{
+		printf("profile is not active. hiding play\n");
+		lv_label_set_text(item->extra[1], LV_SYMBOL_TRASH);
+		lv_obj_add_flag(item->extra[0], LV_OBJ_FLAG_HIDDEN);
+		lv_obj_add_flag(item->extra[0], LV_OBJ_FLAG_CLICKABLE);
+	}
+	
+	printf("profile_listing_menu_item_refresh_active done\n");
+	return NO_ERROR;
+}
+
+int profile_listing_menu_item_change_name(m_int_menu_item *item, char *name)
+{
+	if (!item)
+		return ERR_NULL_PTR;
+	
+	if (!item->extra)
+		return NO_ERROR;
+	
+	item->text = strndup(name, 32);
+	
+	lv_label_set_text(item->label, item->text);
+	
+	return NO_ERROR;
+}
+
+void profile_listing_delete_button_cb(lv_event_t *e)
+{
+	m_int_menu_item *item = lv_event_get_user_data(e);
+	
+	if (!item)
+		return;
+	
+	m_profile *profile = (m_profile*)item->data;
+	
+	if (!profile)
+		return;
+	
+	if (!profile->active)
+	{
+		cxt_remove_profile(&global_cxt, profile);
+		
+		menu_page_remove_item(item->parent, item);
+	}
+}
+
+void disappear_profile_listing_delete_button(lv_timer_t *timer)
+{
+	m_int_menu_item *item = timer->user_data;
+	
+	lv_obj_add_flag(item->extra[0], LV_OBJ_FLAG_HIDDEN);
+	
+	item->timer = NULL;
+}
+
+void menu_item_profile_listing_released_cb(lv_event_t *e)
+{
+	m_int_menu_item *item = (m_int_menu_item*)lv_event_get_user_data(e);
+	
+	if (!item)
+		return;
+	
+	m_profile *profile = item->data;
+	
+	if (!item->long_pressed)
+	{
+		if (profile && profile->view_page)
+		{
+			profile->view_page->parent = &global_cxt.pages.main_menu;
+			
+			enter_ui_page(profile->view_page);
+		}
+	}
+	else
+	{
+		if (profile && !profile->active)
+		{
+			item->timer = lv_timer_create(disappear_profile_listing_delete_button, STANDARD_DEL_BTN_REMAIN_MS, item);
+			lv_timer_set_repeat_count(item->timer, 1);
+		}
+	}
+	
+	item->long_pressed = 0;
+}
+
+void menu_item_profile_listing_long_pressed_cb(lv_event_t *e)
+{
+	m_int_menu_item *item = (m_int_menu_item*)lv_event_get_user_data(e);
+	
+	if (!item)
+		return;
+	
+	item->long_pressed = 1;
+	
+	m_profile *profile = item->data;
+	
+	if (profile && !profile->active)
+	{
+		lv_obj_clear_flag(item->extra[0], LV_OBJ_FLAG_HIDDEN);
+	}
+	else
+	{
+		lv_obj_clear_flag(item->extra[0], LV_OBJ_FLAG_HIDDEN);
+	}
 }
 
 int create_menu_item_ui(m_int_menu_item *item, lv_obj_t *parent)
@@ -443,7 +592,8 @@ int configure_menu_page(m_ui_page *page, void *data)
 	if (!str)
 		return ERR_BAD_ARGS;
 	
-	page->panel = new_panel(str->name);
+	page->panel = new_panel();
+	page->panel->text = str->name;
 	page->container_type = CONTAINER_TYPE_STD_BTN_LIST;
 	
 	ui_page_add_back_button(page);
@@ -522,10 +672,13 @@ int enter_menu_page(m_ui_page *page)
 	{
 		m_int_menu_item_pll *current = str->items;
 		
+		printf("Menu page menu items:\n");
+		
 		while (current)
 		{
 			if (current->data)
 			{
+				printf("Type %d\n", current->data->type);
 				if (current->data->type == MENU_ITEM_PARAMETER_WIDGET)
 				{
 					printf("Requesting value for menu page parameter widget...\n");
@@ -590,7 +743,7 @@ int menu_page_add_item(m_int_menu_page_str *str, m_int_menu_item *item)
 
 void enter_main_menu_cb(lv_event_t *e)
 {
-	enter_ui_page(global_cxt.ui_cxt.main_menu);
+	enter_ui_page(&global_cxt.pages.main_menu);
 }
 
 int init_main_menu(m_ui_page *page)
@@ -630,15 +783,7 @@ int configure_main_menu(m_ui_page *page, void *data)
 	
 	menu_page_add_item(str, item);
 	
-	m_ui_page *profile_list = m_alloc(sizeof(m_ui_page));
-	
-	if (!profile_list)
-		return ERR_NULL_PTR;
-	
-	global_cxt.ui_cxt.profile_list = profile_list;
-	
-	init_profile_list(profile_list);
-	configure_profile_list(profile_list, page);
+	m_ui_page *profile_list = &global_cxt.pages.main_sequence_view;
 	
 	profile_list->parent = page;
 	
@@ -646,15 +791,7 @@ int configure_main_menu(m_ui_page *page, void *data)
 	
 	menu_page_add_item(str, item);
 	
-	m_ui_page *sequence_list = m_alloc(sizeof(m_ui_page));
-	
-	if (!sequence_list)
-		return ERR_NULL_PTR;
-	
-	global_cxt.ui_cxt.sequence_list = sequence_list;
-	
-	init_sequence_list(sequence_list);
-	configure_sequence_list(sequence_list, page);
+	m_ui_page *sequence_list = &global_cxt.pages.sequence_list;
 	
 	sequence_list->parent = page;
 	
