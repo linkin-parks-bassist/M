@@ -11,27 +11,33 @@ typedef struct m_parameter_id
 	uint16_t parameter_id;
 } m_parameter_id;
 
+#ifndef M_ENGINE
+typedef float m_parameter_t;
+#endif
+
+typedef int16_t m_setting_t;
+
 typedef struct m_parameter
 {
-	float value;
-	float min;
-	float max;
+	m_parameter_t value;
+	m_parameter_t min;
+	m_parameter_t max;
 	
 	int scale;
 	
 	int updated;
-	float old_value;
-	float new_value;
+	m_parameter_t old_value;
+	m_parameter_t new_value;
 	
 	#if defined(M_ENGINE)
 	
-	float max_jump;
+	m_parameter_t max_jump;
 	
 	#elif defined(M_INTERFACE)
 	
 	m_parameter_id id;
 	
-	float factor;
+	m_parameter_t factor;
 	
 	int widget_type;
 	const char *name;
@@ -68,11 +74,11 @@ typedef struct m_setting_id
 
 typedef struct m_setting
 {
-	int16_t value;
+	m_setting_t value;
 	
 	int updated;
-	int16_t old_value;
-	int16_t new_value;
+	m_setting_t old_value;
+	m_setting_t new_value;
 	
 	#if defined(M_ENGINE)
 	
@@ -84,8 +90,8 @@ typedef struct m_setting
 	
 	m_setting_id id;
 	
-	uint16_t min;
-	uint16_t max;
+	m_setting_t min;
+	m_setting_t max;
 	
 	int n_options;
 	m_setting_option *options;

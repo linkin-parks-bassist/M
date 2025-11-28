@@ -8,7 +8,7 @@ void transformer_job_recieve_parameter_value_response(m_message msg, m_response 
 void send_profile_job_discard_tsj(m_profile_send_job *job);
 void send_profile_job_dispatch_tsj(m_profile_send_job *job);
 
-void send_all_profiles_to_teensy(m_int_context *cxt)
+void send_all_profiles_to_teensy(m_context *cxt)
 {
 	if (!cxt)
 		return;
@@ -19,14 +19,7 @@ void send_all_profiles_to_teensy(m_int_context *cxt)
 	{
 		if (current->data)
 		{
-			if (current->data->default_profile)
-			{
-				send_profile_to_teensy(current->data);
-			}
-			else
-			{
-				send_new_profile_to_teensy(current->data);
-			}
+			send_new_profile_to_teensy(current->data);
 		}
 		
 		current = current->next;

@@ -150,8 +150,8 @@ int create_transformer_settings_page_ui(m_ui_page *page)
     lv_obj_set_flex_align(str->band_control_cont, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_SPACE_EVENLY);
 	//lv_obj_set_flex_grow(str->band_control_cont, 1);
 	
-	parameter_widget_create_ui(&str->band_hp_cutoff, global_cxt.ui_cxt.backstage);
-	parameter_widget_create_ui(&str->band_lp_cutoff, global_cxt.ui_cxt.backstage);
+	parameter_widget_create_ui(&str->band_hp_cutoff, global_cxt.pages.backstage);
+	parameter_widget_create_ui(&str->band_lp_cutoff, global_cxt.pages.backstage);
 	
 	refresh_transformer_settings_page(page);
 	
@@ -179,12 +179,12 @@ int refresh_transformer_settings_page(m_ui_page *page)
 			case TRANSFORMER_MODE_FULL_SPECTRUM:
 				if (str->band_lp_cutoff.container)
 				{
-					lv_obj_set_parent(str->band_lp_cutoff.container, global_cxt.ui_cxt.backstage);
+					lv_obj_set_parent(str->band_lp_cutoff.container, global_cxt.pages.backstage);
 				}
 				
 				if (str->band_hp_cutoff.container)
 				{
-					lv_obj_set_parent(str->band_hp_cutoff.container, global_cxt.ui_cxt.backstage);
+					lv_obj_set_parent(str->band_hp_cutoff.container, global_cxt.pages.backstage);
 				}
 				
 				break;
@@ -192,7 +192,7 @@ int refresh_transformer_settings_page(m_ui_page *page)
 			case TRANSFORMER_MODE_UPPER_SPECTRUM:
 				if (str->band_lp_cutoff.container)
 				{
-					lv_obj_set_parent(str->band_lp_cutoff.container, global_cxt.ui_cxt.backstage);
+					lv_obj_set_parent(str->band_lp_cutoff.container, global_cxt.pages.backstage);
 				}
 				
 				if (str->band_hp_cutoff.container)
@@ -210,7 +210,7 @@ int refresh_transformer_settings_page(m_ui_page *page)
 				
 				if (str->band_hp_cutoff.container)
 				{
-					lv_obj_set_parent(str->band_hp_cutoff.container, global_cxt.ui_cxt.backstage);
+					lv_obj_set_parent(str->band_hp_cutoff.container, global_cxt.pages.backstage);
 				}
 				
 				break;

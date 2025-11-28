@@ -66,6 +66,8 @@ typedef struct m_int_button
 	int width;
 	int height;
 	
+	int opacity;
+	
 	lv_align_t alignment;
 	int align_offs_x;
 	int align_offs_y;
@@ -96,6 +98,8 @@ int m_button_unhide(m_int_button *button);
 int m_button_set_clickable(m_int_button *button);
 int m_button_set_unclickable(m_int_button *button);
 
+int m_button_set_opacity(m_int_button *button, int opacity);
+
 int m_button_enable(m_int_button *button);
 int m_button_disable(m_int_button *button);
 
@@ -121,6 +125,8 @@ typedef struct m_active_button
 	
 	int index;
 	int prev_index;
+	
+	int del_button_anims;
 	
 	uint32_t base_width;
 	uint32_t base_height;

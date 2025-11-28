@@ -14,7 +14,7 @@ void read_footswitch_states(uint8_t *left, uint8_t *right)
 	*right = ((ch422g_state & (1 << 2)) != 0);
 }
 
-void footswitch_poll_task()
+void footswitch_poll_task(void *arg)
 {
 	TickType_t last_wake = xTaskGetTickCount();
 	uint8_t ch422g_state;
@@ -53,13 +53,9 @@ void footswitch_poll_task()
 
 int init_footswitch_poll_task()
 {
-	return NO_ERROR;
-	
 	m_ch422g_init_pull(0xFF);
 	
 	read_footswitch_states(&left_switch_state, &right_switch_state);
-	
-	
 	
 	xTaskCreate(
 		footswitch_poll_task,

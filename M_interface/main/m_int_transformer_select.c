@@ -6,14 +6,18 @@ IMPLEMENT_LINKED_PTR_LIST(m_int_trans_selector_button);
 
 void enter_transformer_selector_cb(lv_event_t *e)
 {
-	enter_ui_page(&global_cxt.ui_cxt.transformer_selector);
+	enter_ui_page(&global_cxt.pages.transformer_selector);
 }
 
 int init_transformer_selector(m_ui_page *page)
 {
-	//printf("init_transformer_selector...\n");
 	if (!page)
 		return ERR_NULL_PTR;
+	
+	init_ui_page(page);
+	
+	page->create_ui  = create_transformer_selector_ui;
+	page->enter_page = enter_transformer_selector;
 	
 	m_transformer_selector_str *str = m_alloc(sizeof(m_transformer_selector_str));
 	
@@ -38,6 +42,8 @@ int init_transformer_selector(m_ui_page *page)
 		str->buttons = m_int_trans_selector_button_pll_append(str->buttons, button);
 	}
 	
+	page->configured = 1;
+	
 	return NO_ERROR;
 }
 
@@ -55,7 +61,6 @@ int configure_transformer_selector(m_ui_page *page, void *data)
 	if (!ts)
 		return ERR_BAD_ARGS;
 	
-	page->configured = 1;
 	
 	printf("success\n");
 	return NO_ERROR;
@@ -103,6 +108,7 @@ void add_transformer_from_menu(lv_event_t *e)
 	transformer_init_ui_page(trans, pv);
 	create_transformer_view_ui(trans->view_page);
 	
+	printf("Transformer selector exiting; returning to view page for profile %d\n", profile->id);
 	enter_ui_page(profile->view_page);
 }
 

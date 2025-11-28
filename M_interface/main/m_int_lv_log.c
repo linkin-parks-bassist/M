@@ -8,7 +8,7 @@ static int m_int_lv_log_pos = 0;
 
 char *waiting_buf = NULL;
 
-static const char *TAG = "m_int_logging.c";
+static const char *TAG = "m_int_lv_log.c";
 
 void m_int_lv_log_flush_task(void *param);
 

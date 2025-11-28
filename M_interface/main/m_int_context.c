@@ -3,7 +3,7 @@
 #define INITIAL_PROFILE_ARRAY_LENGTH 8
 #define PROFILE_ARRAY_CHUNK_SIZE	 8
 
-int init_m_int_context(m_int_context *cxt)
+int m_init_context(m_context *cxt)
 {
 	if (!cxt)
 		return ERR_NULL_PTR;
@@ -12,14 +12,17 @@ int init_m_int_context(m_int_context *cxt)
 	
 	cxt->active_profile  = NULL;
 	cxt->working_profile = NULL;
-	cxt->default_profile = NULL;
 	
 	cxt->profiles  = NULL;
 	cxt->sequences = NULL;
 	cxt->sequence  = NULL;
 	
-	cxt->default_profile_exists = 0;
-	cxt->saved_profiles_loaded = 0;
+	m_context_init_main_sequence(cxt);
+	
+	cxt->main_sequence.name = "Profiles";
+	
+	cxt->saved_profiles_loaded  = 0;
+	cxt->saved_sequences_loaded = 0;
 	
 	init_settings(&cxt->settings);
 	
@@ -27,14 +30,45 @@ int init_m_int_context(m_int_context *cxt)
 	cxt->settings.global_volume.units = " dB";
 	cxt->settings.global_volume.id = (m_parameter_id){.profile_id = 0xFFFF, .transformer_id = 0, .parameter_id = 0};
 	
+	cxt->pages.backstage = NULL;
+	cxt->pages.current_page = NULL;
+	
+	m_init_global_pages(&cxt->pages);
+	
 	return NO_ERROR;
 }
 
-int context_no_default_profile(m_int_context *cxt)
+int m_context_init_main_sequence(m_context *cxt)
 {
 	if (!cxt)
 		return ERR_NULL_PTR;
 	
+	init_m_int_sequence(&cxt->main_sequence);
+	
+	cxt->main_sequence.name = "Profiles";
+	cxt->main_sequence.view_page = &cxt->pages.main_sequence_view;
+	cxt->main_sequence.fname = MAIN_SEQUENCE_FNAME;
+	cxt->main_sequence.main_sequence = 1;
+	
+	return NO_ERROR;
+}
+
+int m_context_init_ui(m_context *cxt)
+{
+	if (!cxt)
+		return ERR_NULL_PTR;
+	
+	cxt->pages.backstage = NULL;
+	cxt->pages.current_page = NULL;
+	
+	return NO_ERROR;
+}
+
+int context_no_default_profile(m_context *cxt)
+{
+	if (!cxt)
+		return ERR_NULL_PTR;
+	/*
 	cxt->active_profile = m_alloc(sizeof(m_profile));
 	cxt->working_profile = cxt->active_profile;
 	cxt->default_profile = cxt->active_profile;
@@ -61,11 +95,11 @@ int context_no_default_profile(m_int_context *cxt)
 	cxt->profiles = nl;
 	
 	cxt->active_profile->default_profile = 1;
-	
+	*/
 	return NO_ERROR;
 }
 
-int m_int_context_add_profile(m_int_context *cxt)
+int m_context_add_profile(m_context *cxt)
 {
 	if (!cxt)
 		return ERR_NULL_PTR;
@@ -92,12 +126,12 @@ int m_int_context_add_profile(m_int_context *cxt)
 	return NO_ERROR;
 }
 
-m_profile *m_int_context_add_profile_rp(m_int_context *cxt)
+m_profile *m_context_add_profile_rp(m_context *cxt)
 {
 	if (!cxt)
 		return NULL;
 	
-	printf("m_int_context_add_profile_rp\n");
+	printf("m_context_add_profile_rp\n");
 	
 	m_profile *profile = m_alloc(sizeof(m_profile));
 	
@@ -126,7 +160,7 @@ m_profile *m_int_context_add_profile_rp(m_int_context *cxt)
 	return profile;
 }
 
-m_int_sequence *m_int_context_add_sequence_rp(m_int_context *cxt)
+m_int_sequence *m_context_add_sequence_rp(m_context *cxt)
 {
 	if (!cxt)
 		return NULL;
@@ -151,7 +185,7 @@ m_int_sequence *m_int_context_add_sequence_rp(m_int_context *cxt)
 	return sequence;
 }
 
-m_profile *cxt_get_profile_by_id(m_int_context *cxt, uint16_t profile_id)
+m_profile *cxt_get_profile_by_id(m_context *cxt, uint16_t profile_id)
 {
 	if (!cxt)
 		return NULL;
@@ -169,7 +203,7 @@ m_profile *cxt_get_profile_by_id(m_int_context *cxt, uint16_t profile_id)
 	return NULL;
 }
 
-m_transformer *cxt_get_transformer_by_id(m_int_context *cxt, uint16_t profile_id, uint16_t transformer_id)
+m_transformer *cxt_get_transformer_by_id(m_context *cxt, uint16_t profile_id, uint16_t transformer_id)
 {
 	if (!cxt)
 		return NULL;
@@ -192,7 +226,7 @@ m_transformer *cxt_get_transformer_by_id(m_int_context *cxt, uint16_t profile_id
 	return NULL;
 }
 
-m_parameter *cxt_get_parameter_by_id(m_int_context *cxt, uint16_t profile_id, uint16_t transformer_id, uint16_t parameter_id)
+m_parameter *cxt_get_parameter_by_id(m_context *cxt, uint16_t profile_id, uint16_t transformer_id, uint16_t parameter_id)
 {
 	if (!cxt)
 		return NULL;
@@ -205,7 +239,7 @@ m_parameter *cxt_get_parameter_by_id(m_int_context *cxt, uint16_t profile_id, ui
 	return transformer_get_parameter(trans, parameter_id);
 }
 
-m_setting *cxt_get_setting_by_id(m_int_context *cxt, uint16_t profile_id, uint16_t transformer_id, uint16_t parameter_id)
+m_setting *cxt_get_setting_by_id(m_context *cxt, uint16_t profile_id, uint16_t transformer_id, uint16_t parameter_id)
 {
 	if (!cxt)
 		return NULL;
@@ -218,7 +252,7 @@ m_setting *cxt_get_setting_by_id(m_int_context *cxt, uint16_t profile_id, uint16
 	return transformer_get_setting(trans, parameter_id);
 }
 
-int cxt_transformer_id_to_position(m_int_context *cxt, uint16_t profile_id, uint16_t transformer_id)
+int cxt_transformer_id_to_position(m_context *cxt, uint16_t profile_id, uint16_t transformer_id)
 {
 	if (!cxt)
 		return -ERR_NULL_PTR;
@@ -243,7 +277,7 @@ int cxt_transformer_id_to_position(m_int_context *cxt, uint16_t profile_id, uint
 	return -ERR_INVALID_TRANSFORMER_ID;
 }
 
-int cxt_transformer_position_to_id(m_int_context *cxt, uint16_t profile_id, uint16_t transformer_pos)
+int cxt_transformer_position_to_id(m_context *cxt, uint16_t profile_id, uint16_t transformer_pos)
 {
 	if (!cxt)
 		return -ERR_NULL_PTR;
@@ -273,7 +307,7 @@ int cxt_transformer_position_to_id(m_int_context *cxt, uint16_t profile_id, uint
 	return -ERR_INVALID_TRANSFORMER_ID;
 }
 
-int cxt_remove_profile(m_int_context *cxt, m_profile *profile)
+int cxt_remove_profile(m_context *cxt, m_profile *profile)
 {
 	if (!cxt || !profile)
 		return ERR_NULL_PTR;
@@ -312,7 +346,7 @@ int cxt_remove_profile(m_int_context *cxt, m_profile *profile)
 	return ERR_INVALID_PROFILE_ID;
 }
 
-int cxt_remove_sequence(m_int_context *cxt, m_int_sequence *sequence)
+int cxt_remove_sequence(m_context *cxt, m_int_sequence *sequence)
 {
 	if (!cxt || !sequence)
 		return ERR_NULL_PTR;
@@ -349,7 +383,7 @@ int cxt_remove_sequence(m_int_context *cxt, m_int_sequence *sequence)
 	return ERR_INVALID_PROFILE_ID;
 }
 
-int cxt_remove_transformer(m_int_context *cxt, uint16_t pid, uint16_t tid)
+int cxt_remove_transformer(m_context *cxt, uint16_t pid, uint16_t tid)
 {
 	printf("cxt_remove_transformer\n");
 	if (!cxt)
@@ -368,14 +402,16 @@ int cxt_remove_transformer(m_int_context *cxt, uint16_t pid, uint16_t tid)
 
 int set_active_profile(m_profile *profile)
 {
+	printf("set_active_profile\n");
 	if (!profile)
 		return ERR_NULL_PTR;
 	
+	m_profile_set_active(profile);
+	printf("set_active_profile line %d\n", __LINE__);
 	if (profile == global_cxt.active_profile)
 		return NO_ERROR;
 	
 	m_profile_set_inactive(global_cxt.active_profile);
-	m_profile_set_active(profile);
 	
 	global_cxt.active_profile = profile;
 	
@@ -395,11 +431,11 @@ int set_working_profile(m_profile *profile)
 	return NO_ERROR;
 }
 
-int resolve_default_profile(m_int_context *cxt)
+int resolve_default_profile(m_context *cxt)
 {
 	if (!cxt)
 		return ERR_NULL_PTR;
-	
+	/*
 	profile_ll *current = cxt->profiles;
 	profile_ll *prev = NULL;
 	
@@ -438,15 +474,16 @@ int resolve_default_profile(m_int_context *cxt)
 		prev = current;
 		current = current->next;
 	}
-	
+	*/
 	return NO_ERROR;
 }
 
-int set_profile_as_default(m_int_context *cxt, m_profile *profile)
+int set_profile_as_default(m_context *cxt, m_profile *profile)
 {
 	if (!cxt || !profile)
 		return ERR_NULL_PTR;
 	
+	/*
 	if (!profile->fname)
 	{
 		save_profile(profile);
@@ -464,11 +501,12 @@ int set_profile_as_default(m_int_context *cxt, m_profile *profile)
 	cxt->settings.default_profile = profile->fname;
 	cxt->settings.changed = 1;
 	xSemaphoreGive(settings_mutex);
+	*/
 	
 	return NO_ERROR;
 }
 
-void context_print_profiles(m_int_context *cxt)
+void context_print_profiles(m_context *cxt)
 {
 	if (!cxt)
 		return;
@@ -503,7 +541,7 @@ void context_print_profiles(m_int_context *cxt)
 				ct = ct->next;
 			}
 		}
-		printf("it is%s the default profile.\n", current->data->default_profile ? "" : " NOT");
+		//printf("it is%s the default profile.\n", current->data->default_profile ? "" : " NOT");
 		current = current->next;
 		i++;
 	}
@@ -514,7 +552,7 @@ void context_print_profiles(m_int_context *cxt)
 	}
 }
 
-int cxt_set_all_profiles_left_button_to_main_menu(m_int_context *cxt)
+int cxt_set_all_profiles_left_button_to_main_menu(m_context *cxt)
 {
 	if (!cxt)
 		return ERR_NULL_PTR;
@@ -525,7 +563,7 @@ int cxt_set_all_profiles_left_button_to_main_menu(m_int_context *cxt)
 	{
 		if (current->data && current->data->view_page)
 		{
-			profile_view_set_left_button_mode(current->data->view_page, LEFT_BUTTON_MENU);
+			//profile_view_set_left_button_mode(current->data->view_page, LEFT_BUTTON_MENU);
 		}
 		
 		current = current->next;
@@ -534,7 +572,7 @@ int cxt_set_all_profiles_left_button_to_main_menu(m_int_context *cxt)
 	return NO_ERROR;
 }
 
-int cxt_handle_hw_switch(m_int_context *cxt, int sw)
+int cxt_handle_hw_switch(m_context *cxt, int sw)
 {
 	if (!cxt)
 		return ERR_NULL_PTR;
@@ -550,4 +588,23 @@ int cxt_handle_hw_switch(m_int_context *cxt, int sw)
 	}
 	
 	return NO_ERROR;
+}
+
+m_profile *cxt_find_profile(m_context *cxt, const char *fname)
+{
+	if (!cxt)
+		return NULL;
+	
+	profile_ll *current = cxt->profiles;
+	
+	while (current)
+	{
+		if (current->data && current->data->fname)
+		{
+			if (strncmp(current->data->fname, fname, PROFILE_NAME_MAX_LEN) == 0)
+				return current->data;
+		}
+	}
+	
+	return NULL;
 }

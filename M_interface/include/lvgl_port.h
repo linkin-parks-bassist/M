@@ -20,7 +20,7 @@
 #include "lvgl.h"
 #endif
 
-#define TOUCH_PANEL_USE_INTERRUPTS
+//#define TOUCH_PANEL_USE_INTERRUPTS
 
 #ifdef __cplusplus
 extern "C" {

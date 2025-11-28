@@ -105,7 +105,7 @@ void sequence_list_add_cb(lv_event_t *e)
 	if (!str)
 		return;
 	
-	m_int_sequence *new_sequence = m_int_context_add_sequence_rp(&global_cxt);
+	m_int_sequence *new_sequence = m_context_add_sequence_rp(&global_cxt);
 	
 	if (!new_sequence)
 	{

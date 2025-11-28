@@ -16,5 +16,4 @@ dependencies:
   #   public: true
   espressif/esp_lcd_touch: ^1
   espressif/esp_lcd_touch_gt911: ^1
-  espressif/esp32_display_panel: '*'
   lvgl/lvgl: =8.4.0

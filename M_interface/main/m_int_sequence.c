@@ -20,6 +20,8 @@ int init_m_int_sequence(m_int_sequence *seq)
 	
 	seq->listings = NULL;
 	
+	seq->main_sequence = 0;
+	
 	return NO_ERROR;
 }
 
@@ -36,7 +38,6 @@ int sequence_append_profile(m_int_sequence *seq, m_profile *profile)
 	new_node->data = profile;
 	new_node->next = NULL;
 	new_node->prev = NULL;
-	new_node->button = NULL;
 	
 	if (!seq->profiles)
 	{
@@ -56,6 +57,8 @@ int sequence_append_profile(m_int_sequence *seq, m_profile *profile)
 	current->next = new_node;
 	new_node->prev = current;
 	
+	profile->sequence = seq;
+	
 	return NO_ERROR;
 }
 
@@ -73,7 +76,6 @@ seq_profile_ll *sequence_append_profile_rp(m_int_sequence *seq, m_profile *profi
 	new_node->data = profile;
 	new_node->next = NULL;
 	new_node->prev = NULL;
-	new_node->button = NULL;
 	
 	if (!seq->profiles)
 	{
@@ -186,16 +188,18 @@ int m_sequence_begin(m_int_sequence *seq)
 		return ERR_BAD_ARGS;
 	}
 	
+	if (!seq->profiles)
+	{
+		printf("Sequence is empty !\n");
+		return NO_ERROR;
+	}
+	
 	global_cxt.sequence = seq;
 	seq->active = 1;
 	
 	set_active_profile(seq->profiles->data);
 	
 	seq->position = seq->profiles;
-	
-	printf("seq = %p, seq->position = %p, seq->position->button = %p\n",
-		seq, seq->position, (seq->position) ? seq->position->button : NULL);
-	glide_button_display_active(seq->position->button);
 	
 	return NO_ERROR;
 }
@@ -226,11 +230,9 @@ int m_sequence_regress(m_int_sequence *seq)
 		return NO_ERROR;
 	}
 	
-	glide_button_undisplay_active(seq->position->button);
 	seq->position = seq->position->prev;
 	
 	set_active_profile(seq->position->data);
-	glide_button_display_active(seq->position->button);
 	
 	return NO_ERROR;
 }
@@ -260,11 +262,9 @@ int m_sequence_advance(m_int_sequence *seq)
 		return NO_ERROR;
 	}
 	
-	glide_button_undisplay_active(seq->position->button);
 	seq->position = seq->position->next;
 	
 	set_active_profile(seq->position->data);
-	glide_button_display_active(seq->position->button);
 	
 	return NO_ERROR;
 }

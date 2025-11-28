@@ -6,11 +6,9 @@ typedef struct seq_profile_ll
 	m_profile *data;
 	struct seq_profile_ll *next;
 	struct seq_profile_ll *prev;
-	
-	m_int_glide_button *button;
 } seq_profile_ll;
 
-typedef struct
+typedef struct m_int_sequence
 {
 	char *name;
 	int active;
@@ -24,6 +22,7 @@ typedef struct
 	char *fname;
 	
 	int unsaved_changes;
+	int main_sequence;
 } m_int_sequence;
 
 DECLARE_LINKED_PTR_LIST(m_int_sequence);

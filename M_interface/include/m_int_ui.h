@@ -174,8 +174,9 @@ typedef struct
 	lv_obj_t *backstage;
 	
 	m_ui_page main_menu;
-	m_ui_page profile_list;
+	//m_ui_page profile_list;
 	m_ui_page sequence_list;
+	m_ui_page main_sequence_view;
 	
 	m_ui_page *current_page;
 } m_global_pages;

@@ -383,7 +383,7 @@ int init_distortion(m_transformer *trans)
 	param->id.parameter_id = 0;
 
 	param->value   = 4.0;
-	param->max   = 10;
+	param->max   = 15;
 	param->min   = 0.0;
 	param->name  = "Gain";
 	param->units = unit_string_;
@@ -449,7 +449,7 @@ int init_distortion(m_transformer *trans)
 
 	setting->id.setting_id = 0;
 
-	setting->value   = 0;
+	setting->value   = 1;
 	setting->max   = 255;
 	setting->min   = 0;
 	setting->name  = "Function";

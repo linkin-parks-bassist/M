@@ -21,7 +21,7 @@ typedef struct m_profile_send_job
 	m_int_trans_send_job_pll *tsjs;
 } m_profile_send_job;
 
-void send_all_profiles_to_teensy(m_int_context *cxt);
+void send_all_profiles_to_teensy(m_context *cxt);
 
 void send_profile_to_teensy(m_profile *profile);
 void send_new_profile_to_teensy(m_profile *profile);

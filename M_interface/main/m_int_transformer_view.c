@@ -59,8 +59,6 @@ int init_transformer_view(m_ui_page *page)
 	page->configure  		 = configure_transformer_view;
 	page->create_ui  		 = create_transformer_view_ui;
 	page->enter_page 		 = enter_transformer_view;
-	page->enter_page_forward = enter_transformer_view_forward;
-	page->enter_page_back 	 = enter_transformer_view_back;
 	
 	for (int i = 0; i < TRANSFORMER_VIEW_MAX_GROUPS; i++)
 		str->group_containers[i] = NULL;
@@ -196,10 +194,7 @@ int create_transformer_view_ui(m_ui_page *page)
     lv_obj_set_flex_flow(page->container, LV_FLEX_FLOW_ROW_WRAP);
     lv_obj_set_flex_align(page->container, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_SPACE_EVENLY);
 	
-	int i = 0;
-	int group;
-	
-	m_setting_widget_pll *current_setting = str->setting_widgets;
+	int group_inhabited[TRANSFORMER_VIEW_MAX_GROUPS];
 	
 	for (int i = 0; i < TRANSFORMER_VIEW_MAX_GROUPS; i++)
 	{
@@ -207,8 +202,15 @@ int create_transformer_view_ui(m_ui_page *page)
 		lv_obj_remove_style_all(str->group_containers[i]);
 		lv_obj_set_flex_flow (str->group_containers[i], LV_FLEX_FLOW_ROW_WRAP);
 		lv_obj_set_flex_align(str->group_containers[i], LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_SPACE_EVENLY);
+		lv_obj_set_size(str->group_containers[i], 0, 0);
+		
+		group_inhabited[i] = 0;
 	}
 	
+	m_setting_widget_pll *current_setting = str->setting_widgets;
+	
+	int group;
+	int i = 0;
 	while (current_setting)
 	{
 		printf("Creating setting widget for setting %d...\n", i);
@@ -219,6 +221,7 @@ int create_transformer_view_ui(m_ui_page *page)
 				group = current_setting->data->setting->group;
 				if (0 <= group && group < TRANSFORMER_VIEW_MAX_GROUPS)
 				{
+					group_inhabited[group] = 1;
 					printf("Setting widget lives in group %d...\n", group);
 					setting_widget_create_ui(current_setting->data, str->group_containers[group]);
 				}
@@ -246,6 +249,7 @@ int create_transformer_view_ui(m_ui_page *page)
 				group = current_param->data->param->group;
 				if (0 <= group && group < TRANSFORMER_VIEW_MAX_GROUPS)
 				{
+					group_inhabited[group] = 1;
 					printf("Parameter widget lives in group %d...\n", group);
 					parameter_widget_create_ui(current_param->data, str->group_containers[group]);
 				}
@@ -262,7 +266,7 @@ int create_transformer_view_ui(m_ui_page *page)
 	
 	for (int i = 0; i < TRANSFORMER_VIEW_MAX_GROUPS; i++)
 	{
-		if (str->group_containers[i])
+		if (str->group_containers[i] && group_inhabited[i])
 		{
 			lv_obj_set_width(str->group_containers[i],  LV_SIZE_CONTENT);
 			lv_obj_set_height(str->group_containers[i], LV_SIZE_CONTENT);

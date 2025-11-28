@@ -27,6 +27,47 @@ const char mount_point[] = MOUNT_POINT;
 
 sdmmc_host_t host = SDSPI_HOST_DEFAULT();
 
+int init_directories()
+{
+	struct stat statbuf;
+
+    if (stat(M_PROFILES_DIR, &statbuf) == 0)
+    {
+		ESP_LOGI(TAG, "Profiles directory %s found", M_PROFILES_DIR);
+	}
+	else
+	{
+		ESP_LOGW(TAG, "Profiles directory %s doesn't exist. Creating...", M_PROFILES_DIR);
+		if (mkdir(M_PROFILES_DIR, 07777) != 0)
+		{
+			ESP_LOGE(TAG, "Failed to create profiles directory\n");
+		}
+		else
+		{
+			ESP_LOGI(TAG, "Directory created sucessfully");
+		}
+	}
+
+    if (stat(M_SEQUENCES_DIR, &statbuf) == 0)
+    {
+		ESP_LOGI(TAG, "Sequences directory %s found", M_SEQUENCES_DIR);
+	}
+	else
+	{
+		ESP_LOGW(TAG, "Sequences directory %s doesn't exist. Creating...", M_SEQUENCES_DIR);
+		if (mkdir(M_SEQUENCES_DIR, 07777) != 0)
+		{
+			ESP_LOGE(TAG, "Failed to create sequences directory");
+		}
+		else
+		{
+			ESP_LOGI(TAG, "Directory created sucessfully");
+		}
+	}
+	
+	return NO_ERROR;
+}
+
 int init_sd_card()
 {
 	esp_err_t ret;
@@ -93,7 +134,8 @@ int init_sd_card()
     // Filesystem mounted
     ESP_LOGW(TAG, "Filesystem mounted");
     
-    mkdir("/sdcard/profiles", 07777);
+    init_directories();
+    
     /*struct dirent *dir_ent = readdir(root);
     
     char buf[255+9];

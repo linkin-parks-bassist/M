@@ -26,8 +26,6 @@ int init_profile_settings_page(m_ui_page *page)
 	page->free_ui				= free_profile_settings_page_ui;
 	page->free_all				= profile_settings_page_free_all;
 	page->enter_page			= NULL;//enter_profile_settings_page;
-	page->enter_page_forward 	= enter_profile_settings_page_forward;
-	page->enter_page_back 		= enter_profile_settings_page_back;
 	page->refresh				= refresh_profile_settings_page;
 	
 	page->panel = new_panel();
@@ -110,7 +108,7 @@ void default_profile_button_cb(lv_event_t *e)
 	if (!str)
 		return;
 	
-	set_profile_as_default(&global_cxt, str->profile);
+	//set_profile_as_default(&global_cxt, str->profile);
 	
 	lv_obj_add_flag(str->default_button, LV_OBJ_FLAG_HIDDEN);
 }
@@ -143,22 +141,27 @@ int create_profile_settings_page_ui(m_ui_page *page)
 	
 	ui_page_create_base_ui(page);
 	
+	lv_obj_set_flex_align(page->container,
+		LV_FLEX_ALIGN_SPACE_EVENLY,
+		LV_FLEX_ALIGN_CENTER,
+		LV_FLEX_ALIGN_CENTER);
+	
 	parameter_widget_create_ui(&str->volume_widget, page->container);
 	
-	str->default_button = lv_btn_create(page->screen);
-    lv_obj_set_size(str->default_button, PROFILE_VIEW_BUTTON_WIDTH / 3, PROFILE_VIEW_BUTTON_HEIGHT);
-	lv_obj_align(str->default_button, LV_ALIGN_BOTTOM_MID, -PROFILE_VIEW_TRANSFORMER_LIST_WIDTH / 3, -50);
+	//str->default_button = lv_btn_create(page->screen);
+    //lv_obj_set_size(str->default_button, M_BUTTON_WIDTH / 3, M_BUTTON_WIDTH);
+	//lv_obj_align(str->default_button, LV_ALIGN_BOTTOM_MID, -STANDARD_CONTAINER_WIDTH / 3, -50);
     
-	str->default_button_label = lv_label_create(str->default_button);
-	lv_label_set_text(str->default_button_label, "Set Default");
-	lv_obj_center(str->default_button_label);
+	//str->default_button_label = lv_label_create(str->default_button);
+	//lv_label_set_text(str->default_button_label, "Set Default");
+	//lv_obj_center(str->default_button_label);
 	
-	if (str->profile->default_profile)
-	{
-		lv_obj_add_flag(str->default_button, LV_OBJ_FLAG_HIDDEN);
-	}
+	//if (str->profile->default_profile)
+	//{
+	//	lv_obj_add_flag(str->default_button, LV_OBJ_FLAG_HIDDEN);
+	//}
 	
-	lv_obj_add_event_cb(str->default_button, default_profile_button_cb, LV_EVENT_CLICKED, page);
+	//lv_obj_add_event_cb(str->default_button, default_profile_button_cb, LV_EVENT_CLICKED, page);
 	
     /*str->plus_button = lv_btn_create(page->screen);
     lv_obj_set_size(str->plus_button, PROFILE_VIEW_BUTTON_WIDTH / 3, PROFILE_VIEW_BUTTON_HEIGHT);

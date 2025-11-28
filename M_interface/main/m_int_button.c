@@ -42,6 +42,8 @@ int init_button(m_int_button *button)
 	for (int i = 0; i < M_BUTTON_MAX_SUB_BUTTONS; i++)
 		button->sub_buttons[i] = NULL;
 	
+	button->opacity = 255;
+	
 	return NO_ERROR;
 }
 
@@ -64,10 +66,18 @@ int create_button_ui(m_int_button *button, lv_obj_t *parent)
 	if (!button)
 		return ERR_NULL_PTR;
 	
+	if (button->obj)
+	{
+		ESP_LOGE("m_int_button.c", "WARNING: attempt to call create_button_ui on a button for which button->obj is not NULL. button->obj = %p", button->obj);
+		return ERR_BAD_ARGS;
+	}
+	
 	button->obj = lv_btn_create(parent);
 	
 	if (!button->obj)
 		return ERR_ALLOC_FAIL;
+	
+	printf("create_button_ui: button->obj = %p\n", button->obj);
 	
 	button->label = lv_label_create(button->obj);
 	
@@ -113,6 +123,8 @@ int create_button_ui(m_int_button *button, lv_obj_t *parent)
 	
 	if (button->flags & M_BUTTON_FLAG_HIDDEN)
 		lv_obj_add_flag(button->obj, LV_OBJ_FLAG_HIDDEN);
+	else
+		lv_obj_set_style_opa(button->obj, button->opacity, 0);
 	
 	if (button->flags & M_BUTTON_FLAG_UNCLICKABLE)
 		lv_obj_clear_flag(button->obj, LV_OBJ_FLAG_CLICKABLE);
@@ -256,26 +268,45 @@ int m_button_add_sub_button(m_int_button *button, m_int_button *sub_button)
 
 int m_button_hide(m_int_button *button)
 {
+	printf("m_button_hide. button = %p\n", button);
 	if (!button)
+	{
+		printf("bailing\n");
 		return ERR_NULL_PTR;
+	}
 	
+	printf("set hidden flag...\n");
 	button->flags |= M_BUTTON_FLAG_HIDDEN;
 	
 	if (button->obj)
+	{
+		printf("set hidden lv flag\n");
 		lv_obj_add_flag(button->obj, LV_OBJ_FLAG_HIDDEN);
+	}
 	
+	printf("m_button_hide done\n");
 	return NO_ERROR;
 }
 
 int m_button_unhide(m_int_button *button)
 {
+	printf("m_button_unhide. button = %p\n", button);
 	if (!button)
+	{
+		printf("bailing\n");
 		return ERR_NULL_PTR;
+	}
 	
+	printf("unset hidden flag...\n");
 	button->flags &= (~M_BUTTON_FLAG_HIDDEN);
 	
 	if (button->obj)
+	{
+		printf("unset hidden lv flag\n");
 		lv_obj_clear_flag(button->obj, LV_OBJ_FLAG_HIDDEN);
+		printf("restore opacity %d\n", button->opacity);
+		lv_obj_set_style_opa(button->obj, button->opacity, 0);
+	}
 	
 	return NO_ERROR;
 }
@@ -289,7 +320,7 @@ int m_button_set_clickable(m_int_button *button)
 	
 	if (button->obj)
 	{
-		lv_obj_clear_flag(button->obj, LV_OBJ_FLAG_CLICKABLE);
+		lv_obj_add_flag(button->obj, LV_OBJ_FLAG_CLICKABLE);
 	}
 	
 	return NO_ERROR;
@@ -305,6 +336,34 @@ int m_button_set_unclickable(m_int_button *button)
 	if (button->obj)
 		lv_obj_clear_flag(button->obj, LV_OBJ_FLAG_CLICKABLE);
 	
+	return NO_ERROR;
+}
+
+int m_button_set_opacity(m_int_button *button, int opacity)
+{
+	printf("m_button_set_opacity. button = %p, opacity = %d\n", button, opacity);
+	if (!button)
+	{
+		printf("bailing\n");
+		return ERR_NULL_PTR;
+	}
+	
+	printf("store new opacity...\n");
+	button->opacity = opacity;
+	
+	if (button->flags & M_BUTTON_FLAG_HIDDEN)
+	{
+		printf("Button is hidden. Exit\n");
+		return NO_ERROR;
+	}
+	
+	if (button->obj)
+	{
+		printf("button has UI and it is not hidden. apply to lv_obj...\n");
+		lv_obj_set_style_opa(button->obj, button->opacity, 0);
+	}
+	
+	printf("m_button_set_opacity done\n");
 	return NO_ERROR;
 }
 
@@ -324,6 +383,7 @@ int m_button_enable(m_int_button *button)
 int m_button_disable(m_int_button *button)
 {
 	printf("m_button_disable\n");
+	
 	if (!button)
 		return ERR_NULL_PTR;
 	
@@ -335,6 +395,21 @@ int m_button_disable(m_int_button *button)
 	}
 	
 	printf("m_button_disable done\n");
+	return NO_ERROR;
+}
+
+int m_button_reset_state(m_int_button *button)
+{
+	if (!button)
+		return ERR_NULL_PTR;
+	
+	if (!button->obj)
+		return ERR_BAD_ARGS;
+	
+	lv_obj_clear_state(button->obj, LV_STATE_PRESSED);
+	lv_obj_clear_state(button->obj, LV_STATE_CHECKED);
+	lv_obj_clear_state(button->obj, LV_STATE_FOCUSED);
+	
 	return NO_ERROR;
 }
 
@@ -406,7 +481,7 @@ void m_active_button_del_button_fade_cb(void *data, int32_t value)
 	
 	printf("button->del_button->obj = %p\n", button->del_button->obj);
 	
-	lv_obj_set_style_opa(button->del_button->obj, value, 0);
+	m_button_set_opacity(button->del_button, value);
 	printf("m_active_button_del_button_fade_cb done\n");
 }
 
@@ -417,7 +492,10 @@ void m_active_button_del_button_faded_out_cb(lv_anim_t *anim)
 	
 	m_active_button *button = (m_active_button*)anim->user_data;
 	
-	lv_obj_add_flag(button->del_button, LV_OBJ_FLAG_HIDDEN);
+	if (!button)
+		return;
+	
+	m_button_hide(button->del_button);
 }
 
 void m_active_button_delete_anim_cb(void *data, int32_t value)
@@ -427,7 +505,7 @@ void m_active_button_delete_anim_cb(void *data, int32_t value)
 	
 	m_active_button *button = (m_active_button*)data;
 	
-	lv_obj_set_style_opa(button->button.obj, 255 * ((float)value / 100.0), 0);
+	m_button_set_opacity(&button->button, 255 * ((float)value / 100.0));
 }
 
 void m_active_button_trigger_scale_anim(m_active_button *button, int direction)
@@ -607,7 +685,7 @@ void m_active_button_long_pressed_cb(lv_event_t *e)
 			lv_obj_move_foreground(button->button.obj);
 		}
 		
-		if (button->array->flags & M_ACTIVE_BUTTON_ARRAY_FLAG_DELETEABLE)
+		if (button->array->flags & M_ACTIVE_BUTTON_ARRAY_FLAG_DELETEABLE && button->del_button_anims)
 		{
 			m_active_button_trigger_del_button_fade_in(button);
 		}
@@ -716,7 +794,7 @@ void m_active_button_release_cb(lv_event_t *e)
 		
 		if (button->array->flags & M_ACTIVE_BUTTON_ARRAY_FLAG_MOVEABLE)
 		{
-			m_active_button_trigger_scale_anim(button, GLIDE_BUTTON_SCALE_CONTRACT);
+			m_active_button_trigger_scale_anim(button, M_BUTTON_SCALE_CONTRACT);
 			
 			m_active_button_force_index(button, button->index);
 			
@@ -729,9 +807,9 @@ void m_active_button_release_cb(lv_event_t *e)
 			}
 		}
 		
-		if (button->array->flags & M_ACTIVE_BUTTON_ARRAY_FLAG_DELETEABLE)
+		if (button->array->flags & M_ACTIVE_BUTTON_ARRAY_FLAG_DELETEABLE && button->del_button_anims)
 		{
-			button->del_button_remain_timer = lv_timer_create(m_active_button_del_button_remain_timer_cb, GLIDE_BUTTON_DEL_BTN_REMAIN_MS, button);
+			button->del_button_remain_timer = lv_timer_create(m_active_button_del_button_remain_timer_cb, M_BUTTON_DEL_BTN_REMAIN_MS, button);
 			lv_timer_set_repeat_count(button->del_button_remain_timer, 1);
 			
 			lv_timer_resume(button->del_button_remain_timer);
@@ -781,13 +859,22 @@ int m_active_button_init(m_active_button *button)
 	
 	button->long_pressed = 0;
 	
+	button->del_button_anims = 1;
+	
 	return NO_ERROR;
 }
 
 int m_active_button_add_del_button(m_active_button *button)
 {
+	printf("m_active_button_add_del_button, button = %p\n", button);
 	if (!button)
 		return ERR_NULL_PTR;
+	
+	if (button->del_button)
+	{
+		ESP_LOGE("m_int_button.c", "WARNING: m_active_button_add_del_button called with button for which button->del_button is not NULL: it is %p", button->del_button);
+		return ERR_BAD_ARGS;
+	}
 	
 	button->del_button = new_button(LV_SYMBOL_TRASH);
 	
@@ -805,6 +892,7 @@ int m_active_button_add_del_button(m_active_button *button)
 	
 	button_set_clicked_cb(button->del_button, m_active_button_del_cb, button);
 	
+	printf("m_active_button_add_del_button done\n");
 	return NO_ERROR;
 }
 
@@ -831,7 +919,7 @@ int m_active_button_create_ui(m_active_button *button, lv_obj_t *parent)
 	/*
 	button->button.obj = lv_btn_create(parent);
 	
-    lv_obj_set_size(button->button.obj, GLIDE_BUTTON_WIDTH, GLIDE_BUTTON_HEIGHT);
+    lv_obj_set_size(button->button.obj, M_BUTTON_WIDTH, M_BUTTON_HEIGHT);
     
 	
 	
@@ -847,7 +935,7 @@ int m_active_button_create_ui(m_active_button *button, lv_obj_t *parent)
 	
 	button->del_button = lv_btn_create(button->button.obj);
 	lv_obj_align(button->del_button, LV_ALIGN_RIGHT_MID, 10, 0);
-	lv_obj_set_size(button->del_button, 0.75 * GLIDE_BUTTON_HEIGHT, 0.75 * GLIDE_BUTTON_HEIGHT);
+	lv_obj_set_size(button->del_button, 0.75 * M_BUTTON_HEIGHT, 0.75 * M_BUTTON_HEIGHT);
 	lv_obj_add_event_cb(button->del_button, m_active_button_del_cb, LV_EVENT_CLICKED, button);
 	lv_obj_add_flag(button->del_button, LV_OBJ_FLAG_HIDDEN);
 	
@@ -922,33 +1010,60 @@ int m_active_button_swap_del_button_for_persistent_unclickable(m_active_button *
 		m_button_create_label_ui(button->del_button);
 	}
 	
+	lv_anim_del(button, m_active_button_del_button_fade_cb);
+	
+	m_button_reset_state(button->del_button);
 	m_button_set_label(button->del_button, label);
 	m_button_set_unclickable(button->del_button);
+	m_button_set_opacity(button->del_button, 255);
 	m_button_unhide(button->del_button);
+	
+	button->del_button_anims = 0;
 	
 	return NO_ERROR;
 }
 
 int m_active_button_reset_del_button(m_active_button *button)
 {
+	printf("m_active_button_reset_del_button. button = %p\n", button);
 	if (!button)
 		return ERR_NULL_PTR;
 	
 	if (!button->del_button)
+	{
+		printf("del button doesn't exist. bailing\n");
 		return ERR_BAD_ARGS;
+	}
 	
 	if (!button->del_button->obj)
+	{
+		printf("del button lv_obj not created. not my job. bailing\n");
 		return ERR_BAD_ARGS;
+	}
+	
+	printf("make it hidden...\n");
+	m_button_hide(button->del_button);
 	
 	if (!button->del_button->label)
 	{
+		printf("del button label doesn't exist. creating...\n");
 		m_button_create_label_ui(button->del_button);
 	}
 	
-	m_button_set_label(button->del_button, LV_SYMBOL_TRASH);
-	m_button_set_clickable(button->del_button);
-	m_button_hide(button->del_button);
+	printf("delete buttons's animations...\n");
+	lv_anim_del(button, m_active_button_del_button_fade_cb);
 	
+	printf("reset button's state...\n");
+	m_button_reset_state(button->del_button);
+	printf("set label to %s\n", LV_SYMBOL_TRASH);
+	m_button_set_label(button->del_button, LV_SYMBOL_TRASH);
+	printf("make it clickable\n");
+	m_button_set_clickable(button->del_button);
+	
+	printf("activate animations...\n");
+	button->del_button_anims = 1;
+	
+	printf("m_active_button_reset_del_button done\n");
 	return NO_ERROR;
 }
 
@@ -973,7 +1088,7 @@ int m_active_button_array_init(m_active_button_array *array)
 	
 	array->data = NULL;
 	
-	array->base_y_pos = GLIDE_BUTTON_ARRAY_BASE_Y;
+	array->base_y_pos = M_BUTTON_ARRAY_BASE_Y;
 	
 	array->button_width  = M_BUTTON_WIDTH;
 	array->button_height = M_BUTTON_HEIGHT;

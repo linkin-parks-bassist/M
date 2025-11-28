@@ -75,8 +75,10 @@ int m_init_global_pages(m_global_pages *pages)
 	init_main_menu(&pages->main_menu);
 	init_transformer_selector(&pages->transformer_selector);
 	
-	init_profile_list(&pages->profile_list);
+	//init_profile_list(&pages->profile_list);
 	init_sequence_list(&pages->sequence_list);
+	
+	init_sequence_view(&pages->main_sequence_view);
 	
 	return NO_ERROR;
 }
@@ -119,15 +121,19 @@ void m_create_ui(lv_disp_t *disp)
     
 	lv_disp_set_theme(disp, lv_theme_default_get());
 	
-	configure_profile_list(&global_cxt.pages.profile_list, &global_cxt.pages.main_menu);
+	//configure_profile_list(&global_cxt.pages.profile_list, &global_cxt.pages.main_menu);
+	
 	configure_sequence_list(&global_cxt.pages.sequence_list, &global_cxt.pages.main_menu);
-	configure_ui_page(&global_cxt.pages.main_menu, global_cxt.active_profile->view_page);
 	
-	init_test_page();
-	create_test_page_ui();
-	enter_ui_page(&test_page);
+	configure_ui_page(&global_cxt.pages.main_menu, NULL);
 	
-	enter_ui_page(global_cxt.working_profile->view_page);
+	configure_ui_page(&global_cxt.pages.main_sequence_view, &global_cxt.main_sequence);
+	
+	//init_test_page();
+	//create_test_page_ui();
+	//enter_ui_page(&test_page);
+	
+	enter_ui_page(&global_cxt.pages.main_sequence_view);
 }
 
 int init_ui_page(m_ui_page *page)
@@ -255,11 +261,13 @@ int enter_ui_page(m_ui_page *page)
 	
 	if (page->refresh)
 	{
+		printf("page has refresh; calling\n");
 		page->refresh(page);
 	}
 	
 	if (page->enter_page)
 	{
+		printf("page has 'enter_page'; calling\n");
 		page->enter_page(page);
 	}
 	else
@@ -269,11 +277,13 @@ int enter_ui_page(m_ui_page *page)
 			printf("Error! Page has no screen!\n");
 			return ERR_BAD_ARGS;
 		}
+		printf("lv_scr_load...\n");
 		lv_scr_load(page->screen);
 	}
 	
 	global_cxt.pages.current_page = page;
 	
+	printf("enter_ui_page done\n");
 	return NO_ERROR;
 }
 
