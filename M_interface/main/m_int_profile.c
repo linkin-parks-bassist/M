@@ -21,10 +21,8 @@ int init_m_profile(m_profile *profile)
 	
 	profile->active = 0;
 	profile->unsaved_changes = 1;
-	profile->gbs = NULL;
 	
-	profile->listings = NULL;
-	profile->default_profile = 0;
+	profile->sequence = NULL;
 	
 	if (ret_val != NO_ERROR)
 		return ret_val;
@@ -32,6 +30,8 @@ int init_m_profile(m_profile *profile)
 	init_parameter(&profile->volume, "Volume", 0.0, -12.0, 12.0);
 	profile->volume.units = " dB";
 	profile->volume.id = (m_parameter_id){.profile_id = 0, .transformer_id = 0xFFFF, .parameter_id = 0};
+	
+	profile->representations = NULL;
 	
 	return NO_ERROR;
 }
@@ -43,22 +43,6 @@ int profile_set_id(m_profile *profile, uint16_t id)
 	
 	profile->id = id;
 	
-	/*
-	if (profile->pipeline.transformers)
-	{
-		m_transformer_pll *current = profile->pipeline.transformers;
-		
-		while (current)
-		{
-			if (current->data)
-			{
-				current->data->profile->id = id;
-			}
-			current = current->next;
-		}
-	}
-	*/
-	
 	return NO_ERROR;
 }
 
@@ -69,13 +53,7 @@ int m_profile_set_active(m_profile *profile)
 	
 	profile->active = 1;
 	
-	m_int_menu_item_pll *current = profile->listings;
-	
-	while (current)
-	{
-		profile_listing_menu_item_refresh_active(current->data);
-		current = current->next;
-	}
+	m_profile_update_representations(profile);
 	
 	return NO_ERROR;
 }
@@ -87,47 +65,63 @@ int m_profile_set_inactive(m_profile *profile)
 	
 	profile->active = 0;
 	
-	m_int_menu_item_pll *current = profile->listings;
+	m_representation_pll_update_all(profile->representations);
+	
+	return NO_ERROR;
+}
+
+int m_profile_add_representation(m_profile *profile, m_representation *rep)
+{
+	if (!profile || !rep)
+		return ERR_NULL_PTR;
+	
+	m_representation_pll *nl = m_representation_pll_append(profile->representations, rep);
+	
+	if (nl)
+		profile->representations = nl;
+	else
+		return ERR_ALLOC_FAIL;
+	
+	return NO_ERROR;
+}
+
+int m_profile_update_representations(m_profile *profile)
+{
+	if (!profile)
+		return ERR_NULL_PTR;
+	
+	queue_representation_list_update(profile->representations);
+	
+	return NO_ERROR;
+}
+
+int m_profile_remove_representation(m_profile *profile, m_representation *rep)
+{
+	if (!profile)
+		return ERR_NULL_PTR;
+	
+	m_representation_pll *current = profile->representations;
+	m_representation_pll *prev = NULL;
 	
 	while (current)
 	{
-		profile_listing_menu_item_refresh_active(current->data);
+		if (current->data == rep)
+		{
+			if (prev)
+				prev->next = current->next;
+			else
+				profile->representations = current->next;
+			
+			m_free(current);
+			return NO_ERROR;
+		}
+		
+		prev = current;
 		current = current->next;
 	}
 	
 	return NO_ERROR;
 }
-
-int m_profile_add_menu_listing(m_profile *profile, m_int_menu_item *listing)
-{
-	if (!profile || !listing)
-		return ERR_NULL_PTR;
-	
-	m_int_menu_item_pll *nl = m_int_menu_item_pll_append(profile->listings, listing);
-	
-	if (nl)
-		profile->listings = nl;
-	else
-		return ERR_ALLOC_FAIL;
-	
-	return NO_ERROR;
-}
-
-int profile_add_gb_reference(m_profile *profile, m_int_glide_button *gb)
-{
-	if (!profile || !gb)
-		return ERR_NULL_PTR;
-	
-	m_int_glide_button_pll *nl = m_int_glide_button_pll_append(profile->gbs, gb);
-	
-	if (nl)
-		profile->gbs = nl;
-	else
-		return ERR_ALLOC_FAIL;
-	
-	return NO_ERROR;
-}
-
 
 int m_profile_set_default_name_from_id(m_profile *profile)
 {
@@ -139,7 +133,7 @@ int m_profile_set_default_name_from_id(m_profile *profile)
 	
 	// Compute the digits in the ID. 
 	int id_digits;
-	int id_div = profile->id + 1;
+	int id_div = profile->id;
 	
 	for (id_digits = 0; id_div || !id_digits; id_div = id_div / 10)
 		id_digits++;
@@ -152,9 +146,11 @@ int m_profile_set_default_name_from_id(m_profile *profile)
 	if (!profile->name)
 		return ERR_ALLOC_FAIL;
 	
-	sprintf(profile->name, "Profile %d", profile->id + 1);
+	sprintf(profile->name, "Profile %d", profile->id);
 	
 	printf("Resulting name: %s\n", profile->name);
+	
+	queue_representation_list_update(profile->representations);
 	
 	return NO_ERROR;
 }
@@ -195,7 +191,7 @@ int clone_profile(m_profile *dest, m_profile *src)
 	printf("Cloning profile\n");
 	
 	printf("Clone name...\n");
-	dest->name = m_strndup(src->name, PROFILE_NAM_ENG_MAX_LEN);
+	dest->name = m_strndup(src->name, PROFILE_NAME_MAX_LEN);
 	clone_parameter(&dest->volume, &src->volume);
 	dest->id = src->id;
 	
@@ -240,35 +236,6 @@ void free_profile(m_profile *profile)
 	m_free(profile);
 }
 
-int profile_propagate_name_change(m_profile *profile)
-{
-	if (!profile)
-		return ERR_NULL_PTR;
-	
-	if (profile->view_page)
-	{
-		profile_view_change_name(profile->view_page, profile->name);
-	}
-	
-	m_int_menu_item_pll *current_mi = profile->listings;
-	
-	while (current_mi)
-	{
-		profile_listing_menu_item_change_name(current_mi->data, profile->name);
-		current_mi = current_mi->next;
-	}
-	
-	m_int_glide_button_pll *current_gb = profile->gbs;
-	
-	while (current_gb)
-	{
-		glide_button_change_label(current_gb->data, profile->name);
-		current_gb = current_gb->next;
-	}
-	
-	return NO_ERROR;
-}
-
 void new_profile_receive_id(m_message msg, m_response response)
 {
 	m_profile *profile = msg.cb_arg;
@@ -286,17 +253,11 @@ void new_profile_receive_id(m_message msg, m_response response)
 	
 	profile_set_id(profile, id);
 	m_profile_set_default_name_from_id(profile);
-	
-	if (lvgl_port_lock(-1))
-	{
-		profile_propagate_name_change(profile);
-		lvgl_port_unlock();
-	}
 }
 
 m_profile *create_new_profile_with_teensy()
 {
-	m_profile *new_profile = m_int_context_add_profile_rp(&global_cxt);
+	m_profile *new_profile = m_context_add_profile_rp(&global_cxt);
 	
 	if (!new_profile)
 	{
@@ -312,12 +273,22 @@ m_profile *create_new_profile_with_teensy()
 	queue_msg_to_teensy(msg);
 	
 	create_profile_view_for(new_profile);
+
+	return new_profile;
+}
+
+int m_profile_save(m_profile *profile)
+{
+	if (!profile)
+		return ERR_NULL_PTR;
 	
-	printf("create_new_profile_with_teensy: global_cxt.ui_cxt.profile_list = %p\n", global_cxt.ui_cxt.profile_list);
-	if (global_cxt.ui_cxt.profile_list)
+	int ret_val = save_profile(profile);
+	
+	if (ret_val == NO_ERROR)
 	{
-		profile_list_add_profile(global_cxt.ui_cxt.profile_list, new_profile);
+		profile->unsaved_changes = 0;
+		m_profile_update_representations(profile);
 	}
 	
-	return new_profile;
+	return NO_ERROR;
 }

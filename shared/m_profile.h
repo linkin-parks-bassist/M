@@ -10,6 +10,8 @@
 	struct m_pipeline_mod_ll;
 #endif
 
+struct m_int_sequence;
+
 typedef struct m_profile
 {
 	int active;
@@ -41,15 +43,17 @@ typedef struct m_profile
 	
 	struct m_ui_page *view_page;
 	
-	struct m_int_menu_item_pll *listings;
-	struct m_int_glide_button_pll *gbs;
+	m_representation_pll *representations;
 	
 	m_parameter volume;
 	
 	char *fname;
 	
-	int default_profile;
 	int unsaved_changes;
+	
+	struct m_int_sequence *sequence;
+	
+	SemaphoreHandle_t mutex;
 	
 	#endif
 } m_profile;

@@ -1,7 +1,9 @@
 #ifndef M_INT_PROFILE_H_
 #define M_INT_PROFILE_H_
 
-#define PROFILE_NAM_ENG_MAX_LEN 128
+#define PROFILE_NAME_MAX_LEN 128
+
+#define M_PROFILE_MUTEX_TIMEOUT_MS 10
 
 #include "m_profile.h"
 
@@ -13,7 +15,6 @@ int init_m_pipeline(m_pipeline *pipeline);
 int profile_set_id(m_profile *profile, uint16_t id);
 
 int m_profile_set_default_name_from_id(m_profile *profile);
-int profile_propagate_name_change(m_profile *profile);
 
 m_transformer *m_profile_append_transformer_type(m_profile *profile, uint16_t type);
 int m_profile_remove_transformer(m_profile *profile, uint16_t id);
@@ -29,10 +30,13 @@ void new_profile_receive_id(m_message msg, m_response response);
 
 struct m_int_menu_item;
 
-int m_profile_add_menu_listing(m_profile *profile, struct m_int_menu_item *listing);
+int m_profile_add_representation(m_profile *profile, m_representation *rep);
+int m_profile_remove_representation(m_profile *profile, m_representation *rep);
 
 m_profile *create_new_profile_with_teensy();
 
-int profile_add_gb_reference(m_profile *profile, m_int_glide_button *gb);
+int m_profile_save(m_profile *profile);
+
+int m_profile_update_representations(m_profile *profile);
 
 #endif
