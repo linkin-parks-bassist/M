@@ -332,6 +332,8 @@ int configure_sequence_view(m_ui_page *page, void *data)
 			//button = append_new_glide_button_to_array(str->buttons, current->data, current->data->name);
 			//current->button = button;
 		}
+		
+		current = current->next;
 	}
 	
 	str->rep.representee = sequence;

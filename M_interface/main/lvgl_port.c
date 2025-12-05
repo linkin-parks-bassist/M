@@ -4,19 +4,28 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "m_int.h"
+
 #ifndef M_SIMULATED
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
 #include "esp_lcd_panel_ops.h"
+
+#ifdef USE_5A
+
+#include "esp_lcd_mipi_dsi.h"
+#include "esp_lcd_hx8394.h"
+#else
 #include "esp_lcd_panel_rgb.h"
+#endif
 #include "esp_lcd_touch.h"
 #include "esp_timer.h"
 #include "esp_log.h"
 #endif
 
 #include "lvgl.h"
-#include "lvgl_port.h"
+#include "esp_lvgl_port.h"
 
 static const char *TAG = "lv_port";					  // Tag for logging
 static SemaphoreHandle_t lvgl_mux;					   // LVGL mutex for synchronization
@@ -222,7 +231,7 @@ static esp_err_t tick_init(void)
 	return esp_timer_start_periodic(lvgl_tick_timer, LVGL_PORT_TICK_PERIOD_MS * 1000); // Start the timer
 }
 
-static void lvgl_port_task(void *arg)
+static void esp_lvgl_port_task(void *arg)
 {
 	#ifndef M_SIMULATED
 	ESP_LOGD(TAG, "Starting LVGL task"); // Log the task start
@@ -230,9 +239,9 @@ static void lvgl_port_task(void *arg)
 
 	uint32_t task_delay_ms = LVGL_PORT_TASK_MAX_DELAY_MS; // Set initial task delay
 	while (1) {
-		if (lvgl_port_lock(-1)) { // Try to lock the LVGL mutex
+		if (esp_lvgl_port_lock(-1)) { // Try to lock the LVGL mutex
 			task_delay_ms = lv_timer_handler(); // Handle LVGL timer events
-			lvgl_port_unlock(); // Unlock the mutex
+			esp_lvgl_port_unlock(); // Unlock the mutex
 		}
 		// Ensure the delay time is within limits
 		if (task_delay_ms > LVGL_PORT_TASK_MAX_DELAY_MS) {
@@ -244,7 +253,7 @@ static void lvgl_port_task(void *arg)
 	}
 }
 
-esp_err_t lvgl_port_init(esp_lcd_panel_handle_t lcd_handle, esp_lcd_touch_handle_t tp_handle, lv_disp_t **disp)
+esp_err_t esp_lvgl_port_init(esp_lcd_panel_handle_t lcd_handle, esp_lcd_touch_handle_t tp_handle, lv_disp_t **disp)
 {
 	lv_init(); // Initialize LVGL
 	ESP_ERROR_CHECK(tick_init()); // Initialize the tick timer
@@ -278,7 +287,7 @@ esp_err_t lvgl_port_init(esp_lcd_panel_handle_t lcd_handle, esp_lcd_touch_handle
 	ESP_LOGI(TAG, "Create LVGL task"); // Log task creation
 	#endif
 	BaseType_t core_id = (LVGL_PORT_TASK_CORE < 0) ? tskNO_AFFINITY : LVGL_PORT_TASK_CORE; // Determine core ID for the task
-	BaseType_t ret = xTaskCreatePinnedToCore(lvgl_port_task, "lvgl", LVGL_PORT_TASK_STACK_SIZE, NULL,
+	BaseType_t ret = xTaskCreatePinnedToCore(esp_lvgl_port_task, "lvgl", LVGL_PORT_TASK_STACK_SIZE, NULL,
 											 LVGL_PORT_TASK_PRIORITY, &lvgl_task_handle, core_id); // Create the LVGL task
 	if (ret != pdPASS) {
 		#ifndef M_SIMULATED
@@ -290,27 +299,27 @@ esp_err_t lvgl_port_init(esp_lcd_panel_handle_t lcd_handle, esp_lcd_touch_handle
 	return ESP_OK; // Return success
 }
 
-bool lvgl_port_lock(int timeout_ms)
+bool esp_lvgl_port_lock(int timeout_ms)
 {
-	assert(lvgl_mux && "lvgl_port_init must be called first"); // Ensure the mutex is initialized
+	assert(lvgl_mux && "esp_lvgl_port_init must be called first"); // Ensure the mutex is initialized
 
 	const TickType_t timeout_ticks = (timeout_ms < 0) ? portMAX_DELAY : pdMS_TO_TICKS(timeout_ms); // Convert timeout to ticks
 	return xSemaphoreTakeRecursive(lvgl_mux, timeout_ticks) == pdTRUE; // Try to take the mutex
 }
 
-void lvgl_port_unlock(void)
+void esp_lvgl_port_unlock(void)
 {
-	assert(lvgl_mux && "lvgl_port_init must be called first"); // Ensure the mutex is initialized
+	assert(lvgl_mux && "esp_lvgl_port_init must be called first"); // Ensure the mutex is initialized
 	xSemaphoreGiveRecursive(lvgl_mux); // Release the mutex
 }
 
-bool lvgl_port_notify_rgb_vsync(void)
+bool esp_lvgl_port_notify_rgb_vsync(void)
 {
 	BaseType_t need_yield = pdFALSE; // Flag to check if a yield is needed
 #if LVGL_PORT_FULL_REFRESH && (LVGL_PORT_LCD_RGB_BUFFER_NUMS == 3) && (EXAMPLE_LVGL_PORT_ROTATION_DEGREE == 0)
-	if (lvgl_port_rgb_next_buf != lvgl_port_rgb_last_buf) {
-		lvgl_port_flush_next_buf = lvgl_port_rgb_last_buf; // Set next buffer for flushing
-		lvgl_port_rgb_last_buf = lvgl_port_rgb_next_buf; // Update the last buffer
+	if (esp_lvgl_port_rgb_next_buf != esp_lvgl_port_rgb_last_buf) {
+		esp_lvgl_port_flush_next_buf = esp_lvgl_port_rgb_last_buf; // Set next buffer for flushing
+		esp_lvgl_port_rgb_last_buf = esp_lvgl_port_rgb_next_buf; // Update the last buffer
 	}
 #elif LVGL_PORT_AVOID_TEAR_ENABLE
 	// Notify that the current RGB frame buffer has been transmitted

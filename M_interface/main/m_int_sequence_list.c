@@ -219,7 +219,7 @@ void sequence_listing_delete_button_cb(lv_event_t *e)
 
 void disappear_sequence_listing_delete_button(lv_timer_t *timer)
 {
-	m_int_menu_item *item = timer->user_data;
+	m_int_menu_item *item = lv_timer_get_user_data(timer);
 	
 	lv_obj_add_flag(item->extra[0], LV_OBJ_FLAG_HIDDEN);
 	

@@ -65,6 +65,20 @@ int format_float(char *buf, float val, int max_len)
 	return pos - 1;
 }
 
+int parameter_widget_update_value(m_parameter_widget *pw);
+
+void param_widget_rep_update(void *representer, void *representee)
+{
+	m_parameter_widget *pw = representer;
+	m_parameter *param = representee;
+	
+	if (!pw || !param)
+		return;
+	
+	parameter_widget_update_value(pw);
+	parameter_widget_update_value_label(pw);
+}
+
 int nullify_parameter_widget(m_parameter_widget *pw)
 {
 	if (!pw)
@@ -79,6 +93,10 @@ int nullify_parameter_widget(m_parameter_widget *pw)
 	pw->parent		= NULL;
 	
 	pw->val_label_text[0] = 0;
+	
+	pw->rep.representer = pw;
+	pw->rep.representee = NULL;
+	pw->rep.update = param_widget_rep_update;
 	
 	return NO_ERROR;
 }
@@ -162,6 +180,10 @@ int configure_parameter_widget(m_parameter_widget *pw, m_parameter *param, m_pro
 	pw->profile = profile;
 	
 	pw->parent = parent;
+	
+	m_representation_pll_safe_append(&param->reps, &pw->rep);
+	
+	pw->rep.representee = param;
 	
 	format_float(pw->val_label_text, pw->param->value, PARAM_WIDGET_LABEL_BUFSIZE);
 	
@@ -380,9 +402,8 @@ void param_widget_receive(m_message msg, m_response response)
 	{
 		memcpy(&pw->param->value, &response.data[6], sizeof(float));
 		
+		queue_representation_list_update(pw->param->reps);
 		printf("Parameter %d.%d.%d value revieced: %f\n", profile_id, transformer_id, parameter_id, pw->param->value);
-		parameter_widget_update_value(pw);
-		parameter_widget_update_value_label(pw);
 	}
 	else
 	{
@@ -426,6 +447,19 @@ void free_parameter_widget(m_parameter_widget *pw)
 	m_free(pw);
 }
 
+int setting_widget_update_value(m_setting_widget *sw);
+
+void setting_widget_rep_update(void *representer, void *representee)
+{
+	m_setting_widget *sw = representer;
+	m_setting *setting = representee;
+	
+	if (!sw || !setting)
+		return;
+	
+	setting_widget_update_value(sw);
+}
+
 int nullify_setting_widget(m_setting_widget *sw)
 {
 	if (!sw)
@@ -439,6 +473,10 @@ int nullify_setting_widget(m_setting_widget *sw)
 	sw->saved_field_text = NULL;
 	
 	sw->parent = NULL;
+	
+	sw->rep.representer = sw;
+	sw->rep.representee = NULL;
+	sw->rep.update = setting_widget_rep_update;
 	
 	return NO_ERROR;
 }
@@ -505,6 +543,10 @@ int configure_setting_widget(m_setting_widget *sw, m_setting *setting, m_profile
 	sw->parent  = parent;
 	
 	sw->type = sw->setting->widget_type;
+	
+	m_representation_pll_safe_append(&setting->reps, &sw->rep);
+	
+	sw->rep.representee = setting;
 	
 	return NO_ERROR;
 }
@@ -879,7 +921,7 @@ void setting_widget_receive(m_message msg, m_response response)
 		memcpy(&sw->setting->value, &response.data[6], sizeof(float));
 		
 		printf("Setting %d.%d.%d value revieced: %d\n", profile_id, transformer_id, setting_id, sw->setting->value);
-		setting_widget_update_value(sw);
+		queue_representation_list_update(sw->setting->reps);
 	}
 	else
 	{

@@ -101,7 +101,7 @@ void init_global_bg(lv_disp_t *disp)
     
     // Attach once: every time a new screen is loaded on this display
     lv_disp_get_scr_act(disp); // make sure disp is valid
-    lv_disp_set_bg_color(disp, lv_palette_darken(LV_PALETTE_GREY, 3)); // initial screen
+    //lv_disp_set_bg_color(disp, lv_palette_darken(LV_PALETTE_GREY, 3)); // initial screen
     lv_obj_add_event_cb(lv_disp_get_scr_act(disp),
                         screen_load_cb,
                         LV_EVENT_SCREEN_LOAD_START,
@@ -112,14 +112,14 @@ void m_create_ui(lv_disp_t *disp)
 {
 	global_cxt.pages.backstage = lv_obj_create(NULL);
 	
-	init_global_bg(disp);
+	/*init_global_bg(disp);
 	lv_theme_default_init(disp,
                       lv_palette_main(LV_PALETTE_GREY),
                       lv_palette_main(LV_PALETTE_GREEN),
                       LV_THEME_DEFAULT_DARK,
                       GLOBAL_MAIN_FONT);
     
-	lv_disp_set_theme(disp, lv_theme_default_get());
+	lv_disp_set_theme(disp, lv_theme_default_get());*/
 	
 	//configure_profile_list(&global_cxt.pages.profile_list, &global_cxt.pages.main_menu);
 	
@@ -637,7 +637,6 @@ int create_standard_container(lv_obj_t **cont, lv_obj_t *parent)
 	lv_obj_set_size(*cont, STANDARD_CONTAINER_WIDTH, STANDARD_CONTAINER_HEIGHT);
 	lv_obj_align_to(*cont, parent, LV_ALIGN_CENTER, 0, STANDARD_YPOS);
 	
-	lv_obj_clear_flag(*cont, LV_OBJ_FLAG_SCROLL_ELASTIC | LV_OBJ_FLAG_SCROLL_MOMENTUM);
 	lv_obj_set_style_anim_time(*cont, 0, 0);
 	
 	return NO_ERROR;
@@ -656,7 +655,6 @@ int create_standard_container_tall(lv_obj_t **cont, lv_obj_t *parent)
 	lv_obj_set_size(*cont, STANDARD_CONTAINER_WIDTH, STANDARD_CONTAINER_TALL_HEIGHT);
 	lv_obj_align_to(*cont, parent, LV_ALIGN_CENTER, 0, STANDARD_YPOS + (STANDARD_CONTAINER_TALL_HEIGHT - STANDARD_CONTAINER_HEIGHT) / 2);
 	
-	lv_obj_clear_flag(*cont, LV_OBJ_FLAG_SCROLL_ELASTIC | LV_OBJ_FLAG_SCROLL_MOMENTUM);
 	lv_obj_set_style_anim_time(*cont, 0, 0);
 	
 	return NO_ERROR;
@@ -674,7 +672,6 @@ int create_standard_menu_container(lv_obj_t **cont, lv_obj_t *parent)
 	lv_obj_set_size(*cont, STANDARD_CONTAINER_WIDTH, STANDARD_CONTAINER_HEIGHT);
 	lv_obj_align_to(*cont, parent, LV_ALIGN_CENTER, 0, STANDARD_YPOS);
 	
-	lv_obj_clear_flag(*cont, LV_OBJ_FLAG_SCROLL_ELASTIC | LV_OBJ_FLAG_SCROLL_MOMENTUM);
 	lv_obj_set_style_anim_time(*cont, 0, 0);
 	lv_obj_set_flex_align(*cont,
 		LV_FLEX_ALIGN_SPACE_EVENLY,
@@ -697,7 +694,6 @@ int create_standard_menu_container_tall(lv_obj_t **cont, lv_obj_t *parent)
 	lv_obj_set_size(*cont, STANDARD_CONTAINER_WIDTH, STANDARD_CONTAINER_TALL_HEIGHT);
 	lv_obj_align_to(*cont, parent, LV_ALIGN_CENTER, 0, STANDARD_YPOS + (STANDARD_CONTAINER_TALL_HEIGHT - STANDARD_CONTAINER_HEIGHT) / 2);
 	
-	lv_obj_clear_flag(*cont, LV_OBJ_FLAG_SCROLL_ELASTIC | LV_OBJ_FLAG_SCROLL_MOMENTUM);
 	lv_obj_set_style_anim_time(*cont, 0, 0);
 	
 	lv_obj_set_flex_flow(*cont, LV_FLEX_FLOW_ROW);
@@ -942,16 +938,12 @@ int ui_page_create_panel_ui(m_ui_page *page)
 		page->panel->title = lv_textarea_create(page->panel->panel);
 		lv_textarea_set_text(page->panel->title, text);
 		
-		lv_obj_set_style_text_color(page->panel->title, lv_color_hex(GLOBAL_MAIN_TEXT_COLOUR), 0);
-		lv_obj_set_style_text_font(page->panel->title, GLOBAL_MAIN_FONT, 0);
-		
 		lv_obj_set_style_border_width(page->panel->title, 0, 0);
 		lv_obj_set_style_bg_color	 (page->panel->title, lv_color_hex(TOP_PANEL_COLOUR), 0);
-		lv_obj_set_size(page->panel->title, LV_SIZE_CONTENT, TOP_PANEL_HEIGHT * 0.7);
+		//lv_obj_set_size(page->panel->title, LV_SIZE_CONTENT, TOP_PANEL_HEIGHT * 0.7);
 		lv_textarea_set_one_line(page->panel->title, true);
 		lv_textarea_set_align(page->panel->title, LV_TEXT_ALIGN_CENTER);
 		
-		lv_obj_align_to(page->panel->title, page->panel->panel, LV_ALIGN_CENTER, 0, 0);
 		
 		lv_obj_add_event_cb(page->panel->title, edit_rw_text_cb, LV_EVENT_CLICKED, page);
 	}
@@ -960,12 +952,12 @@ int ui_page_create_panel_ui(m_ui_page *page)
 		page->panel->title = lv_label_create(page->panel->panel);
 		lv_label_set_text(page->panel->title, text);
 		
-		lv_obj_set_style_text_color(page->panel->title, lv_color_hex(GLOBAL_MAIN_TEXT_COLOUR), 0);
-		lv_obj_set_style_text_font(page->panel->title, GLOBAL_MAIN_FONT, 0);
-		
 		lv_obj_set_style_text_align(page->panel->title, LV_TEXT_ALIGN_CENTER, 0);
 		lv_obj_align_to(page->panel->title, page->panel->panel, LV_ALIGN_CENTER, 0, 0);
 	}
+	
+	lv_obj_align_to(page->panel->title, page->panel->panel, LV_ALIGN_CENTER, 0, 0);
+	//lv_obj_set_size(page->panel->title, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
 	
 	if (page->panel->rb)
 	{

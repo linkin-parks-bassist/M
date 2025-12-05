@@ -407,7 +407,10 @@ int set_active_profile(m_profile *profile)
 		return NO_ERROR;
 	
 	if (profile && profile->sequence)
+	{
+		printf("profile has a sequence. call m_sequence_activate_at\n");
 		m_sequence_activate_at(profile->sequence, profile);
+	}
 	
 	m_profile_set_inactive(global_cxt.active_profile);
 	
@@ -415,7 +418,32 @@ int set_active_profile(m_profile *profile)
 	
 	uint16_t id = profile ? profile->id : 0;
 	
-	return queue_msg_to_teensy(create_m_message(M_MESSAGE_SWITCH_PROFILE, "s", id));
+	int ret_val = queue_msg_to_teensy(create_m_message(M_MESSAGE_SWITCH_PROFILE, "s", id));
+	
+	printf("set_active_profile done\n");
+	
+	return ret_val;
+}
+
+// This version is called from a sequence-related-cb, so there is no need to
+// tell the sequence about it; it is handled from the caller
+int set_active_profile_from_sequence(m_profile *profile)
+{
+	if (profile)
+		m_profile_set_active(profile);
+	
+	if (profile == global_cxt.active_profile)
+		return NO_ERROR;
+	
+	m_profile_set_inactive(global_cxt.active_profile);
+	
+	global_cxt.active_profile = profile;
+	
+	uint16_t id = profile ? profile->id : 0;
+	
+	int ret_val = queue_msg_to_teensy(create_m_message(M_MESSAGE_SWITCH_PROFILE, "s", id));
+	
+	return ret_val;
 }
 
 int set_working_profile(m_profile *profile)
@@ -597,13 +625,21 @@ m_profile *cxt_find_profile(m_context *cxt, const char *fname)
 	
 	profile_ll *current = cxt->profiles;
 	
+	printf("Searching for profile with fname %s...\n", fname);
 	while (current)
 	{
 		if (current->data && current->data->fname)
 		{
+			printf("Check %s\n", current->data->fname);
 			if (strncmp(current->data->fname, fname, PROFILE_NAME_MAX_LEN) == 0)
+			{
+				printf("Match!\n");
 				return current->data;
+			}
+			printf("No match\n");
 		}
+		
+		current = current->next;
 	}
 	
 	return NULL;

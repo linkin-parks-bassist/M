@@ -199,7 +199,7 @@ int m_sequence_begin(m_int_sequence *sequence)
 	global_cxt.sequence = sequence;
 	sequence->active = 1;
 	
-	set_active_profile(sequence->profiles->data);
+	set_active_profile_from_sequence(sequence->profiles->data);
 	
 	sequence->position = sequence->profiles;
 	
@@ -236,7 +236,7 @@ int m_sequence_regress(m_int_sequence *sequence)
 	
 	sequence->position = sequence->position->prev;
 	
-	set_active_profile(sequence->position->data);
+	set_active_profile_from_sequence(sequence->position->data);
 	
 	return NO_ERROR;
 }
@@ -268,7 +268,7 @@ int m_sequence_advance(m_int_sequence *sequence)
 	
 	sequence->position = sequence->position->next;
 	
-	set_active_profile(sequence->position->data);
+	set_active_profile_from_sequence(sequence->position->data);
 	
 	return NO_ERROR;
 }
@@ -281,7 +281,7 @@ int m_sequence_stop(m_int_sequence *sequence)
 	global_cxt.sequence = NULL;
 	sequence->active = 0;
 	
-	set_active_profile(NULL);
+	set_active_profile_from_sequence(NULL);
 	
 	sequence->position = NULL;
 	
@@ -308,6 +308,7 @@ int m_sequence_stop_from_profile(m_int_sequence *sequence)
 
 int m_sequence_activate_at(m_int_sequence *sequence, m_profile *profile)
 {
+	printf("m_sequence_activate_at\n");
 	if (!sequence)
 		return ERR_NULL_PTR;
 	
@@ -323,8 +324,11 @@ int m_sequence_activate_at(m_int_sequence *sequence, m_profile *profile)
 			m_sequence_update_representations(sequence);
 			return NO_ERROR;
 		}
+		
+		current = current->next;
 	}
 	
+	printf("m_sequence_activate_at done\n");
 	return ERR_BAD_ARGS;
 }
 

@@ -3,14 +3,14 @@
 
 #define STANDARD_DEL_BTN_REMAIN_MS 	1000
 
-#define STANDARD_BUTTON_HEIGHT 70
-#define STANDARD_BUTTON_SHORT_HEIGHT 45
+#define STANDARD_BUTTON_HEIGHT       ((int)(0.07 * DISPLAY_VRES))
+#define STANDARD_BUTTON_SHORT_HEIGHT ((int)(0.06 * DISPLAY_VRES))
 
 #define M_BUTTON_HEIGHT STANDARD_BUTTON_HEIGHT
 #define M_BUTTON_WIDTH  (STANDARD_CONTAINER_WIDTH - (3 * GLOBAL_PAD_WIDTH))
 
 #define M_BUTTON_SCALE_EXPAND 	1
-#define M_BUTTON_SCALE_CONTRACT 	0
+#define M_BUTTON_SCALE_CONTRACT 0
 
 #define M_BUTTON_LP_SCALE 		1.05
 #define M_BUTTON_SCALE_ANIM_MS 	75
@@ -22,10 +22,11 @@
 
 #define M_BUTTON_DEL_ANIM_MS 			100
 
-#define M_BUTTON_ARRAY_BASE_Y 		15
+#define M_BUTTON_ARRAY_BASE_Y 		((int)(0.021f * DISPLAY_VRES))
 
-#define M_BUTTON_V_PAD	20
+#define M_BUTTON_V_PAD	((int)(0.028f * DISPLAY_VRES))
 #define M_BUTTON_DISTANCE (M_BUTTON_HEIGHT + M_BUTTON_V_PAD)
+
 
 #define M_BUTTON_MAX_SUB_BUTTONS 2
 
@@ -112,6 +113,12 @@ int m_button_delete_ui(m_int_button *button);
 #define DANGER_BUTTON_CONFIRM_TEXT "Yes"
 #define DANGER_BUTTON_CANCEL_TEXT  "Cancel"
 
+#define DANGER_BUTTON_POPUP_HEIGHT ((int)(0.25 * DISPLAY_VRES))
+#define DANGER_BUTTON_POPUP_WIDTH  ((int)(0.6 * DISPLAY_HRES))
+
+#define DANGER_BUTTON_POPUP_BUTTON_HEIGHT ((int)(0.045 * DISPLAY_VRES))
+#define DANGER_BUTTON_POPUP_BUTTON_WIDTH  ((int)(0.2   * DISPLAY_HRES))
+
 typedef struct 
 {
 	m_int_button button;
@@ -192,6 +199,8 @@ typedef struct m_active_button_array
 	
 	m_active_button **buttons;
 	
+	lv_obj_t *container;
+	int container_scrollable;
 	struct m_ui_page *parent;
 	
 	int base_y_pos;

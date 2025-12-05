@@ -8,7 +8,6 @@ void m_representation_pll_update_all(m_representation_pll *reps)
 {
 	m_representation_pll *current = reps;
 	
-	printf("update representation pll %p\n", reps);
 	while (current)
 	{
 		if (current->data && current->data->update)
@@ -40,10 +39,8 @@ int init_representation_updater()
 
 int queue_representation_list_update(m_representation_pll *reps)
 {
-	printf("Queueing representation list %p for updating...\n", reps);
 	if (xQueueSend(m_rep_update_queue, (void*)&reps, (TickType_t)10) != pdPASS)
 	{
-		printf("Representation list queueing failed!\n");
 		return ERR_QUEUE_SEND_FAILED;
 	}
 	

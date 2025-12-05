@@ -76,7 +76,6 @@ int create_button_ui(m_int_button *button, lv_obj_t *parent)
 	
 	if (!button->obj)
 		return ERR_ALLOC_FAIL;
-	
 		
 	if (button->flags & M_BUTTON_FLAG_HIDDEN)
 		lv_obj_add_flag(button->obj, LV_OBJ_FLAG_HIDDEN);
@@ -468,7 +467,7 @@ int init_danger_button(m_danger_button *button, void (*action_cb)(void *data), v
 	button->action_cb = action_cb;
 	button->cb_arg = cb_arg;
 	
-	button_set_clicked_cb(&button->button, m_danger_button_activate_popup_cb, NULL);
+	button_set_clicked_cb(&button->button, m_danger_button_activate_popup_cb, &button->button);
 	
 	return NO_ERROR;
 }
@@ -483,6 +482,24 @@ int m_danger_button_create_ui(m_danger_button *button, lv_obj_t *parent)
 	return NO_ERROR;
 }
 
+void m_danger_button_confirm_cb(lv_event_t *e)
+{
+	m_danger_button *button = lv_event_get_user_data(e);
+	
+	if (button->action_cb)
+		button->action_cb(button->cb_arg);
+}
+
+void m_danger_button_cancel_cb(lv_event_t *e)
+{
+	m_danger_button *button = lv_event_get_user_data(e);
+	
+	if (button->popup)
+		lv_msgbox_close(button->popup);
+	
+	button->popup = NULL;
+}
+
 void m_danger_button_value_changed_cb(lv_event_t *e)
 {
 	m_danger_button *button = lv_event_get_user_data(e);
@@ -493,6 +510,7 @@ void m_danger_button_value_changed_cb(lv_event_t *e)
 	if (!button->popup)
 		return;
 	
+	#if LVGL_MAJOR_VERSION == 8
 	const char *button_text = lv_msgbox_get_active_btn_text(button->popup);
 	
 	if (strncmp(DANGER_BUTTON_CONFIRM_TEXT, button_text, strlen(DANGER_BUTTON_CONFIRM_TEXT) + 1) == 0)
@@ -503,23 +521,43 @@ void m_danger_button_value_changed_cb(lv_event_t *e)
 	
 	lv_msgbox_close(button->popup);
 	button->popup = NULL;
+	#endif
 }
 
 void m_danger_button_activate_popup_cb(lv_event_t *e)
 {
+	printf("m_danger_button_activate_popup_cb\n");
 	m_danger_button *button = lv_event_get_user_data(e);
 	
 	if (!button)
+	{
+		printf("button is NULL! returning...\n");
 		return;
+	}
 	
 	if (!button->parent)
+	{
+		printf("Button's parent is NULL! Returning\n");
 		return;
+	}
 	
-	static const char *btns[] = {DANGER_BUTTON_CONFIRM_TEXT, DANGER_BUTTON_CANCEL_TEXT, NULL};
-	button->popup = lv_msgbox_create(button->parent->screen, button->button.label_text, "Are you sure?", btns, 1);
+	button->popup = lv_msgbox_create(button->parent->screen);
+	lv_msgbox_add_title(button->popup, button->button.label_text);
+	lv_msgbox_add_text(button->popup, "\n\tAre you sure?");
 	
-	lv_obj_add_event_cb(button->popup, m_danger_button_value_changed_cb, LV_EVENT_VALUE_CHANGED, button);
-	lv_obj_center(button->popup);
+	lv_obj_t *btn;
+	btn = lv_msgbox_add_footer_button(button->popup, DANGER_BUTTON_CONFIRM_TEXT);
+	lv_obj_add_event_cb(btn, m_danger_button_confirm_cb, LV_EVENT_CLICKED, button);
+	lv_obj_set_size(btn, DANGER_BUTTON_POPUP_BUTTON_WIDTH, DANGER_BUTTON_POPUP_BUTTON_HEIGHT);
+	lv_obj_align_to(btn, button->popup, LV_ALIGN_BOTTOM_LEFT, 0, -GLOBAL_PAD_WIDTH);
+	btn = lv_msgbox_add_footer_button(button->popup, DANGER_BUTTON_CANCEL_TEXT);
+	lv_obj_add_event_cb(btn, m_danger_button_cancel_cb, LV_EVENT_CLICKED, button);
+	lv_obj_set_size(btn, DANGER_BUTTON_POPUP_BUTTON_WIDTH, DANGER_BUTTON_POPUP_BUTTON_HEIGHT);
+	lv_obj_align_to(btn, button->popup, LV_ALIGN_CENTER, 0, -GLOBAL_PAD_WIDTH);
+	
+	lv_obj_set_size(button->popup, DANGER_BUTTON_POPUP_WIDTH, DANGER_BUTTON_POPUP_HEIGHT);
+	
+	printf("m_danger_button_activate_popup_cb done\n");
 }
 
 void m_active_button_scale_cb(void *data, int32_t value)
@@ -726,10 +764,33 @@ int m_active_button_set_index(m_active_button *button, int i)
 
 void m_active_button_del_button_remain_timer_cb(lv_timer_t *timer)
 {
-	m_active_button *button = (m_active_button*)timer->user_data;
+	m_active_button *button = lv_timer_get_user_data(timer);
 	
 	m_active_button_trigger_del_button_fade_out(button);
 	button->del_button_remain_timer = NULL;
+}
+
+void m_active_button_clicked_cb(lv_event_t *e)
+{
+	printf("m_active_button_clicked_cb\n");
+	m_active_button *button = (m_active_button*)lv_event_get_user_data(e);
+	
+	printf("button->long_pressed = %d\n", button->long_pressed);
+	
+	if (!button)
+	{
+		ESP_LOGE(TAG, "Transformer widget long press callback triggered but pointer to struct not passed");
+		return;
+	}
+	
+	if (button->array && button->array->clicked_cb && !button->long_pressed)
+	{
+		button->array->clicked_cb(button);
+	}
+	else
+	{
+		button->long_pressed = 0;
+	}
 }
 
 void m_active_button_long_pressed_cb(lv_event_t *e)
@@ -744,12 +805,22 @@ void m_active_button_long_pressed_cb(lv_event_t *e)
 	}
 	
 	button->long_pressed = 1;
+	
+	
 	printf("long press detected... button->index = %d, button->prev_index = %d\n", button->index, button->prev_index);
 	
 	if (button->array)
 	{
 		if (button->array->flags & M_ACTIVE_BUTTON_ARRAY_FLAG_MOVEABLE)
 		{
+			if (button->array->container)
+			{
+				button->array->container_scrollable = lv_obj_has_flag(button->array->container, LV_OBJ_FLAG_SCROLLABLE);
+				
+				if (button->array->container_scrollable)
+					lv_obj_remove_flag(button->array->container, LV_OBJ_FLAG_SCROLLABLE);
+			}
+			
 			lv_point_t touch_point;
 			lv_indev_t *indev = lv_indev_get_act();
 			lv_indev_get_point(indev, &touch_point);
@@ -869,17 +940,15 @@ void m_active_button_release_cb(lv_event_t *e)
 	}
 	
 	if (!button->array)
-	{
-		button->long_pressed = 0;
 		return;
-	}
 	
 	if (button->long_pressed)
 	{
-		button->long_pressed = 0;
-		
 		if (button->array->flags & M_ACTIVE_BUTTON_ARRAY_FLAG_MOVEABLE)
 		{
+			if (button->array->container && button->array->container_scrollable)
+				lv_obj_add_flag(button->array->container, LV_OBJ_FLAG_SCROLLABLE);
+			
 			m_active_button_trigger_scale_anim(button, M_BUTTON_SCALE_CONTRACT);
 			
 			m_active_button_force_index(button, button->index);
@@ -899,13 +968,6 @@ void m_active_button_release_cb(lv_event_t *e)
 			lv_timer_set_repeat_count(button->del_button_remain_timer, 1);
 			
 			lv_timer_resume(button->del_button_remain_timer);
-		}
-	}
-	else
-	{
-		if (button->array->clicked_cb)
-		{
-			button->array->clicked_cb(button);
 		}
 	}
 }
@@ -932,9 +994,10 @@ int m_active_button_init(m_active_button *button)
 	
 	init_button(&button->button);
 	
-	button_set_long_pressed_cb(&button->button, m_active_button_long_pressed_cb, button);
-	button_set_pressing_cb(&button->button, m_active_button_pressing_cb, button);
-	button_set_released_cb(&button->button, m_active_button_release_cb, button);
+	button_set_long_pressed_cb	(&button->button, m_active_button_long_pressed_cb, button);
+	button_set_pressing_cb		(&button->button, m_active_button_pressing_cb, button);
+	button_set_released_cb		(&button->button, m_active_button_release_cb, button);
+	button_set_clicked_cb		(&button->button, m_active_button_clicked_cb, button);
 	
 	button->del_button 	= NULL;
 	
@@ -1166,6 +1229,7 @@ int m_active_button_array_init(m_active_button_array *array)
 	array->buttons = NULL;
 	
 	array->parent = NULL;
+	array->container = NULL;
 	
 	array->delete_cb 		= NULL;
 	array->del_button_cb 	= NULL;
@@ -1306,8 +1370,11 @@ int m_active_button_array_index_y_position(m_active_button_array *array, int ind
 
 int m_active_button_array_create_ui(m_active_button_array *array, lv_obj_t *parent)
 {
-	if (!array)
+	if (!array || !parent)
 		return ERR_NULL_PTR;
+	
+	array->container = parent;
+	array->container_scrollable = lv_obj_has_flag(parent, LV_OBJ_FLAG_SCROLLABLE);
 	
 	for (int i = 0; i < array->n_buttons; i++)
 	{

@@ -13,12 +13,13 @@
 #define M_INT_WRITE_UNFINISHED_BYTE  		0xfe
 #define M_INT_WRITE_FINISHED_BYTE  			0xff
 
-#define BACKUP_FNAME "/backup.mp"
+#define MAIN_SEQUENCE_FNAME "/sdcard/MAIN_SEQ.MS"
 
-#define MAIN_SEQUENCE_FNAME "/sdcard/main_seq.ms"
+#define M_PROFILES_DIR  "/sdcard/prof/"
+#define M_SEQUENCES_DIR "/sdcard/seq/"
 
-#define M_PROFILES_DIR  "/sdcard/profs"
-#define M_SEQUENCES_DIR "/sdcard/seqs"
+#define PROFILE_EXTENSION  ".MP"
+#define SEQUENCE_EXTENSION ".MS"
 
 int save_profile_as_file		(m_profile *profile, const char *fname);
 int save_profile_as_file_safe	(m_profile *profile, const char *fname);

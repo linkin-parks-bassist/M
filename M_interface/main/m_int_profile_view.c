@@ -287,7 +287,6 @@ void profile_view_play_button_cb(lv_event_t *e)
 
 int configure_profile_view(m_ui_page *page, void *data)
 {
-	//printf("configure_profile_view...\n");
 	if (!page || !data)
 		return ERR_NULL_PTR;
 	
@@ -377,7 +376,12 @@ int configure_profile_view(m_ui_page *page, void *data)
 	str->plus = ui_page_add_bottom_button(page, LV_SYMBOL_PLUS, enter_transformer_selector_cb);
 	str->save = ui_page_add_bottom_button(page, LV_SYMBOL_SAVE, save_button_cb);
 	
+	#ifndef USE_SDCARD
 	m_button_disable(str->save);
+	#endif
+	
+	if (!profile->unsaved_changes)
+		m_button_disable(str->save);
 	
 	ui_page_set_title_rw(page, profile_view_save_name_cb, profile_view_revert_name);
 	
@@ -505,9 +509,6 @@ int enter_profile_view_forward(m_ui_page *page)
 	global_cxt.pages.transformer_selector.parent = page;
 	global_cxt.pages.main_menu.parent = page;
 	
-	profile_view_refresh_play_button(page);
-	profile_view_refresh_save_button(page);
-	
 	//printf("All good\n");
 	return NO_ERROR;
 }
@@ -622,7 +623,6 @@ int profile_view_refresh_save_button(m_ui_page *page)
 	if (!page)
 		return ERR_NULL_PTR;
 	
-	
 	return NO_ERROR;
 }
 
@@ -680,11 +680,11 @@ void profile_view_rep_update(void *representer, void *representee)
 	#ifdef USE_SDCARD
 	if (profile->unsaved_changes)
 	{
-		m_button_disable(str->save);
+		m_button_enable(str->save);
 	}
 	else
 	{
-		m_button_enable(str->save);
+		m_button_disable(str->save);
 	}
 	#endif
 	

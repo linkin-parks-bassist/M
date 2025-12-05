@@ -5,6 +5,6 @@
 
 int m_int_log_init();
 
-void m_int_lv_log_cb(const char *buf);
+void m_int_lv_log_cb(lv_log_level_t level, const char *buf);
 
 #endif

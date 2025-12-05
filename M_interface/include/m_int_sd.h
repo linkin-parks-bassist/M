@@ -3,6 +3,8 @@
 
 #define MOUNT_POINT "/sdcard"
 
+#define SPI_CARD_READER
+
 int init_sd_card();
 
 DECLARE_LINKED_PTR_LIST(char);

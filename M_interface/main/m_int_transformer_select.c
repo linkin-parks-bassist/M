@@ -103,6 +103,8 @@ void add_transformer_from_menu(lv_event_t *e)
 	
 	profile->unsaved_changes = 1;
 	
+	m_profile_update_representations(profile);
+	
 	request_append_transformer(type, trans);
 	
 	transformer_init_ui_page(trans, pv);

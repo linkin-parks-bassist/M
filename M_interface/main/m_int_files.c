@@ -81,11 +81,11 @@ int file_validity_check(FILE *file, uint8_t magic_byte, uint8_t *byte_out)
 
 int save_profile_as_file(m_profile *profile, const char *fname)
 {
-	//printf("save_profile_as_file\n");
+	printf("save_profile_as_file\n");
 	
 	if (!fname || !profile)
 	{
-		//printf("NULL pointer lol\n");
+		printf("NULL pointer lol\n");
 		return ERR_NULL_PTR;
 	}
 	
@@ -95,7 +95,7 @@ int save_profile_as_file(m_profile *profile, const char *fname)
 	
 	if (!file)
 	{
-		//printf("Could not open file %s\n", fname);
+		printf("Could not open file %s\n", fname);
 		return ERR_FOPEN_FAIL;
 	}
 	
@@ -168,7 +168,7 @@ int save_profile_as_file(m_profile *profile, const char *fname)
 	
 	fclose(file);
 	
-	//printf("save_profile_as_file done\n");
+	printf("save_profile_as_file done\n");
 	
 	return NO_ERROR;
 }
@@ -178,7 +178,7 @@ int save_sequence_as_file(m_int_sequence *sequence, const char *fname)
 	if (!sequence || !fname)
 		return ERR_NULL_PTR;
 	
-	printf("Saving settings to sd card!\n");
+	printf("Saving sequence %s to sd card!\n", sequence->name ? "(unnamed)" : sequence->name);
 	FILE *file = fopen(fname, "wb");
 	
 	if (!file)
@@ -206,17 +206,20 @@ int save_sequence_as_file(m_int_sequence *sequence, const char *fname)
 		current = current->next;
 	}
 	
+	printf("Sequence has %d profiles...\n", n_profiles);
 	write_short(n_profiles);
 	
+	current = sequence->profiles;
 	while (current)
 	{
 		if (current->data)
 		{
-			if (!current->data->fname)
+			if (!current->data->fname || current->data->unsaved_changes)
 			{
 				save_profile(current->data);
 			}
 			
+			printf("Profile %s...\n", current->data->fname);
 			write_string(current->data->fname);
 		}
 		
@@ -522,6 +525,7 @@ int read_sequence_from_file(m_int_sequence *sequence, const char *fname)
 	{
 		read_string();
 		
+		printf("Sequence contains profile %s...\n", string_read_buffer);
 		profile = cxt_find_profile(&global_cxt, string_read_buffer);
 		
 		if (profile)
@@ -644,50 +648,43 @@ int save_profile_as_file_safe(m_profile *profile, const char *fname)
 	return ret_val;
 }
 
-#define FNAM_ENG_DIGITS 4
+#define FNAME_DIGITS 4
 
 char *generate_filename(char *prefix, char *suffix)
 {
 	int plen = 0, slen = 0;
 	
 	if (prefix)
-	{
 		plen = strlen(prefix);
-		
-		// Prevent any sprintf foolishness
-		for (int i = 0; i < plen; i++)
-			prefix[i] = (prefix[i] == '%') ? '_' : prefix[i];
-	}
 	if (suffix)
-	{
 		slen = strlen(suffix);
-		
-		for (int i = 0; i < plen; i++)
-			prefix[i] = (prefix[i] == '%') ? '_' : prefix[i];
-	}
 	
-	char *fname = m_alloc(plen + slen + FNAM_ENG_DIGITS + 1);
+	char *fname = m_alloc(plen + slen + FNAME_DIGITS + 1);
 	
 	if (!fname)
 		return NULL;
 	
-	if (prefix)
-		sprintf(fname, prefix);
+	int index = 0;
 	
-	int index = plen;
+	for (int i = 0; i < plen; i++)
+		fname[index++] = prefix[i];
 	
 	char c;
 	int x;
 	
-	for (int i = 0; i < FNAM_ENG_DIGITS; i++)
+	for (int i = 0; i < FNAME_DIGITS; i++)
 	{
 		x = rand() % 36;
 
 		fname[index++] = (x < 10) ? '0' + x : 'A' + (x - 10);
 	}
 	
-	if (suffix)
-		sprintf(&fname[index], suffix);
+	for (int i = 0; i < slen; i++)
+		fname[index++] = (suffix[i] == '%') ? '_' : suffix[i];
+	
+	fname[index] = 0;
+	
+	printf("Generated filename %s\n", fname);
 	
 	return fname;
 }
@@ -699,7 +696,7 @@ int save_profile(m_profile *profile)
 		FILE *test = NULL;
 		
 		do {
-			profile->fname = generate_filename(M_PROFILES_DIR, ".mp");
+			profile->fname = generate_filename(M_PROFILES_DIR, PROFILE_EXTENSION);
 			
 			if (!profile)
 				return ERR_ALLOC_FAIL;
@@ -718,12 +715,12 @@ int save_profile(m_profile *profile)
 	
 	if (ret_val == NO_ERROR)
 	{
-		//printf("Sucessfully saved profile as %s. Dumping file...\n", profile->fname);
+		printf("Sucessfully saved profile as %s. Dumping file...\n", profile->fname);
 		dump_file_contents(profile->fname);
 	}
 	else
 	{
-		//printf("Profile save error: %s\n", m_error_code_to_string(ret_val));
+		printf("Profile save error: %s\n", m_error_code_to_string(ret_val));
 	}
 	
 	return ret_val;
@@ -736,7 +733,7 @@ int save_sequence(m_int_sequence *sequence)
 		FILE *test = NULL;
 		
 		do {
-			sequence->fname = generate_filename(M_SEQUENCES_DIR, ".ms");
+			sequence->fname = generate_filename(M_SEQUENCES_DIR, SEQUENCE_EXTENSION);
 			
 			if (!sequence)
 				return ERR_ALLOC_FAIL;
@@ -768,7 +765,24 @@ int save_sequence(m_int_sequence *sequence)
 
 int load_saved_profiles(m_context *cxt)
 {
+	printf("load_saved_profiles...\n");
 	string_ll *current_file = list_files_in_directory(M_PROFILES_DIR);
+	
+	string_ll *cf = current_file;
+	
+	printf("Profile files fonund:\n");
+	if (!cf)
+	{
+		printf("none!!!\n");
+	}
+	else
+	{
+		while (cf)
+		{
+			printf("%s\n", cf->data);
+			cf = cf->next;
+		}
+	}
 	
 	m_profile *profile;
 	
@@ -778,6 +792,7 @@ int load_saved_profiles(m_context *cxt)
 	
 	while (current_file)
 	{
+		printf("Loading profile %s...\n", current_file->data);
 		profile = m_alloc(sizeof(m_profile));
 		
 		if (!profile)

@@ -22,6 +22,8 @@ int init_parameter_str(m_parameter *param)
 	
 	param->group = -1;
 	
+	param->reps = NULL;
+	
 	return NO_ERROR;
 }
 
@@ -42,6 +44,8 @@ int init_parameter(m_parameter *param, const char *name, float level, float min,
 	
 	param->widget_type = PARAM_WIDGET_VIRTUAL_POT;
 	
+	param->reps = NULL;
+	
 	return NO_ERROR;
 }
 
@@ -60,6 +64,8 @@ int init_setting_str(m_setting *setting)
 	
 	setting->group = -1;
 	
+	setting->reps = NULL;
+	
 	return NO_ERROR;
 }
 
@@ -77,6 +83,8 @@ int init_setting(m_setting *setting, const char *name, uint16_t level)
 	setting->widget_type = SETTING_WIDGET_DROPDOWN;
 	
 	setting->group = -1;
+	
+	setting->reps = NULL;
 	
 	return NO_ERROR;
 }

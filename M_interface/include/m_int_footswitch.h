@@ -3,6 +3,6 @@
 
 #define N_FOOTSWITCHES 2
 
-int init_footswitch_poll_task();
+int init_footswitch_task();
 
 #endif

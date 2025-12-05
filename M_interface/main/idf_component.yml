@@ -16,4 +16,5 @@ dependencies:
   #   public: true
   espressif/esp_lcd_touch: ^1
   espressif/esp_lcd_touch_gt911: ^1
-  lvgl/lvgl: =8.4.0
+  waveshare/esp_lcd_hx8394: '*'
+  waveshare/esp32_p4_nano: '*'

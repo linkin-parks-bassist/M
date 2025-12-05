@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: CC0-1.0
  */
 
-#include "waveshare_rgb_lcd_port.h"
-#include "m_int_touch_irq.h"
-#include "m_int_i2c.h"
+#include "m_int.h"
+
+#ifndef USE_5A
 
 static const char *TAG = "example";
 
@@ -222,3 +222,5 @@ esp_err_t wavesahre_rgb_lcd_bl_off(void)
                                I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
     return ESP_OK;
 }
+
+#endif

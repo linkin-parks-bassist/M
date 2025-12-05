@@ -53,6 +53,7 @@ int cxt_remove_profile(m_context *cxt, m_profile *profile);
 int cxt_remove_sequence(m_context *cxt, m_int_sequence *sequence);
 
 int set_active_profile(m_profile *profile);
+int set_active_profile_from_sequence(m_profile *profile);
 int set_working_profile(m_profile *profile);
 
 int context_no_default_profile(m_context *cxt);

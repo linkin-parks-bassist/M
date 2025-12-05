@@ -7,7 +7,14 @@
 #include <stdio.h>
 #include <math.h>
 
-//#define M_ENABLE_LV_LOGGING
+#define M_ENABLE_LV_LOGGING
+#define USE_SDCARD
+
+#define USE_5A
+
+#ifdef USE_5A
+#include "bsp/esp32_p4_nano.h"
+#endif
 
 #ifndef M_SIMULATED
  
@@ -16,11 +23,19 @@
  #include <freertos/queue.h>
  
  #include <esp_lcd_touch.h>
+ #ifdef USE_OLD_I2C_DRIVER
  #include <driver/i2c.h>
+ #else
+ #include "driver/i2c_master.h"
+ #endif
  #include <esp_log.h>
  
+ #ifdef USE_5A
+ #include "waveshare_dsi_touch_5_a.h"
+ #else
  #include "waveshare_rgb_lcd_port.h"
-
+ #endif
+ 
 #else
  
  #define LV_USE_SDL 1
@@ -48,13 +63,10 @@
 
 #include <lvgl.h>
 
-#define LVGL_VERSION_MAJOR 8
-
 #ifndef M_SIMULATED
- #include <lvgl_port.h>	
+ //#include <esp_lvgl_port.h>	
 #endif
 
-extern const lv_font_t manrope_24;
 
 #define LL_MALLOC m_alloc
 #define LL_FREE   m_free
@@ -71,6 +83,8 @@ extern const lv_font_t manrope_24;
 #ifndef m_printf
  #define m_printf printf
 #endif
+
+#define USE_COMMS
 
 #include "m_linked_list.h"
 #include "m_error_codes.h"

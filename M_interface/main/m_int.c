@@ -8,8 +8,6 @@
 
 m_context global_cxt;
 
-//#define ERASE_SD_CARD
-
 void app_main()
 {
 	srand(time(0));
@@ -25,13 +23,9 @@ void app_main()
 	init_m_int_msg_queue();
 	begin_m_int_comms();
 	
-	#ifdef USE_SD_CARD
+	#ifdef USE_SDCARD
+	printf("DOING THE SD CARD STUFF\n");
 	init_sd_card();
-	
-	#ifdef ERASE_SD_CARD
-	erase_sd_card();
-	#endif
-	
 	
 	if (load_settings_from_file(&global_cxt.settings, SETTINGS_FNAME) == ERR_FOPEN_FAIL)
 	{
@@ -39,7 +33,6 @@ void app_main()
 	}
 	
 	load_saved_profiles(&global_cxt);
-	resolve_default_profile(&global_cxt);
 	
 	context_print_profiles(&global_cxt);
 	
@@ -58,7 +51,7 @@ void app_main()
         vTaskDelay(pdMS_TO_TICKS(10));
     }
 	#else
-	if (lvgl_port_lock(-1))
+	if (bsp_display_lock(0))
 	{
 		#ifdef M_ENABLE_LV_LOGGING
 		lv_log_register_print_cb(m_int_lv_log_cb);
@@ -68,10 +61,10 @@ void app_main()
 		#ifdef M_PRINT_MEMORY_REPORT
 		lv_timer_create(print_memory_report, 2000, NULL);
 		#endif
-		lvgl_port_unlock();
+		bsp_display_unlock();
 	}
 	#endif
 	
-	init_footswitch_poll_task();
+	init_footswitch_task();
 }
 

@@ -11,7 +11,7 @@
 #include "esp_lcd_panel_rgb.h"
 #include "esp_lcd_touch_gt911.h"
 #include "lv_demos.h"
-#include "lvgl_port.h"
+//#include "lvgl_port.h"
 
 #define GPIO_INPUT_IO_4	4
 #define GPIO_INPUT_PIN_SEL  1ULL<<GPIO_INPUT_IO_4

@@ -5,7 +5,7 @@ idf_component_register(SRCS "m_int.c"
 							"m_int_comms.c"
 							"m_int_display.c"
 							"waveshare_rgb_lcd_port.c"
-							"lvgl_port.c"
+							"waveshare_dsi_touch_5_a.c"
 							"m_int_footswitch.c"
 							"m_int_button.c"
 							"m_int_ui.c"
@@ -38,7 +38,9 @@ idf_component_register(SRCS "m_int.c"
 							"m_int_menu.c"
 							"m_int_lv_log.c"
 							"m_int_settings.c"
-							"manrope_24.c"
+					REQUIRES
+							esp_timer
+							fatfs
 					INCLUDE_DIRS "." "../../shared" "../include")
 
 target_compile_options(${COMPONENT_LIB} PRIVATE -DM_INTERFACE)

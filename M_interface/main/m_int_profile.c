@@ -269,6 +269,8 @@ int m_profile_save(m_profile *profile)
 	if (!profile)
 		return ERR_NULL_PTR;
 	
+	printf("m_profile_save\n");
+	
 	int ret_val = save_profile(profile);
 	
 	if (ret_val == NO_ERROR)
@@ -276,6 +278,8 @@ int m_profile_save(m_profile *profile)
 		profile->unsaved_changes = 0;
 		m_profile_update_representations(profile);
 	}
+	
+	printf("m_profile_save done\n");
 	
 	return NO_ERROR;
 }

@@ -166,6 +166,7 @@ void danger_button_value_changed_cb(lv_event_t *e)
 	if (!item->extra[0])
 		return;
 	
+	/*
 	const char *button_text = lv_msgbox_get_active_btn_text(item->extra[0]);
 	
 	if (strncmp(DANGER_BUTTON_CONFIRM_TEXT, button_text, strlen(DANGER_BUTTON_CONFIRM_TEXT) + 1) == 0)
@@ -174,7 +175,7 @@ void danger_button_value_changed_cb(lv_event_t *e)
 			item->action_cb(item->cb_arg);
 	}
 	
-	lv_msgbox_close(item->extra[0]);
+	lv_msgbox_close(item->extra[0]);*/
 }
 
 void danger_button_activate_popup_cb(lv_event_t *e)
@@ -186,7 +187,7 @@ void danger_button_activate_popup_cb(lv_event_t *e)
 	
 	if (!item->parent)
 		return;
-	
+	/*
 	if (!item->extra)
 	{
 		item->extra = m_alloc(sizeof(lv_obj_t*));
@@ -198,7 +199,7 @@ void danger_button_activate_popup_cb(lv_event_t *e)
 	
 	item->extra[0] = lv_msgbox_create(item->parent->screen, item->text, "Are you sure?", btns, 1);
 	lv_obj_add_event_cb(item->extra[0], danger_button_value_changed_cb, LV_EVENT_VALUE_CHANGED, item);
-	lv_obj_center(item->extra[0]);
+	lv_obj_center(item->extra[0]);*/
 }
 
 m_int_menu_item *create_profile_listing_menu_item(char *text, m_profile *profile, m_ui_page *parent)
@@ -292,7 +293,7 @@ void profile_listing_delete_button_cb(lv_event_t *e)
 
 void disappear_profile_listing_delete_button(lv_timer_t *timer)
 {
-	m_int_menu_item *item = timer->user_data;
+	m_int_menu_item *item = lv_timer_get_user_data(timer);
 	
 	lv_obj_add_flag(item->extra[0], LV_OBJ_FLAG_HIDDEN);
 	

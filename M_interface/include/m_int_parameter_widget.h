@@ -10,32 +10,32 @@
 #define PARAM_WIDGET_VSLIDER 	  2
 #define PARAM_WIDGET_VSLIDER_TALL 3
 
-#define PARAM_WIDGET_SIZE_H 170
-#define PARAM_WIDGET_SIZE_W 170
+#define PARAM_WIDGET_SIZE_H ((int)(0.16 * DISPLAY_VRES))
+#define PARAM_WIDGET_SIZE_W PARAM_WIDGET_SIZE_H
 
-#define VIRTUAL_POT_SIZE_H 125
-#define VIRTUAL_POT_SIZE_W 125
+#define VIRTUAL_POT_SIZE_H ((int)(0.13 * DISPLAY_VRES))
+#define VIRTUAL_POT_SIZE_W VIRTUAL_POT_SIZE_H
 
-#define VPOT_PAD_H 45
-#define VPOT_PAD_W 70
+#define VPOT_PAD_H ((int)((45.0  / 1024.0) * DISPLAY_VRES))
+#define VPOT_PAD_W ((int)((70.0  / 600.0)  * DISPLAY_HRES))
 
-#define HSLIDER_SIZE_H 15
-#define HSLIDER_SIZE_W 165
+#define HSLIDER_SIZE_H ((int)((15.0  / 1024.0) * DISPLAY_VRES))
+#define HSLIDER_SIZE_W ((int)((165.0 / 600.0)  * DISPLAY_HRES))
 
-#define HSLIDER_PAD_H 50
-#define HSLIDER_PAD_W 10
+#define HSLIDER_PAD_H  ((int)((50.0  / 1024.0) * DISPLAY_VRES))
+#define HSLIDER_PAD_W  ((int)((10.0  / 600.0)  * DISPLAY_HRES))
 
-#define VSLIDER_SIZE_H 150
-#define VSLIDER_SIZE_W 15
+#define VSLIDER_SIZE_H ((int)((150.0 / 1024.0) * DISPLAY_VRES))
+#define VSLIDER_SIZE_W ((int)((15.0  / 600.0)  * DISPLAY_HRES))
 
-#define VSLIDER_PAD_H 40
-#define VSLIDER_PAD_W 90
+#define VSLIDER_PAD_H  ((int)((40.0  / 1024.0) * DISPLAY_VRES))
+#define VSLIDER_PAD_W  ((int)((90.0  / 600.0)  * DISPLAY_HRES))
 
-#define VSLIDER_TALL_SIZE_H 300
-#define VSLIDER_TALL_SIZE_W 15
+#define VSLIDER_TALL_SIZE_H ((int)((300.0 / 1024.0) * DISPLAY_VRES))
+#define VSLIDER_TALL_SIZE_W ((int)((15.0  / 600.0)  * DISPLAY_HRES))
 
-#define VSLIDER_TALL_PAD_H 120
-#define VSLIDER_TALL_PAD_W 80
+#define VSLIDER_TALL_PAD_H  ((int)((120.0 / 1024.0) * DISPLAY_VRES))
+#define VSLIDER_TALL_PAD_W  ((int)((80.0  / 600.0)  * DISPLAY_HRES))
 
 struct m_profile;
 
@@ -53,6 +53,8 @@ typedef struct
 	lv_obj_t *name_label;
 	lv_obj_t *container;
 	lv_obj_t *obj;
+	
+	m_representation rep;
 } m_parameter_widget;
 
 int nullify_parameter_widget(m_parameter_widget *pw);
@@ -103,6 +105,8 @@ typedef struct
 	const char *name;
 	
 	char *saved_field_text;
+	
+	m_representation rep;
 } m_setting_widget;
 
 int nullify_setting_widget(m_setting_widget *pw);
