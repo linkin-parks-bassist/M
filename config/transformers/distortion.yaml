@@ -3,7 +3,7 @@ parameters:
 - name: "Gain"
   default: 4.0
   min: 0.0
-  max: 10
+  max: 15
   location: dist.coefficient
   
 - name: "Wet Mix"
@@ -26,7 +26,7 @@ parameters:
 settings:
   - name: "Function"
     page: main
-    default: 0
+    default: 1
     options:
       - name: "Clip"
         value: 0

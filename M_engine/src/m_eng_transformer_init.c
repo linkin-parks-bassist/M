@@ -381,7 +381,7 @@ int init_distortion(m_transformer *trans)
 	trans->reconfigure = reconfigure_distortion;
 	trans->free_struct = NULL;
 
-	init_parameter(&str->dist.coefficient, 4.0, 0.0, 10, 0.005, PARAMETER_SCALE_LINEAR);
+	init_parameter(&str->dist.coefficient, 4.0, 0.0, 15, 0.0075, PARAMETER_SCALE_LINEAR);
 	if ((ret_val = transformer_add_parameter(trans, &str->dist.coefficient)) != NO_ERROR)
 	{
 		RETURN_ERR_CODE(ret_val);
@@ -405,7 +405,7 @@ int init_distortion(m_transformer *trans)
 		RETURN_ERR_CODE(ret_val);
 	}
 
-	init_setting(&str->function, 0);
+	init_setting(&str->function, 1);
 	if ((ret_val = transformer_add_setting(trans, &str->function)) != NO_ERROR)
 	{
 		RETURN_ERR_CODE(ret_val);

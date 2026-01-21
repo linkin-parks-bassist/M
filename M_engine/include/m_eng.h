@@ -86,10 +86,13 @@
 
 #include "m_linked_list.h"
 
+#include "m_eng_sample.h"
+
 #include "m_parameter.h"
 #include "m_transformer.h"
 #include "m_pipeline.h"
 #include "m_profile.h"
+
 
 #include "m_eng_logging.h"
 

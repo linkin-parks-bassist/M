@@ -19,10 +19,13 @@ BUILD_DIR = build
 .PHONY: gcc gcc_flash gcc_clean all flash clean fullclean simulator simclean
 
 # Toolchain (system packages)
-ARM_GCC ?= /usr/bin
-CC	  := $(ARM_GCC)/arm-none-eabi-gcc
-CXX	 := $(ARM_GCC)/arm-none-eabi-g++
-OBJCOPY := $(ARM_GCC)/arm-none-eabi-objcopy
+# Use Teensy's bundled toolchain (required!)
+TEENSY_TC := ../teensy4/teensy-compile/11.3.1/arm/bin
+
+CC      := $(TEENSY_TC)/arm-none-eabi-gcc
+CXX     := $(TEENSY_TC)/arm-none-eabi-g++
+OBJCOPY := $(TEENSY_TC)/arm-none-eabi-objcopy
+
 
 # Teensy 4 core and linker script
 CORE_PATH	 := ../teensy4/hardware/avr/1.59.0/cores/teensy4

@@ -50,24 +50,16 @@ int m_message_sanity_check(m_message msg, int len)
 	RETURN_INT(1);
 }
 
-typedef enum
-{
-	IDLE,
-	SENDING_STRING,
-	RECIEVING_NEW_PARAM_NAM_ENG_LONG
-} comms_fsm_eng_state_t;
-
 char *string_out = NULL;
 int string_out_pos;
 
 char *string_in = NULL;
 int string_in_pos;
 
-comms_fsm_eng_state_t comms_fsm_eng_state = IDLE;
-
 void handle_esp32_message(m_message msg)
 {
 	FUNCTION_START();
+	m_printf("handle_esp32_message\n");
 	
 	int ret_val;
 	int string_received = 0;
@@ -98,6 +90,7 @@ void handle_esp32_message(m_message msg)
 			break;
 			
 		case M_MESSAGE_HI:
+			m_printf("I am being pung!\n");
 			response = create_m_response(M_RESPONSE_HI, "s", global_cxt.status_flags);
 			break;
 		
@@ -312,12 +305,19 @@ void handle_esp32_message(m_message msg)
 	
 	response_length = encode_m_response(response_buffer, response);
 	response_ready = 1;
+	m_printf("response_ready = %d\n", response_ready);
+	
+	m_printf("response buffer: \n");
+	for (int i = 0; i < M_RESPONSE_MAX_TRANSFER_LEN; i++)
+		m_printf("0x%02x ", response_buffer[i]);
+	m_printf("\n");
 }
 
 void i2c_receive_isr(int n)
 {
 	FUNCTION_START();
 	m_eng_disable_software_interrupts();
+	m_printf("i2c_receive_isr. n = %d\n", n);
 	
 	if (message_pending)
 	{
@@ -364,7 +364,7 @@ void i2c_receive_isr(int n)
 	}
 	
 	//for (int i = 0; i < n; i++)
-	//	m_voice_printf(M_VOICE_COMMS, "%d%s", receive_buffer[i], (i < n - 1) ? ", " : "\n");
+	//	m_printf("%d%s", receive_buffer[i], (i < n - 1) ? ", " : "\n");
 	
 	m_eng_enable_software_interrupts();
 }

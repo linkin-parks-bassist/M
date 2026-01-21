@@ -57,12 +57,19 @@ int init_m_eng_context(m_eng_context *cxt)
 	reconfigure_high_pass_filter(&cxt->output_hpf);
 	
 	ret_val = init_transformer(&cxt->output_amp, TRANSFORMER_AMPLIFIER);
+	ret_val = init_transformer( &cxt->input_amp, TRANSFORMER_AMPLIFIER);
 	
 	((m_eng_amplifier_str*)cxt->output_amp.data_struct)->mode.value 	= M_ENG_AMPLIFIER_DB;
 	((m_eng_amplifier_str*)cxt->output_amp.data_struct)->gain.value 	= -60.0;
 	((m_eng_amplifier_str*)cxt->output_amp.data_struct)->gain.old_value = -60.0;
 	((m_eng_amplifier_str*)cxt->output_amp.data_struct)->gain.new_value = -60.0;
 	((m_eng_amplifier_str*)cxt->output_amp.data_struct)->gain.updated 	= 1;
+	
+	((m_eng_amplifier_str*)cxt->input_amp.data_struct)->mode.value 		= M_ENG_AMPLIFIER_DB;
+	((m_eng_amplifier_str*)cxt->input_amp.data_struct)->gain.value 		= 0.0;
+	((m_eng_amplifier_str*)cxt->input_amp.data_struct)->gain.old_value 	= 0.0;
+	((m_eng_amplifier_str*)cxt->input_amp.data_struct)->gain.new_value 	= 0.0;
+	((m_eng_amplifier_str*)cxt->input_amp.data_struct)->gain.updated 	= 1;
 	
 	cxt->runs = 0;
 	
@@ -176,6 +183,12 @@ m_parameter *cxt_get_parameter_by_id(m_eng_context *cxt, uint16_t pid, uint16_t 
 		switch (ppid)
 		{
 			case 0:
+				if (cxt->input_amp.data_struct)
+				{
+					RETURN_PTR(&((m_eng_amplifier_str*)cxt->input_amp.data_struct)->gain);
+				}
+			
+			case 1:
 				if (cxt->output_amp.data_struct)
 				{
 					RETURN_PTR(&((m_eng_amplifier_str*)cxt->output_amp.data_struct)->gain);
@@ -772,9 +785,9 @@ int cxt_process(m_eng_context *cxt)
 	if (!(dest = allocate_buffer())) goto panic_bypass;
 	
 	#ifndef M_SIMULATED
-	convert_block_int_to_float(tmp, i2s_input_blocks[1]);
+	convert_block_int_to_float(src, i2s_input_blocks[1]);
 	#else
-	m_sim_get_input_block(tmp);
+	m_sim_get_input_block(src);
 	
 	/*m_printf("Obtained simulated input block:\n");
 	
@@ -784,8 +797,9 @@ int cxt_process(m_eng_context *cxt)
 	}*/
 	#endif
 	
-	calc_low_pass_filter(&cxt->input_lpf, src, tmp, AUDIO_BLOCK_SAMPLES);
+	run_transformer(&cxt->input_amp, tmp, src);
 	
+	calc_low_pass_filter(&cxt->input_lpf, src, tmp, AUDIO_BLOCK_SAMPLES);
 	
 	if (cxt->profiles_switching)
 	{

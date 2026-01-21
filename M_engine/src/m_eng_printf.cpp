@@ -235,3 +235,72 @@ void pretty_print_block_float(float *data, const char *start)
 	
 	m_printf(buf);
 }
+
+void pretty_print_buffer(float *data, int n, const char *start)
+{
+	char buf[1024];
+	char sub_buf[128];
+	float abs;
+	int len, j;
+	int pos = 0;
+	
+	#define SPACING 7
+	
+	if (start)
+	{
+		sprintf(buf, start);
+		pos = strlen(buf);
+	}
+	
+	for (int i = 0; i < n; i++)
+	{
+		if (i % 32 == 0)
+		{
+			buf[pos++] = '\n';
+			sprintf(&buf[pos], "%d:  ", i);
+			
+			pos += 2;
+			
+			if (i < 10)
+			{
+				pos++;
+				buf[pos++] = ' ';
+			}
+			else if (i < 100)
+			{
+				pos++;
+				buf[pos++] = ' ';
+			}
+		}
+		
+		if (data[i] < 0)
+		{
+			sub_buf[0] = '-';
+			abs = -data[i];
+		}
+		else
+		{
+			sub_buf[0] = ' ';
+			abs = data[i];
+		}
+		sprintf(&sub_buf[1], "%d", (int)(32768.0 * abs));
+		
+		
+		len = strlen(sub_buf);
+		
+		for (j = 0; j < len; j++)
+			buf[pos++] = sub_buf[j];
+		
+		while (j < SPACING)
+		{
+			buf[pos++] = ' ';
+			j++;
+		}
+	}
+	
+	buf[pos++] = '\n';
+	buf[pos++] = '\n';
+	buf[pos] = 0;
+	
+	m_printf(buf);
+}

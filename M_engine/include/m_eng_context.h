@@ -51,6 +51,7 @@ typedef struct
 	
 	m_eng_high_pass_filter_str output_hpf;
 	m_eng_low_pass_filter_str input_lpf;
+	m_transformer  input_amp;
 	m_transformer output_amp;
 	
 	float dc_blocker_avg;
