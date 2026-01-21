@@ -9,27 +9,28 @@
 #define LL_MALLOC malloc
 #endif
 
-#define DECLARE_LINKED_LIST(X) struct X##_ll;																									\
-typedef struct X##_ll {																														\
+#define DECLARE_LINKED_LIST(X) struct X##_ll;																											\
+typedef struct X##_ll {																																	\
 	X data;																																				\
-	struct X##_ll *next;																														\
-} X##_ll;																																		\
+	struct X##_ll *next;																																\
+} X##_ll;																																				\
 																																						\
-X##_ll *X##_ll_new(X x);																												\
-void free_##X##_ll(X##_ll *list);																										\
-X##_ll *X##_ll_tail(X##_ll *list);																							\
-X##_ll *X##_ll_append(X##_ll *list, X x);																					\
-X##_ll *X##_ll_append_return_tail(X##_ll **list, X x);																		\
-X##_ll *X##_ll_remove_next(X##_ll *list);																					\
-void destructor_free_##X##_ll(X##_ll *list, void (*destructor)(X x));																	\
-void X##_ll_map(X##_ll *list, X (*fmap)(X x));																						\
-X##_ll *X##_ll_cmp_search(X##_ll *list, int (*cmp_function)(X, X), X x);														\
+X##_ll *X##_ll_new(X x);																																\
+void free_##X##_ll(X##_ll *list);																														\
+X##_ll *X##_ll_tail(X##_ll *list);																														\
+X##_ll *X##_ll_append(X##_ll *list, X x);																												\
+int X##_ll_safe_append(X##_ll **list_ptr, X x);																											\
+X##_ll *X##_ll_append_return_tail(X##_ll **list, X x);																									\
+X##_ll *X##_ll_remove_next(X##_ll *list);																												\
+void destructor_free_##X##_ll(X##_ll *list, void (*destructor)(X x));																					\
+void X##_ll_map(X##_ll *list, X (*fmap)(X x));																											\
+X##_ll *X##_ll_cmp_search(X##_ll *list, int (*cmp_function)(X, X), X x);																				\
 X##_ll *X##_ll_destructor_free_and_remove_matching(X##_ll *list, int (*cmp_function)(X, X), X x, void (*destructor)(X));
 
 #define IMPLEMENT_LINKED_LIST(X)																														\
-X##_ll *X##_ll_new(X x)																												\
+X##_ll *X##_ll_new(X x)																																	\
 {																																						\
-	X##_ll *result = (X##_ll*)LL_MALLOC(sizeof(X##_ll));																		\
+	X##_ll *result = (X##_ll*)LL_MALLOC(sizeof(X##_ll));																								\
 																																						\
 	if (result == NULL)																																	\
 		return NULL;																																	\
@@ -40,12 +41,12 @@ X##_ll *X##_ll_new(X x)																												\
 	return result;																																		\
 }																																						\
 																																						\
-X##_ll *X##_ll_tail(X##_ll *list)																							\
+X##_ll *X##_ll_tail(X##_ll *list)																														\
 {																																						\
 	if (list == NULL)																																	\
 		return NULL;																																	\
 																																						\
-	X##_ll *current = list;																													\
+	X##_ll *current = list;																																\
 																																						\
 	while (current->next != NULL)																														\
 		current = current->next;																														\
@@ -53,41 +54,41 @@ X##_ll *X##_ll_tail(X##_ll *list)																							\
 	return current;																																		\
 }																																						\
 																																						\
-void free_##X##_ll(X##_ll *list)																										\
+void free_##X##_ll(X##_ll *list)																														\
 {																																						\
 	if (list == NULL)																																	\
 		return;																																			\
-	X##_ll *current = list;																													\
-	X##_ll *next = NULL;																														\
+	X##_ll *current = list;																																\
+	X##_ll *next = NULL;																																\
 	while (current != NULL) {																															\
 		next = current->next;																															\
-		LL_FREE(current);																																	\
+		LL_FREE(current);																																\
 		current = next;																																	\
 	}																																					\
 }																																						\
 																																						\
-void destructor_free_##X##_ll(X##_ll *list, void (*destructor)(X x))																	\
+void destructor_free_##X##_ll(X##_ll *list, void (*destructor)(X x))																					\
 {																																						\
 	if (list == NULL)																																	\
 		return;																																			\
 																																						\
-	X##_ll *current = list;																													\
-	X##_ll *next = NULL;																														\
+	X##_ll *current = list;																																\
+	X##_ll *next = NULL;																																\
 																																						\
 	while (current != NULL) {																															\
 		next = current->next;																															\
 		destructor(current->data);																														\
-		LL_FREE(current);																																	\
+		LL_FREE(current);																																\
 		current = next;																																	\
 	}																																					\
 }																																						\
 																																						\
-X##_ll *X##_ll_append(X##_ll *list, X x)																						\
+X##_ll *X##_ll_append(X##_ll *list, X x)																												\
 {																																						\
-	X##_ll *next = X##_ll_new(x);																										\
+	X##_ll *next = X##_ll_new(x);																														\
 	if (list == NULL) return next;																														\
 																																						\
-	X##_ll *current = list;																													\
+	X##_ll *current = list;																																\
 																																						\
 	while (current->next != NULL)																														\
 		current = current->next;																														\
@@ -97,18 +98,40 @@ X##_ll *X##_ll_append(X##_ll *list, X x)																						\
 	return list;																																		\
 }																																						\
 																																						\
-X##_ll *X##_ll_append_return_tail(X##_ll **list, X x)																		\
+int X##_ll_safe_append(X##_ll **list_ptr, X x)																											\
+{																																						\
+	if (!list_ptr) return 0;																															\
+	X##_ll *next = X##_ll_new(x);																														\
+	if (!next) return 0;																																\
+	X##_ll *list = *list_ptr;																															\
+	if (list == NULL)																																	\
+	{																																					\
+		*list_ptr = next;																																\
+		return 1;																																		\
+	}																																					\
+																																						\
+	X##_ll *current = list;																																\
+																																						\
+	while (current->next != NULL)																														\
+		current = current->next;																														\
+																																						\
+	current->next = next;																																\
+																																						\
+	return 1;																																			\
+}																																						\
+																																						\
+X##_ll *X##_ll_append_return_tail(X##_ll **list, X x)																									\
 {																																						\
 	if (list == NULL)																																	\
 		return NULL;																																	\
 																																						\
-	X##_ll *next = X##_ll_new(x);																										\
+	X##_ll *next = X##_ll_new(x);																														\
 	if (*list == NULL) {																																\
 		*list = next;																																	\
 		return next;																																	\
 	}																																					\
 																																						\
-	X##_ll *current = *list;																													\
+	X##_ll *current = *list;																															\
 																																						\
 	while (current->next != NULL)																														\
 		current = current->next;																														\
@@ -118,12 +141,12 @@ X##_ll *X##_ll_append_return_tail(X##_ll **list, X x)																		\
 	return next;																																		\
 }																																						\
 																																						\
-X##_ll *X##_ll_remove_next(X##_ll *list)																						\
+X##_ll *X##_ll_remove_next(X##_ll *list)																												\
 {																																						\
 	if (list == NULL)																																	\
 		return NULL;																																	\
 																																						\
-	X##_ll *next = list->next;																													\
+	X##_ll *next = list->next;																															\
 																																						\
 	if (next == NULL)																																	\
 		return NULL;																																	\
@@ -133,21 +156,21 @@ X##_ll *X##_ll_remove_next(X##_ll *list)																						\
 	return next;																																		\
 }																																						\
 																																						\
-void X##_ll_map(X##_ll *list, X (*fmap)(X x))																							\
+void X##_ll_map(X##_ll *list, X (*fmap)(X x))																											\
 {																																						\
 	if (list == NULL)																																	\
 		return;																																			\
 																																						\
 	list->data = fmap(list->data);																														\
-	X##_ll_map(list->next, fmap);																												\
+	X##_ll_map(list->next, fmap);																														\
 }																																						\
 																																						\
-X##_ll *X##_ll_cmp_search(X##_ll *list, int (*cmp_function)(X, X), X x)														\
+X##_ll *X##_ll_cmp_search(X##_ll *list, int (*cmp_function)(X, X), X x)																					\
 {																																						\
 	if (list == NULL)																																	\
 		return NULL;																																	\
 																																						\
-	X##_ll *current = list;																													\
+	X##_ll *current = list;																																\
 																																						\
 	while (current) {																																	\
 		if (cmp_function(current->data, x) == 0)																										\
@@ -159,14 +182,14 @@ X##_ll *X##_ll_cmp_search(X##_ll *list, int (*cmp_function)(X, X), X x)									
 	return NULL;																																		\
 }																																						\
 																																						\
-X##_ll *X##_ll_destructor_free_and_remove_matching(X##_ll *list, int (*cmp_function)(X, X), X x, void (*destructor)(X))		\
+X##_ll *X##_ll_destructor_free_and_remove_matching(X##_ll *list, int (*cmp_function)(X, X), X x, void (*destructor)(X))									\
 {																																						\
 	if (list == NULL)																																	\
 		return NULL;																																	\
 																																						\
-	X##_ll *current = list;																													\
-	X##_ll *prev = NULL;																														\
-	X##_ll *next = NULL;																														\
+	X##_ll *current = list;																																\
+	X##_ll *prev = NULL;																																\
+	X##_ll *next = NULL;																																\
 																																						\
 	while (current)	{																																	\
 		next = current->next;																															\
@@ -174,7 +197,7 @@ X##_ll *X##_ll_destructor_free_and_remove_matching(X##_ll *list, int (*cmp_funct
 			if (current == list)																														\
 				list = next;																															\
 			destructor(current->data);																													\
-			LL_FREE(current);																																\
+			LL_FREE(current);																															\
 			if (prev)																																	\
 				prev->next = next;																														\
 		} else {																																		\
@@ -186,28 +209,29 @@ X##_ll *X##_ll_destructor_free_and_remove_matching(X##_ll *list, int (*cmp_funct
 	return list;																																		\
 }
 
-#define DECLARE_LINKED_PTR_LIST(X) struct X##_pll;																							\
-typedef struct X##_pll {																													\
+#define DECLARE_LINKED_PTR_LIST(X) struct X##_pll;																										\
+typedef struct X##_pll {																																\
 	X *data;																																			\
-	struct X##_pll *next;																													\
-} X##_pll;																																	\
+	struct X##_pll *next;																																\
+} X##_pll;																																				\
 																																						\
-X##_pll *X##_pll_new(X *value);																									\
-void free_##X##_pll(X##_pll *list);																								\
-X##_pll *X##_pll_tail(X##_pll *list);																				\
-X##_pll *X##_pll_append(X##_pll *list, X *value);																	\
-X##_pll *X##_pll_append_return_tail(X##_pll **list, X *x);															\
-X##_pll *X##_pll_remove_next(X##_pll *list);																		\
-void X##_pll_free_all(X##_pll *list);																							\
-void destructor_free_##X##_pll(X##_pll *list, void (*destructor)(X *x));														\
-X##_pll *X##_pll_cmp_search(X##_pll *list, int (*cmp_function)(const X*, const X*), const X *x);					\
+X##_pll *X##_pll_new(X *value);																															\
+void free_##X##_pll(X##_pll *list);																														\
+X##_pll *X##_pll_tail(X##_pll *list);																													\
+X##_pll *X##_pll_append(X##_pll *list, X *value);																										\
+int X##_pll_safe_append(X##_pll **list_ptr, X *value);																										\
+X##_pll *X##_pll_append_return_tail(X##_pll **list, X *x);																								\
+X##_pll *X##_pll_remove_next(X##_pll *list);																											\
+void X##_pll_free_all(X##_pll *list);																													\
+void destructor_free_##X##_pll(X##_pll *list, void (*destructor)(X *x));																				\
+X##_pll *X##_pll_cmp_search(X##_pll *list, int (*cmp_function)(const X*, const X*), const X *x);														\
 X##_pll *X##_pll_destructor_free_and_remove_matching(X##_pll *list, int (*cmp_function)(X*, X*), X *x, void (*destructor)(X*));
 
 #define IMPLEMENT_LINKED_PTR_LIST(X)																													\
 																																						\
-X##_pll *X##_pll_new(X *value)																									\
+X##_pll *X##_pll_new(X *value)																															\
 {																																						\
-	X##_pll *result = (X##_pll*)LL_MALLOC(sizeof(X##_pll));															\
+	X##_pll *result = (X##_pll*)LL_MALLOC(sizeof(X##_pll));																								\
 																																						\
 	if (result == NULL)																																	\
 		return NULL;																																	\
@@ -218,12 +242,12 @@ X##_pll *X##_pll_new(X *value)																									\
 	return result;																																		\
 }																																						\
 																																						\
-X##_pll *X##_pll_tail(X##_pll *list)																				\
+X##_pll *X##_pll_tail(X##_pll *list)																													\
 {																																						\
 	if (list == NULL)																																	\
 		return NULL;																																	\
 																																						\
-	X##_pll *current = list;																												\
+	X##_pll *current = list;																															\
 																																						\
 	while (current->next != NULL)																														\
 		current = current->next;																														\
@@ -231,12 +255,12 @@ X##_pll *X##_pll_tail(X##_pll *list)																				\
 	return current;																																		\
 }																																						\
 																																						\
-X##_pll *X##_pll_append(X##_pll *list, X *x)																		\
+X##_pll *X##_pll_append(X##_pll *list, X *x)																											\
 {																																						\
-	X##_pll *next = X##_pll_new(x);																								\
+	X##_pll *next = X##_pll_new(x);																														\
 	if (list == NULL) return next;																														\
 																																						\
-	X##_pll *current = list;																												\
+	X##_pll *current = list;																															\
 																																						\
 	while (current->next != NULL)																														\
 		current = current->next;																														\
@@ -246,18 +270,41 @@ X##_pll *X##_pll_append(X##_pll *list, X *x)																		\
 	return list;																																		\
 }																																						\
 																																						\
-X##_pll *X##_pll_append_return_tail(X##_pll **list, X *x)															\
+int X##_pll_safe_append(X##_pll **list_ptr, X *x)																										\
+{																																						\
+	if (!list_ptr) return 0;																															\
+	X##_pll *next = X##_pll_new(x);																														\
+	if (!next) return 0;																																\
+	X##_pll *list = *list_ptr;																															\
+	if (list == NULL)																																	\
+	{																																					\
+		*list_ptr = next;																																\
+		return 1;																																		\
+	}																																					\
+																																						\
+	X##_pll *current = list;																															\
+																																						\
+	while (current->next != NULL)																														\
+		current = current->next;																														\
+																																						\
+	current->next = next;																																\
+																																						\
+	return 1;																																			\
+}																																						\
+																																						\
+																																						\
+X##_pll *X##_pll_append_return_tail(X##_pll **list, X *x)																								\
 {																																						\
 	if (list == NULL)																																	\
 		return NULL;																																	\
 																																						\
-	X##_pll *next = X##_pll_new(x);																								\
+	X##_pll *next = X##_pll_new(x);																														\
 	if (*list == NULL) {																																\
 		*list = next;																																	\
 		return next;																																	\
 	}																																					\
 																																						\
-	X##_pll *current = *list;																												\
+	X##_pll *current = *list;																															\
 																																						\
 	while (current->next != NULL)																														\
 		current = current->next;																														\
@@ -268,41 +315,41 @@ X##_pll *X##_pll_append_return_tail(X##_pll **list, X *x)															\
 }																																						\
 																																						\
 																																						\
-void free_##X##_pll(X##_pll *list)																								\
+void free_##X##_pll(X##_pll *list)																														\
 {																																						\
 	if (list == NULL)																																	\
 		return;																																			\
-	X##_pll *current = list;																												\
-	X##_pll *next = NULL;																													\
+	X##_pll *current = list;																															\
+	X##_pll *next = NULL;																																\
 	while (current != NULL) {																															\
 		next = current->next;																															\
 		LL_FREE(current->data);																															\
-		LL_FREE(current);																																	\
+		LL_FREE(current);																																\
 		current = next;																																	\
 	}																																					\
 }																																						\
 																																						\
-void destructor_free_##X##_pll(X##_pll *list, void (*destructor)(X *x))															\
+void destructor_free_##X##_pll(X##_pll *list, void (*destructor)(X *x))																					\
 {																																						\
 	if (list == NULL)																																	\
 		return;																																			\
 																																						\
-	X##_pll *current = list;																												\
-	X##_pll *next = NULL;																													\
+	X##_pll *current = list;																															\
+	X##_pll *next = NULL;																																\
 	while (current != NULL) {																															\
 		next = current->next;																															\
 		destructor(current->data);																														\
-		LL_FREE(current);																																	\
+		LL_FREE(current);																																\
 		current = next;																																	\
 	}																																					\
 }																																						\
 																																						\
-X##_pll *X##_pll_remove_next(X##_pll *list)																			\
+X##_pll *X##_pll_remove_next(X##_pll *list)																												\
 {																																						\
 	if (list == NULL)																																	\
 		return NULL;																																	\
 																																						\
-	X##_pll *next = list->next;																												\
+	X##_pll *next = list->next;																															\
 																																						\
 	if (next == NULL)																																	\
 		return NULL;																																	\
@@ -312,21 +359,21 @@ X##_pll *X##_pll_remove_next(X##_pll *list)																			\
 	return next;																																		\
 }																																						\
 																																						\
-void X##_pll_map(X##_pll *list, X *(*fmap)(X *x))																				\
+void X##_pll_map(X##_pll *list, X *(*fmap)(X *x))																										\
 {																																						\
 	if (list == NULL)																																	\
 		return;																																			\
 																																						\
 	list->data = fmap(list->data);																														\
-	X##_pll_map(list->next, fmap);																											\
+	X##_pll_map(list->next, fmap);																														\
 }																																						\
 																																						\
-X##_pll *X##_pll_cmp_search(X##_pll *list, int (*cmp_function)(const X*, const X*), const X *x)						\
+X##_pll *X##_pll_cmp_search(X##_pll *list, int (*cmp_function)(const X*, const X*), const X *x)															\
 {																																						\
 	if (list == NULL)																																	\
 		return NULL;																																	\
 																																						\
-	X##_pll *current = list;																												\
+	X##_pll *current = list;																															\
 																																						\
 	while (current) {																																	\
 		if (cmp_function(current->data, x) == 0)																										\
@@ -339,14 +386,14 @@ X##_pll *X##_pll_cmp_search(X##_pll *list, int (*cmp_function)(const X*, const X
 }																																						\
 																																						\
 																																						\
-X##_pll *X##_pll_destructor_free_and_remove_matching(X##_pll *list, int (*cmp_function)(X*, X*), X *x, void (*destructor)(X*))\
+X##_pll *X##_pll_destructor_free_and_remove_matching(X##_pll *list, int (*cmp_function)(X*, X*), X *x, void (*destructor)(X*))							\
 {																																						\
 	if (list == NULL)																																	\
 		return NULL;																																	\
 																																						\
-	X##_pll *current = list;																												\
-	X##_pll *next = NULL;																													\
-	X##_pll *prev = NULL;																													\
+	X##_pll *current = list;																															\
+	X##_pll *next = NULL;																																\
+	X##_pll *prev = NULL;																																\
 																																						\
 	while (current)	{																																	\
 		next = current->next;																															\
@@ -354,7 +401,7 @@ X##_pll *X##_pll_destructor_free_and_remove_matching(X##_pll *list, int (*cmp_fu
 			if (current == list)																														\
 				list = next;																															\
 			destructor(current->data);																													\
-			LL_FREE(current);																																\
+			LL_FREE(current);																															\
 			if (prev)																																	\
 				prev->next = next;																														\
 		} else {																																		\

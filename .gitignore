@@ -70,3 +70,6 @@ dkms.conf
 */docs/latex/*
 # But keep the compiled PDFs
 !*/docs/latex/*.pdf
+
+M_interface/build
+M_interface/managed_components

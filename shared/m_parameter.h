@@ -45,6 +45,7 @@ typedef struct m_parameter
 	
 	int group;
 	
+	m_representation_pll *reps;
 	#endif
 } m_parameter;
 
@@ -101,6 +102,8 @@ typedef struct m_setting
 	const char *units;
 	
 	int group;
+	
+	m_representation_pll *reps;
 	
 	#endif
 } m_setting;

@@ -4,6 +4,12 @@
 #include "m_eng.h"
 #endif
 
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+
+#include "m_alloc.h"
+
 static size_t total_current, total_peak;
 
 void *m_alloc(size_t size)
@@ -24,6 +30,20 @@ void *m_alloc(size_t size)
         total_peak = total_current;
     
     return ptr + sizeof(size_t);
+}
+
+void m_free(void *ptr)
+{
+    if (!ptr)
+		return;
+    
+    uint8_t *base_ptr = (uint8_t*)ptr - sizeof(size_t);
+    
+    size_t size = *(size_t*)base_ptr;
+    
+    total_current -= size;
+    
+    free(base_ptr);
 }
 
 void *m_realloc(void *ptr, size_t size)
@@ -65,20 +85,6 @@ char *m_strndup(const char *str, size_t n)
     return new_str;
 }
 
-void m_free(void *ptr)
-{
-    if (!ptr)
-		return;
-    
-    uint8_t *base_ptr = (uint8_t*)ptr - sizeof(size_t);
-    
-    size_t size = *(size_t*)base_ptr;
-    
-    total_current -= size;
-    
-    free(base_ptr);
-}
-
 #ifdef M_INTERFACE
 void *m_int_lv_malloc(size_t size)
 {
@@ -93,5 +99,5 @@ void m_int_lv_free(void *ptr)
 
 void print_memory_report()
 {
-    m_printf("Memory usage: %d alloc'd, %d at peak\n", total_current, total_peak);
+    printf("Memory usage: %d alloc'd, %d at peak\n", total_current, total_peak);
 }

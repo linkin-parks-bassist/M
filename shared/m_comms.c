@@ -1,10 +1,12 @@
 #ifdef M_INTERFACE
 #include "m_int.h"
-#else
+#elif defined(M_ENGINE)
 #include "m_eng.h"
 #endif
 #include "m_comms.h"
 #include "m_error_codes.h"
+
+#include <stddef.h>
 
 static const char *FNAME = "m_comms.c";
 

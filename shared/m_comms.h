@@ -5,6 +5,10 @@
 #define TEENSY_ADDR 0x08
 #endif
 
+#include <stdarg.h>
+#include <stdint.h>
+#include <string.h>
+
 /* Messages from ESP32 to Teensy */
 
 #define M_MESSAGE_NO_MESSAGE				255
