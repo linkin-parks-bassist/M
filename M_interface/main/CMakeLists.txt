@@ -1,46 +1,11 @@
 idf_component_register(SRCS "m_int.c"
-							"m_alloc.c"
-							"m_int_sd.c"
-							"m_int_i2c.c"
-							"m_int_comms.c"
-							"m_int_display.c"
-							"waveshare_rgb_lcd_port.c"
-							"waveshare_dsi_touch_5_a.c"
-							"m_int_footswitch.c"
-							"m_int_button.c"
-							"m_int_ui.c"
-							"m_comms.c"
-							"m_error_codes.c"
-							"m_transformer_enum.c"
-							"m_int_comms.c"
-							"m_int_touch_irq.c"
-							"m_int_context.c"
-							"m_int_actions.c"
-							"m_int_sequence.c"
-							"m_int_sequence_view.c"
-							"m_int_parameter.c"
-							"m_int_parameter_widget.c"
-							"m_int_transformer.c"
-							"m_int_transformer_init.c"
-							"m_int_transformer_view.c"
-							"m_int_transformer_table.c"
-							"m_int_transformer_select.c"
-							"m_int_transformer_settings.c"
-							"m_int_pipeline.c"
-							"m_int_profile.c"
-							"m_int_profile_view.c"
-							"m_int_sequence_list.c"
-							"m_int_profile_settings.c"
-							"m_int_context.c"
-							"m_int_files.c"
-							"m_int_profile_send.c"
-							"m_int_representation.c"
-							"m_int_menu.c"
-							"m_int_lv_log.c"
-							"m_int_settings.c"
 					REQUIRES
 							esp_timer
 							fatfs
+							drivers
+							ui
+							core
+							teensy_comms
 					INCLUDE_DIRS "." "../../shared" "../include")
 
 target_compile_options(${COMPONENT_LIB} PRIVATE -DM_INTERFACE)

@@ -18,3 +18,4 @@ dependencies:
   espressif/esp_lcd_touch_gt911: ^1
   waveshare/esp_lcd_hx8394: '*'
   waveshare/esp32_p4_nano: '*'
+  lvgl/lvgl: '*'

@@ -8,71 +8,29 @@
 #include <math.h>
 
 #define M_ENABLE_LV_LOGGING
-#define USE_SDCARD
 
 #define USE_5A
 
-#ifdef USE_5A
-#include "bsp/esp32_p4_nano.h"
-#endif
+#define USE_DISPLAY
+#define USE_SDCARD
+#define USE_SGTL5000
+#define USE_COMMS
+#define USE_FPGA
+//#define USE_TEENSY
 
-#ifndef M_SIMULATED
- 
- #include <freertos/FreeRTOS.h>
- #include <freertos/semphr.h>
- #include <freertos/queue.h>
- 
- #include <esp_lcd_touch.h>
- #ifdef USE_OLD_I2C_DRIVER
- #include <driver/i2c.h>
- #else
- #include "driver/i2c_master.h"
- #endif
- #include <esp_log.h>
- 
- #ifdef USE_5A
- #include "waveshare_dsi_touch_5_a.h"
- #else
- #include "waveshare_rgb_lcd_port.h"
- #endif
- 
-#else
- 
- #define LV_USE_SDL 1
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
+#include <freertos/queue.h>
 
- #define ESP_LOGE sim_esp_log
- #define ESP_LOGI sim_esp_log
- #define ESP_LOGD sim_esp_log
- #define ESP_LOGW sim_esp_log
- 
- void sim_esp_log(const char *tag, const char *fmt, ...);
- 
- #define xTaskCreatePinnedToCore(a1, a2, a3, a4, a5, a6, a7) xTaskCreate(a1, a2, a3, a4, a5, a6) 
- 
- void app_main();
- 
- #include <FreeRTOS/include/FreeRTOS.h>
- #include <FreeRTOS/include/semphr.h>
- #include <FreeRTOS/include/queue.h>
- 
- #include "SDL2/SDL.h"
- 
- typedef int esp_err_t;
-	
-#endif
+#include "driver/i2c_master.h"
+#include <esp_log.h>
+
+#include "waveshare_dsi_touch_5_a.h"
 
 #include <lvgl.h>
 
-#ifndef M_SIMULATED
- //#include <esp_lvgl_port.h>	
-#endif
-
-
 #define LL_MALLOC m_alloc
 #define LL_FREE   m_free
-
-//#define LV_MM_INT_CUSTOM_ALLOC  m_int_lv_malloc
-//#define LV_MM_INT_CUSTOM_FREE   m_int_lv_free
 
 #define SETTINGS_FNAME "/sdcard/conf"
 
@@ -83,8 +41,6 @@
 #ifndef m_printf
  #define m_printf printf
 #endif
-
-#define USE_COMMS
 
 #include "m_linked_list.h"
 #include "m_error_codes.h"
@@ -103,7 +59,8 @@
 #include "m_alloc.h"
 
 #include "m_int_i2c.h"
-#include "m_int_display.h"
+#include "drivers/m_int_sgtl5000.h"
+#include "m_int_fpga.h"
 #include "m_int_sd.h"
 #include "m_int_footswitch.h"
 
