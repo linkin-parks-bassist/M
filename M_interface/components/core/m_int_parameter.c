@@ -49,6 +49,27 @@ int init_parameter(m_parameter *param, const char *name, float level, float min,
 	return NO_ERROR;
 }
 
+m_parameter *new_m_parameter_wni(const char *name, const char *name_internal, float level, float min, float max)
+{
+	m_parameter *param = m_alloc(sizeof(m_parameter));
+	if (!param)
+		return NULL;
+	
+	init_parameter_wni(param, name, name_internal, level, min, max);
+	
+	return param;
+}
+
+int init_parameter_wni(m_parameter *param, const char *name, const char *name_internal, float level, float min, float max)
+{
+	if (!param)
+		return ERR_NULL_PTR;
+	init_parameter(param, name, level, min, max);
+	param->name_internal = name_internal;
+	
+	return NO_ERROR;
+}
+
 int init_setting_str(m_setting *setting)
 {
 	if (!setting)
@@ -116,11 +137,29 @@ void clone_parameter(m_parameter *dest, m_parameter *src)
 	
 	dest->widget_type = src->widget_type;
 	dest->name 	= src->name;
+	dest->name_internal = src->name_internal;
 	dest->units = src->units;
 	
 	dest->scale = src->scale;
 	
 	dest->group = src->group;
+	
+	dest->reps = NULL;
+}
+
+m_parameter *m_parameter_make_clone(m_parameter *src)
+{
+	if (!src)
+		return NULL;
+	
+	m_parameter *param = m_alloc(sizeof(m_parameter));
+	
+	if (!param)
+		return NULL;
+	
+	clone_parameter(param, src);
+	
+	return param;
 }
 
 int clone_setting(m_setting *dest, m_setting *src)
@@ -167,6 +206,22 @@ int clone_setting(m_setting *dest, m_setting *src)
 	dest->units = src->units;
 	
 	return NO_ERROR;
+}
+
+
+m_setting *m_setting_make_clone(m_setting *src)
+{
+	if (!src)
+		return NULL;
+	
+	m_setting *setting = m_alloc(sizeof(m_setting));
+	
+	if (!setting)
+		return NULL;
+	
+	clone_setting(setting, src);
+	
+	return setting;
 }
 
 void gut_setting(m_setting *setting)

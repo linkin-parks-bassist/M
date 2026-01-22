@@ -90,7 +90,7 @@ void transformer_view_enter_settings_cb(lv_event_t *e)
 
 int configure_transformer_view(m_ui_page *page, void *data)
 {
-	//printf("Conpfigure transformer view... page = %p, data = %p\n", page, data);
+	printf("Conpfigure transformer view... page = %p, data = %p\n", page, data);
 	if (!page || !data)
 	{
 		if (page)
@@ -106,7 +106,7 @@ int configure_transformer_view(m_ui_page *page, void *data)
 	
 	m_transformer *trans = (m_transformer*)data;
 	
-	page->panel->text = transformer_type_name(trans->type);
+	page->panel->text = m_transformer_name(trans);
 	
 	m_transformer_view_str *str = page->data_struct;
 	
@@ -119,10 +119,14 @@ int configure_transformer_view(m_ui_page *page, void *data)
 	m_setting_widget *sw;
 	int ret_val;
 	
+	printf("done basic setup. looking at parameters and settings. parameters first. trans->parameters = %p\n", trans->parameters);
 	m_parameter_pll *current_param = trans->parameters;
 	
+	int i = 0;
 	while (current_param)
 	{
+		printf("Parameter %d. current_param = %p. current_param->data = %p. current_param->next = %p\n", 
+			current_param, current_param->data, current_param->next);
 		if (current_param->data)
 		{
 			pw = m_alloc(sizeof(m_parameter_widget));
@@ -131,14 +135,17 @@ int configure_transformer_view(m_ui_page *page, void *data)
 				return ERR_ALLOC_FAIL;
 			
 			nullify_parameter_widget(pw);
+			printf("Created a parameter widget. Configuring...\n");
 			ret_val = configure_parameter_widget(pw, current_param->data, trans->profile, page);
 			
+			printf("Configured.\n");
 			str->parameter_widgets = m_parameter_widget_pll_append(str->parameter_widgets, pw);
 		}
 		
 		current_param = current_param->next;
 	}
 	
+	printf("settings... trans->settings = %p\n", trans->settings);
 	m_setting_pll *current_setting = trans->settings;
 	
 	while (current_setting)
@@ -188,7 +195,7 @@ int create_transformer_view_ui(m_ui_page *page)
 	if (!str->trans)
 		return ERR_BAD_ARGS;
 	
-	page->panel->text = transformer_type_name(str->trans->type);
+	page->panel->text = m_transformer_name(str->trans);
     
     lv_obj_set_layout(page->container, LV_LAYOUT_FLEX);
     lv_obj_set_flex_flow(page->container, LV_FLEX_FLOW_ROW_WRAP);

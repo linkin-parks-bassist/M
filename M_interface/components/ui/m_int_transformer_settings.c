@@ -35,7 +35,7 @@ int init_transformer_settings_page(m_ui_page *page)
 
 int configure_transformer_settings_page(m_ui_page *page, void *data)
 {
-	printf("configure_transformer_settings_page\n");
+	printf("configure_transformer_settings_page(page = %p, data = %p)\n", page, data);
 	
 	if (!page)
 		return ERR_NULL_PTR;
@@ -49,7 +49,7 @@ int configure_transformer_settings_page(m_ui_page *page, void *data)
 	
 	char title_buf[128];
 	
-	snprintf(title_buf, 128, "%s Settings", transformer_type_name(trans->type));
+	snprintf(title_buf, 128, "%s Settings", m_transformer_name(trans));
 	page->panel->text = m_strndup(title_buf, 128);
 	
 	trans_settings_page_str *str = (trans_settings_page_str*)page->data_struct;

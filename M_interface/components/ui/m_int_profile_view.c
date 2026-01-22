@@ -318,7 +318,7 @@ int configure_profile_view(m_ui_page *page, void *data)
 	{
 		trans = current->data;
 		
-		m_active_button_array_append_new(str->array, trans, transformer_type_name(trans->type));
+		m_active_button_array_append_new(str->array, trans, m_transformer_name(trans));
 		
 		/*
 		tw = m_alloc(sizeof(m_transformer_widget));
@@ -571,7 +571,7 @@ int profile_view_append_transformer(m_ui_page *page, m_transformer *trans)
 	if (!str)
 		return ERR_BAD_ARGS;
 	
-	m_active_button *button = m_active_button_array_append_new(str->array, trans, transformer_type_name(trans->type));
+	m_active_button *button = m_active_button_array_append_new(str->array, trans, m_transformer_name(trans));
 	
 	if (page->ui_created)
 	{

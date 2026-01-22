@@ -10,4 +10,5 @@ idf_component_register(SRCS "m_int_sgtl5000.c"
 							esp_lcd_touch_gt911
 							esp32_p4_nano
 							fatfs
-					INCLUDE_DIRS "." "../../../shared" "../../include" "../" "../ui" "../core")
+							core
+					INCLUDE_DIRS "." "../../../shared" "../../main" "../" "../ui" "../core")

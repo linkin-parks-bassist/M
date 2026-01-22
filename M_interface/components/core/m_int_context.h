@@ -8,7 +8,8 @@
 #include "m_int_profile.h"
 #include "m_int_settings.h"
 
-#include "m_parameter.h"
+#include "m_int_parameter.h"
+#include "m_effect.h"
 
 typedef m_profile_pll profile_ll;
 
@@ -33,11 +34,14 @@ typedef struct m_context
 	int saved_sequences_loaded;
 	
 	m_settings settings;
+	
+	m_effect_desc_pll *effects;
 } m_context;
 
 extern m_context global_cxt;
 
 int m_init_context(m_context *cxt);
+int m_context_init_effect_list(m_context *cxt);
 int m_context_init_main_sequence(m_context *cxt);
 int m_context_init_ui(m_context *cxt);
 

@@ -29,7 +29,7 @@ int m_init_context(m_context *cxt)
 	cxt->pages.backstage = NULL;
 	cxt->pages.current_page = NULL;
 	
-	m_init_global_pages(&cxt->pages);
+	cxt->effects = NULL;
 	
 	return NO_ERROR;
 }
@@ -45,6 +45,27 @@ int m_context_init_main_sequence(m_context *cxt)
 	cxt->main_sequence.view_page = &cxt->pages.main_sequence_view;
 	cxt->main_sequence.fname = MAIN_SEQUENCE_FNAME;
 	cxt->main_sequence.main_sequence = 1;
+	
+	return NO_ERROR;
+}
+
+int m_context_init_effect_list(m_context *cxt)
+{
+	printf("m_context_init_effect_list\n");
+	if (!cxt)
+		return ERR_NULL_PTR;
+	
+	m_effect_desc *amp = new_m_effect_desc("Amplifier");
+	m_parameter *param = new_m_parameter_wni("Gain", "gain", -6.0, -24.0, 24.0);
+	m_effect_desc_add_param(amp, param);
+	
+	m_dsp_block *blk1 = new_m_dsp_block_with_instr(m_dsp_block_instr_type_a_str(BLOCK_INSTR_MUL, 0, 0, 0, 0, 0, 1, 0, 0, 4, 0));
+	m_effect_desc_add_block(amp, blk1);
+	m_effect_desc_set_register(amp, 0, 0, 4, "pow 10 (/ gain 20)");
+	
+	cxt->effects = m_effect_desc_pll_append(cxt->effects, amp);
+	
+	printf("cxt->effects = %p\n", cxt->effects);
 	
 	return NO_ERROR;
 }
@@ -565,7 +586,7 @@ void context_print_profiles(m_context *cxt)
 			
 			while (ct)
 			{
-				printf("\t%s,\n", (ct->data && transformer_type_name(ct->data->type)) ? transformer_type_name(ct->data->type) : "UNKNOWN");
+				printf("\t%s,\n", (ct->data && m_transformer_name(ct->data)) ? m_transformer_name(ct->data) : "UNKNOWN");
 				ct = ct->next;
 			}
 		}

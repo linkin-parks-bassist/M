@@ -25,6 +25,10 @@ void app_main()
 	
 	m_init_context(&global_cxt);
 	
+	m_context_init_effect_list(&global_cxt);
+	
+	m_init_global_pages(&global_cxt.pages);
+	
 	#ifdef USE_SGTL5000
 	xTaskCreate(
 		m_int_sgtl5000_init,
@@ -59,6 +63,8 @@ void app_main()
 	{
 		save_settings_to_file(&global_cxt.settings, SETTINGS_FNAME);
 	}
+	
+	load_effects_from_disk(&global_cxt);
 	
 	load_saved_profiles(&global_cxt);
 	

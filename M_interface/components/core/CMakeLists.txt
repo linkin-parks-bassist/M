@@ -1,5 +1,6 @@
 idf_component_register(SRCS "m_alloc.c"
 							"m_error_codes.c"
+							"m_transformer_enum.c"
 							"m_int_context.c"
 							"m_int_files.c"
 							"m_int_lv_log.c"
@@ -11,11 +12,12 @@ idf_component_register(SRCS "m_alloc.c"
 							"m_int_settings.c"
 							"m_int_transformer.c"
 							"m_int_transformer_init.c"
-							"m_transformer_enum.c"
 							"m_int_transformer_table.c"
+							"m_int_hfunc.c"
+							"m_effect.c"
 					REQUIRES
 							driver
 							drivers
 							ui
 							teensy_comms
-					INCLUDE_DIRS "." "../../../shared" "../../include" "../" "../ui" "../drivers")
+					INCLUDE_DIRS "." "../../../shared" "../../main" "../" "../ui" "../drivers")

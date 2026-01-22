@@ -176,6 +176,9 @@ int configure_parameter_widget(m_parameter_widget *pw, m_parameter *param, m_pro
 	if (!pw || !param)
 		return ERR_NULL_PTR;
 	
+	printf("configure_parameter_widget(pw = %p, param = %p, profile = %p, parent = %p)\n",
+		pw, param, profile, parent);
+	
 	pw->param = param;
 	pw->profile = profile;
 	

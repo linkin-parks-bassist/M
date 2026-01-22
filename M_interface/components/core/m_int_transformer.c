@@ -6,6 +6,8 @@
 #define INITIAL_OPTION_ARRAY_LENGTH 	8
 #define OPTION_ARRAY_CHUNK_SIZE	 		8
 
+const char *TAG = "Transformer";
+
 IMPLEMENT_LINKED_PTR_LIST(m_transformer);
 
 char *transformer_type_name(uint16_t type)
@@ -19,7 +21,20 @@ char *transformer_type_name(uint16_t type)
 	return NULL;
 }
 
-const char *TAG = "Transformer";
+const char *m_transformer_name(m_transformer *trans)
+{
+	if (!trans)
+		return NULL;
+	
+	if (trans->eff)
+	{
+		if (trans->eff->name)
+			return trans->eff->name;
+	}
+	
+	return transformer_type_name(trans->type);
+}
+
 
 int init_transformer(m_transformer *trans)
 {
@@ -27,7 +42,7 @@ int init_transformer(m_transformer *trans)
 		return ERR_NULL_PTR;
 	
 	trans->id = 0;
-	trans->type 		  = 0;
+	trans->type = 0;
 	
 	trans->position = 0;
 	
@@ -68,6 +83,45 @@ int init_transformer(m_transformer *trans)
 	init_parameter(&trans->band_hp_cutoff, "Cutoff", 1.0, 1, 4000);
 	trans->band_hp_cutoff.scale = PARAMETER_SCALE_LOGARITHMIC;
 	trans->band_hp_cutoff.id.parameter_id = TRANSFORMER_BAND_HP_CUTOFF_PID;
+	
+	trans->eff = NULL;
+	
+	return NO_ERROR;
+}
+
+int init_transformer_from_effect_desc(m_transformer *trans, m_effect_desc *eff)
+{
+	printf("init_transformer_from_effect_desc. trans = %p, eff = %p\n", trans, eff);
+	init_transformer(trans);
+	trans->eff = eff;
+	
+	m_parameter_pll *nl;
+	m_parameter *param;
+	
+	if (eff->params)
+	{
+		printf("Cloning parameters. n_params = %d\n", eff->n_params);
+		for (int i = 0; i < eff->n_params; i++)
+		{
+			if (eff->params[i])
+			{
+				printf("Parameter %d = %p\n", i, eff->params[i]);
+				param = m_parameter_make_clone(eff->params[i]);
+				
+				if (!param)
+					return ERR_ALLOC_FAIL;
+				
+				nl = m_parameter_pll_append(trans->parameters, param);
+				
+				if (!nl)
+					return ERR_ALLOC_FAIL;
+				
+				trans->parameters = nl;
+				
+				printf("Added sucessfully. trans->parameters = %p\n", trans->parameters);
+			}
+		}
+	}
 	
 	return NO_ERROR;
 }
@@ -229,17 +283,20 @@ m_setting *transformer_add_setting(m_transformer *trans)
 
 int transformer_init_ui_page(m_transformer *trans, m_ui_page *parent)
 {
-	printf("transformer_init_ui_page...\n");
+	printf("transformer_init_ui_page. trans = %p, parent = %p\n", trans, parent);
 	if (!trans)
 		return ERR_NULL_PTR;
 	
 	trans->view_page = m_alloc(sizeof(m_ui_page));
 	
 	if (!trans->view_page)
-		return ERR_NULL_PTR;
+		return ERR_ALLOC_FAIL;
 	
+	printf("init_ui_page(%p)...\n", trans->view_page);
 	init_ui_page(trans->view_page);
+	printf("init_transformer_view(%p)...\n", trans->view_page);
 	init_transformer_view(trans->view_page);
+	printf("configure_transformer_view(%p, %p)...\n", trans->view_page, trans);
 	configure_transformer_view(trans->view_page, trans);
 	trans->view_page->parent = parent;
 	
@@ -380,4 +437,19 @@ m_setting *transformer_get_setting(m_transformer *trans, int n)
 	}
 	
 	return current ? current->data : NULL;
+}
+
+int m_fpga_transfer_batch_append_transformer(
+		m_transformer *trans,
+		const m_fpga_resource_report *cxt,
+		m_fpga_resource_report *report,
+		m_fpga_transfer_batch *batch
+	)
+{
+	if (!trans || !cxt || !report || !batch)
+		return ERR_NULL_PTR;
+	
+	trans->block_position = cxt->blocks;
+	
+	return m_fpga_transfer_batch_append_effect(trans->eff, cxt, report, trans->parameters, batch);
 }

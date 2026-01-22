@@ -304,7 +304,7 @@ void m_int_sgtl5000_init(void *param)
 	
 	printf("SGTL5000 Initialised\n");
 	
-	sgtl5000_readout_registers();
+	//sgtl5000_readout_registers();
 	
 	vTaskDelete(NULL);
 }

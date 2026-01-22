@@ -32,6 +32,8 @@ int read_sequence_from_file		(m_int_sequence *sequence, const char *fname);
 int save_settings_to_file(m_settings *settings, const char *fname);
 int load_settings_from_file(m_settings *settings, const char *fname);
 
+int load_effects_from_disk(m_context *cxt);
+
 int init_periodic_backup_task();
 
 int save_profile(m_profile *profile);

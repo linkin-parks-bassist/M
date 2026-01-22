@@ -4,6 +4,6 @@ idf_component_register(SRCS "m_comms.c"
 					REQUIRES
 							driver
 							drivers
-					INCLUDE_DIRS "." "../../../shared" "../../include" "../" "../core")
+					INCLUDE_DIRS "." "../../../shared" "../../main" "../" "../core")
 
 

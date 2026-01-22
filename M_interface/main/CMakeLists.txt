@@ -6,6 +6,6 @@ idf_component_register(SRCS "m_int.c"
 							ui
 							core
 							teensy_comms
-					INCLUDE_DIRS "." "../../shared" "../include")
+					INCLUDE_DIRS "." "../../shared")
 
 target_compile_options(${COMPONENT_LIB} PRIVATE -DM_INTERFACE)

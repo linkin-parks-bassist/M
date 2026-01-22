@@ -56,6 +56,8 @@ int m_profile_set_active(m_profile *profile)
 	
 	m_profile_update_representations(profile);
 	
+	m_profile_program_fpga(profile);
+	
 	return NO_ERROR;
 }
 
@@ -145,6 +147,21 @@ m_transformer *m_profile_append_transformer_type(m_profile *profile, uint16_t ty
 		return NULL;
 	
 	m_transformer *trans = m_pipeline_append_transformer_type(&profile->pipeline, type);
+	
+	if (!trans)
+		return NULL;
+	
+	trans->profile = profile;
+	
+	return trans;
+}
+
+m_transformer *m_profile_append_transformer_eff(m_profile *profile, m_effect_desc *eff)
+{
+	if (!profile)
+		return NULL;
+	
+	m_transformer *trans = m_pipeline_append_transformer_eff(&profile->pipeline, eff);
 	
 	if (!trans)
 		return NULL;
@@ -280,6 +297,37 @@ int m_profile_save(m_profile *profile)
 	}
 	
 	printf("m_profile_save done\n");
+	
+	return NO_ERROR;
+}
+
+int m_profile_if_active_update_fpga(m_profile *profile)
+{
+	if (!profile)
+		return ERR_NULL_PTR;
+	
+	if (!profile->active)
+		return NO_ERROR;
+	
+	m_fpga_send_byte(COMMAND_RESET_PIPELINE);
+	m_fpga_transfer_batch send_seq = m_pipeline_create_fpga_transfer_batch(&profile->pipeline);
+	
+	m_fpga_transfer_batch_send(send_seq);
+	m_fpga_send_byte(COMMAND_SWAP_PIPELINES);
+	
+	return NO_ERROR;
+}
+
+int m_profile_program_fpga(m_profile *profile)
+{
+	if (!profile)
+		return ERR_NULL_PTR;
+	
+	m_fpga_send_byte(COMMAND_RESET_PIPELINE);
+	m_fpga_transfer_batch send_seq = m_pipeline_create_fpga_transfer_batch(&profile->pipeline);
+	
+	m_fpga_transfer_batch_send(send_seq);
+	m_fpga_send_byte(COMMAND_SWAP_PIPELINES);
 	
 	return NO_ERROR;
 }

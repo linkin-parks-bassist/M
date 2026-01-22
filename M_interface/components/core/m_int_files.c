@@ -919,3 +919,11 @@ int load_saved_sequences(m_context *cxt)
 	
 	return NO_ERROR;
 }
+
+int load_effects_from_disk(m_context *cxt)
+{
+	if (!cxt)
+		return ERR_NULL_PTR;
+	
+	return NO_ERROR;
+}

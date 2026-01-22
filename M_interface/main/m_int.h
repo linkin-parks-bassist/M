@@ -14,7 +14,7 @@
 #define USE_DISPLAY
 #define USE_SDCARD
 #define USE_SGTL5000
-#define USE_COMMS
+//#define USE_COMMS
 #define USE_FPGA
 //#define USE_TEENSY
 
@@ -47,9 +47,9 @@
 
 #include "m_int_representation.h"
 
-#include "m_parameter.h"
-#include "m_transformer.h"
-#include "m_pipeline.h"
+#include "m_int_parameter.h"
+#include "m_int_transformer.h"
+#include "m_int_pipeline.h"
 #include "m_profile.h"
 
 #include "m_status.h"
@@ -57,9 +57,10 @@
 #include "m_comms.h"
 
 #include "m_alloc.h"
+#include "m_int_hfunc.h"
 
 #include "m_int_i2c.h"
-#include "drivers/m_int_sgtl5000.h"
+#include "m_int_sgtl5000.h"
 #include "m_int_fpga.h"
 #include "m_int_sd.h"
 #include "m_int_footswitch.h"
@@ -95,10 +96,5 @@
 #include "m_int_menu.h"
 
 #include "m_int_lv_log.h"
-
-#define binary_max(x, y) ((x > y) ? x : y)
-#define binary_min(x, y) ((x > y) ? y : x)
-
-#define sqr(x) (x * x)
 
 #endif

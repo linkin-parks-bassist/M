@@ -27,6 +27,23 @@ m_transformer *m_pipeline_append_transformer_type(m_pipeline *pipeline, uint16_t
 	return trans;
 }
 
+m_transformer *m_pipeline_append_transformer_eff(m_pipeline *pipeline, m_effect_desc *eff)
+{
+	if (!pipeline || !eff)
+		return NULL;
+	
+	m_transformer *trans = m_alloc(sizeof(m_transformer));
+	
+	if (!trans)
+		return NULL;
+	
+	init_transformer_from_effect_desc(trans, eff);
+	
+	pipeline->transformers = m_transformer_pll_append(pipeline->transformers, trans);
+	
+	return trans;
+}
+
 int m_pipeline_remove_transformer(m_pipeline *pipeline, uint16_t id)
 {
 	printf("m_pipeline_remove_transformer\n");
@@ -126,4 +143,39 @@ void gut_pipeline(m_pipeline *pipeline)
 	
 	destructor_free_m_transformer_pll(pipeline->transformers, free_transformer);
 	pipeline->transformers = NULL;
+}
+
+m_fpga_transfer_batch m_pipeline_create_fpga_transfer_batch(m_pipeline *pipeline)
+{
+	m_fpga_transfer_batch result;
+	
+	result.buf 		= NULL;
+	result.buf_len 	= 0;
+	result.len 		= 0;
+	
+	if (!pipeline)
+		return result;
+	
+	m_fpga_resource_report res   = m_empty_fpga_resource_report();
+	m_fpga_resource_report local = m_empty_fpga_resource_report();
+	
+	result = m_new_fpga_transfer_batch();
+		
+	m_transformer_pll *current = pipeline->transformers;
+	m_transformer *trans;
+	
+	while (current)
+	{
+		trans = current->data;
+		
+		if (trans)
+		{
+			m_fpga_transfer_batch_append_transformer(trans, &res, &local, &result);
+			m_fpga_resource_report_integrate(&res, &local);
+		}
+		
+		current = current->next;
+	}
+	
+	return result;
 }

@@ -1,6 +1,10 @@
 #ifndef M_INT_REPRESENTATION_H_
 #define M_INT_REPRESENTATION_H_
 
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
+#include <freertos/queue.h>
+
 typedef struct
 {
 	int info;

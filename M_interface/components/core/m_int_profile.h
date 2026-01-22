@@ -6,10 +6,10 @@
 #define M_PROFILE_MUTEX_TIMEOUT_MS 10
 
 #include "m_linked_list.h"
-#include "m_parameter.h"
+#include "m_int_parameter.h"
 #include "m_profile.h"
-#include "m_pipeline.h"
-#include "m_transformer.h"
+#include "m_int_pipeline.h"
+#include "m_int_transformer.h"
 #include "m_comms.h"
 
 DECLARE_LINKED_PTR_LIST(m_profile);
@@ -22,6 +22,7 @@ int profile_set_id(m_profile *profile, uint16_t id);
 int m_profile_set_default_name_from_id(m_profile *profile);
 
 m_transformer *m_profile_append_transformer_type(m_profile *profile, uint16_t type);
+m_transformer *m_profile_append_transformer_eff(m_profile *profile, m_effect_desc *eff);
 int m_profile_remove_transformer(m_profile *profile, uint16_t id);
 
 int clone_profile(m_profile *dest, m_profile *src);
@@ -51,5 +52,8 @@ int m_profile_save(m_profile *profile);
 int m_profile_update_representations		(m_profile *profile);
 int m_profile_update_name_representations	(m_profile *profile);
 int m_profile_update_id_representations		(m_profile *profile);
+
+int m_profile_if_active_update_fpga(m_profile *profile);
+int m_profile_program_fpga(m_profile *profile);
 
 #endif
