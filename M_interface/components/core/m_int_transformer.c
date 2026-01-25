@@ -86,6 +86,8 @@ int init_transformer(m_transformer *trans)
 	
 	trans->eff = NULL;
 	
+	trans->mutex = xSemaphoreCreateMutex();
+	
 	return NO_ERROR;
 }
 
@@ -110,6 +112,9 @@ int init_transformer_from_effect_desc(m_transformer *trans, m_effect_desc *eff)
 				
 				if (!param)
 					return ERR_ALLOC_FAIL;
+				
+				param->id.transformer_id = trans->id;
+				param->id.parameter_id = i;
 				
 				nl = m_parameter_pll_append(trans->parameters, param);
 				
@@ -452,4 +457,26 @@ int m_fpga_transfer_batch_append_transformer(
 	trans->block_position = cxt->blocks;
 	
 	return m_fpga_transfer_batch_append_effect(trans->eff, cxt, report, trans->parameters, batch);
+}
+
+int m_transformer_update_fpga_registers(m_transformer *trans)
+{
+	if (!trans)
+		return ERR_NULL_PTR;
+	
+	if (!trans->eff)
+		return ERR_BAD_ARGS;
+	
+	m_fpga_transfer_batch batch = m_new_fpga_transfer_batch();
+	
+	if (!batch.buf)
+		return ERR_ALLOC_FAIL;
+	
+	m_fpga_transfer_batch_append_effect_register_updates(&batch, trans->eff, trans->block_position, trans->parameters);
+	
+	int ret_val = m_fpga_transfer_batch_send(batch);
+	
+	m_free(batch.buf);
+	
+	return ret_val;
 }

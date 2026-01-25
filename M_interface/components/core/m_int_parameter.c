@@ -1,5 +1,7 @@
 #include "m_int.h"
 
+#define DEFAULT_MAX_VELOCITY 1.0
+
 IMPLEMENT_LINKED_PTR_LIST(m_parameter);
 IMPLEMENT_LINKED_PTR_LIST(m_setting);
 
@@ -11,6 +13,8 @@ int init_parameter_str(m_parameter *param)
 	param->value = 0.0;
 	param->min = 0.0;
 	param->max = 1.0;
+	
+	param->max_velocity = DEFAULT_MAX_VELOCITY;
 	
 	param->factor = 1.0;
 	
@@ -37,6 +41,8 @@ int init_parameter(m_parameter *param, const char *name, float level, float min,
 	param->value = level;
 	param->min = min;
 	param->max = max;
+	
+	param->max_velocity = fabsf(DEFAULT_MAX_VELOCITY * (param->max - param->min));
 	
 	param->factor = 1.0;
 	
@@ -127,8 +133,6 @@ void clone_parameter(m_parameter *dest, m_parameter *src)
 	if (!dest || !src)
 		return;
 	
-	m_parameter_id id;
-	
 	dest->value = src->value;
 	dest->min = src->min;
 	dest->max = src->max;
@@ -139,6 +143,8 @@ void clone_parameter(m_parameter *dest, m_parameter *src)
 	dest->name 	= src->name;
 	dest->name_internal = src->name_internal;
 	dest->units = src->units;
+	
+	dest->max_velocity = src->max_velocity;
 	
 	dest->scale = src->scale;
 	

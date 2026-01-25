@@ -1,4 +1,5 @@
 #include "m_int.h"
+#include "m_param_update.h"
 
 static const char *TAG = "m_parameter_widget.c";
 
@@ -101,6 +102,19 @@ int nullify_parameter_widget(m_parameter_widget *pw)
 	return NO_ERROR;
 }
 
+void format_parameter_widget_value_label_v(m_parameter_widget *pw, float v)
+{
+	if (!pw || !pw->param)
+		return;
+	
+	int i = format_float(pw->val_label_text, v, PARAM_WIDGET_LABEL_BUFSIZE);
+	
+	if (pw->param->units && i < PARAM_WIDGET_LABEL_BUFSIZE)
+	{
+		snprintf(&pw->val_label_text[i], PARAM_WIDGET_LABEL_BUFSIZE - i, "%s", pw->param->units);
+	}
+}
+
 void format_parameter_widget_value_label(m_parameter_widget *pw)
 {
 	if (!pw || !pw->param)
@@ -159,6 +173,18 @@ int parameter_widget_update_value(m_parameter_widget *pw)
 	return NO_ERROR;
 }
 
+void parameter_widget_update_value_label_v(m_parameter_widget *pw, float v)
+{
+	if (!pw)
+		return;
+	
+	format_parameter_widget_value_label_v(pw, v);
+	
+	int len = strlen(pw->val_label_text);
+	
+	lv_label_set_text(pw->val_label, pw->val_label_text);
+}
+
 void parameter_widget_update_value_label(m_parameter_widget *pw)
 {
 	if (!pw)
@@ -199,7 +225,7 @@ void parameter_widget_refresh_cb(lv_event_t *event)
 	
 	if (!pw)
 	{
-		ESP_LOGE(TAG, "NULL virtual pw pointer");
+		ESP_LOGE(TAG, "NULL pw pointer");
 		return;
 	}
 	
@@ -210,6 +236,18 @@ void parameter_widget_refresh_cb(lv_event_t *event)
 
 void parameter_widget_change_cb_inner(m_parameter_widget *pw)
 {
+	if (!pw)
+	{
+		ESP_LOGE(TAG, "NULL pw pointer passed to parameter_widget_change_cb_inner");
+		return;
+	}
+	
+	if (!pw->param)
+	{
+		ESP_LOGE(TAG, "parameter_widget_change_cb_inner called on parameter widget with NULL parameter");
+		return;
+	}
+	
 	float val;
 	
 	switch (pw->param->widget_type)
@@ -233,15 +271,17 @@ void parameter_widget_change_cb_inner(m_parameter_widget *pw)
 			float lnmin = logf(pw->param->min);
 			float lnmax = logf(pw->param->max);
 			
-			pw->param->value = expf(lnmin + val * (lnmax - lnmin));
+			val = expf(lnmin + val * (lnmax - lnmin));
 			break;
 		
 		default:
-			pw->param->value = pw->param->min + val * (pw->param->max - pw->param->min);
+			val = pw->param->min + val * (pw->param->max - pw->param->min);
 			break;
 	}
 	
-	parameter_widget_update_value_label(pw);
+	parameter_widget_update_value_label_v(pw, val);
+	
+	m_parameter_trigger_update(pw->param, val);
 	
 	m_message msg = create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", pw->param->id.profile_id, pw->param->id.transformer_id, pw->param->id.parameter_id, pw->param->value);
 
@@ -272,7 +312,7 @@ void parameter_widget_change_cb(lv_event_t *event)
 	
 	if (!pw)
 	{
-		ESP_LOGE(TAG, "NULL virtual pw pointer");
+		ESP_LOGE(TAG, "NULL pw pointer passed to parameter_widget_change_cb");
 		return;
 	}
 	

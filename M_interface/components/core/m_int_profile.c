@@ -4,6 +4,8 @@ static const char *TAG = "m_profile.c";
 
 IMPLEMENT_LINKED_PTR_LIST(m_profile);
 
+static int next_preliminary_profile_id = 1;
+
 int init_m_profile(m_profile *profile)
 {
 	if (!profile)
@@ -15,7 +17,7 @@ int init_m_profile(m_profile *profile)
 	
 	profile->view_page = NULL;
 	profile->name = NULL;
-	profile->id = 0;
+	profile->id = next_preliminary_profile_id++;
 	
 	profile->fname = NULL;
 	
@@ -167,6 +169,10 @@ m_transformer *m_profile_append_transformer_eff(m_profile *profile, m_effect_des
 		return NULL;
 	
 	trans->profile = profile;
+	
+	transformer_rectify_param_ids(trans);
+	
+	printf("Added transformer with id %d.%d\n", profile->id, trans->id);
 	
 	return trans;
 }

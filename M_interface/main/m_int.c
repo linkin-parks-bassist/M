@@ -49,6 +49,7 @@ void app_main()
 		8,
 		NULL
 	);
+	xTaskCreate(m_param_update_task, NULL, 4096, NULL, 8, NULL);
 	#else
 	init_m_int_msg_queue();
 	begin_m_int_comms();

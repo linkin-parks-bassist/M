@@ -32,6 +32,8 @@ typedef struct m_transformer
 	struct m_ui_page *view_page;
 	
 	m_effect_desc *eff;
+	
+	SemaphoreHandle_t mutex;
 } m_transformer;
 
 const char *m_transformer_name(m_transformer *trans);
@@ -41,6 +43,7 @@ DECLARE_LINKED_PTR_LIST(m_transformer);
 int init_transformer(m_transformer *trans);
 
 int transformer_set_id(m_transformer *trans, uint16_t profile_id, uint16_t transformer_id);
+int transformer_rectify_param_ids(m_transformer *trans);
 
 m_parameter *transformer_add_parameter(m_transformer *trans);
 m_setting *transformer_add_setting(m_transformer *trans);

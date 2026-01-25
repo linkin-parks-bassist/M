@@ -1,6 +1,8 @@
 #ifndef M_PARAMETER_H_
 #define M_PARAMETER_H_
 
+#include <stdint.h>
+
 #define PARAMETER_SCALE_LINEAR		0
 #define PARAMETER_SCALE_LOGARITHMIC	1
 

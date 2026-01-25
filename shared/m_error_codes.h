@@ -56,6 +56,7 @@
 #define ERR_COMMS_FAIL					37
 
 #define ERR_SPI_FAIL					38
+#define ERR_CURRENTLY_EXHAUSTED			39
 
 #define ERR_UNKNOWN_ERR					4999
 #define ERR_UNIMPLEMENTED				5000

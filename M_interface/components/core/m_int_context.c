@@ -59,13 +59,34 @@ int m_context_init_effect_list(m_context *cxt)
 	m_parameter *param = new_m_parameter_wni("Gain", "gain", -6.0, -24.0, 24.0);
 	m_effect_desc_add_param(amp, param);
 	
-	m_dsp_block *blk1 = new_m_dsp_block_with_instr(m_dsp_block_instr_type_a_str(BLOCK_INSTR_MUL, 0, 0, 0, 0, 0, 1, 0, 0, 4, 0));
+	m_dsp_block *blk1 = new_m_dsp_block_with_instr(m_dsp_block_instr_type_a_str(BLOCK_INSTR_MUL, 0, 0, 0, 1, 0, 0, 0, 4, 0));
 	m_effect_desc_add_block(amp, blk1);
-	m_effect_desc_set_register(amp, 0, 0, 4, "pow 10 (/ gain 20)");
+	m_effect_desc_add_register_val(amp, 0, 0, 4, "pow 10 (/ gain 20)");
 	
 	cxt->effects = m_effect_desc_pll_append(cxt->effects, amp);
 	
 	printf("cxt->effects = %p\n", cxt->effects);
+	
+	m_effect_desc *eff = new_m_effect_desc("Delay");
+	param = new_m_parameter_wni("Delay", "delay", 4096, 0.0, 0.0);
+	m_effect_desc_add_param(eff, param);
+	param = new_m_parameter_wni("Delay Gain", "delay_gain", -1.0, -30.0, 0.0);
+	m_effect_desc_add_param(eff, param);
+	
+	m_dsp_block *blk = new_m_dsp_block_with_instr(m_dsp_block_instr_type_b_str(BLOCK_INSTR_DELAY_READ, 0, 1, 0, 0, 1, 0));
+	m_effect_desc_add_block(eff, blk);
+	m_effect_desc_add_register_val_literal(eff, 0, 0, 4096);
+	
+	blk = new_m_dsp_block_with_instr(m_dsp_block_instr_type_a_str(BLOCK_INSTR_MAD, 0, 1, 1, 0, 0, 0, 0, 0, 0));
+	m_effect_desc_add_block(eff, blk);
+	m_effect_desc_add_register_val(eff, 1, 0, 0, "pow 10 (/ delay_gain 20)");
+	
+	blk = new_m_dsp_block_with_instr(m_dsp_block_instr_type_b_str(BLOCK_INSTR_DELAY_WRITE, 0, 0, 0, 0, 0, 0));
+	m_effect_desc_add_block(eff, blk);
+	
+	m_effect_desc_add_resource_request(eff, new_fpga_resource_req(M_FPGA_RESOURCE_DDELAY, 4096));
+	
+	cxt->effects = m_effect_desc_pll_append(cxt->effects, eff);
 	
 	return NO_ERROR;
 }
@@ -254,6 +275,27 @@ m_parameter *cxt_get_parameter_by_id(m_context *cxt, uint16_t profile_id, uint16
 		return NULL;
 	
 	return transformer_get_parameter(trans, parameter_id);
+}
+
+int cxt_get_parameter_and_transformer_by_id(m_context *cxt, m_parameter_id id, m_parameter **pp, m_transformer **tp)
+{
+	if (!cxt || !pp || !tp)
+		return ERR_NULL_PTR;
+	
+	m_transformer *trans = cxt_get_transformer_by_id(cxt, id.profile_id, id.transformer_id);
+	
+	if (!trans)
+		return ERR_BAD_ARGS;
+	
+	m_parameter *param = transformer_get_parameter(trans, id.parameter_id);
+	
+	if (!param)
+		return ERR_BAD_ARGS;
+	
+	*pp = param;
+	*tp = trans;
+	
+	return NO_ERROR;
 }
 
 m_setting *cxt_get_setting_by_id(m_context *cxt, uint16_t profile_id, uint16_t transformer_id, uint16_t parameter_id)

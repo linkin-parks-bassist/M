@@ -52,6 +52,9 @@
 #include "m_int_pipeline.h"
 #include "m_profile.h"
 
+
+#include "m_param_update.h"
+
 #include "m_status.h"
 #include "m_transformer_enum.h"
 #include "m_comms.h"

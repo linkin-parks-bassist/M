@@ -37,9 +37,43 @@ m_transformer *m_pipeline_append_transformer_eff(m_pipeline *pipeline, m_effect_
 	if (!trans)
 		return NULL;
 	
+	m_transformer_pll *node = m_alloc(sizeof(m_transformer_pll));
+	
+	if (!node)
+		return NULL;
+	
+	node->data = trans;
+	node->next = NULL;
+	
 	init_transformer_from_effect_desc(trans, eff);
 	
-	pipeline->transformers = m_transformer_pll_append(pipeline->transformers, trans);
+	if (!pipeline->transformers)
+	{
+		trans->id = 0;
+		pipeline->transformers = node;
+	}
+	else
+	{
+		int least_free_id = 0;
+		m_transformer_pll *current = pipeline->transformers;
+		
+		while (current)
+		{
+			if (current->data)
+			{
+				if (current->data->id >= least_free_id)
+					least_free_id = current->data->id + 1;
+			}
+			
+			if (current->next)
+				current = current->next;
+			else
+				break;
+		}
+		
+		trans->id = least_free_id;
+		current->next = node;
+	}
 	
 	return trans;
 }

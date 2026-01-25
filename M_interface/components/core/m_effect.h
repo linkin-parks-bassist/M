@@ -66,6 +66,15 @@ m_dsp_block *new_m_dsp_block_with_instr(m_dsp_block_instr instr);
 int m_dsp_block_add_register_val(m_dsp_block *blk, int i, m_dsp_register_val *p);
 int m_dsp_block_uses_param(m_dsp_block *blk, m_parameter *param);
 
+#define M_FPGA_RESOURCE_DDELAY 0
+
+typedef struct {
+	int type;
+	int data;
+} m_fpga_resource_req;
+
+m_fpga_resource_req *new_fpga_resource_req(int type, int data);
+
 typedef struct
 {
 	const char *name;
@@ -77,13 +86,30 @@ typedef struct
 	int n_params;
 	int param_array_len;
 	m_parameter **params;
+	
+	int n_res_reqs;
+	int res_req_array_len;
+	m_fpga_resource_req **res_reqs;
 } m_effect_desc;
 
 m_effect_desc *new_m_effect_desc(const char *name);
 int m_effect_desc_add_block(m_effect_desc *eff, m_dsp_block *blk);
 int m_effect_desc_add_param(m_effect_desc *eff, m_parameter *param);
+int m_effect_desc_add_resource_request(m_effect_desc *eff, m_fpga_resource_req *req);
 
-int m_effect_desc_set_register(m_effect_desc *eff, int block_no, int reg, int format, char *expr);
+int m_effect_desc_add_register_val(m_effect_desc *eff, int block_no, int reg, int format, char *expr);
+int m_effect_desc_add_register_val_literal(m_effect_desc *eff, int block_no, int reg, uint16_t val);
+
+int m_fpga_transfer_batch_append_effect_register_writes(
+		m_fpga_transfer_batch *batch,
+		m_effect_desc *eff, int blocks_start,
+		m_parameter_pll *params
+	);
+int m_fpga_transfer_batch_append_effect_register_updates(
+		m_fpga_transfer_batch *batch,
+		m_effect_desc *eff, int blocks_start,
+		m_parameter_pll *params
+	);
 
 DECLARE_LINKED_PTR_LIST(m_effect_desc);
 

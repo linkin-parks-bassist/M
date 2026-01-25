@@ -20,48 +20,50 @@ QueueHandle_t m_fpga_send_queue;
 
 #define IBM(x) ((1u << (x)) - 1)
 #define range_bits(x, n, start) (((x) >> (start)) & IBM(n))
+#define place_bits(x, y, val) ((IBM((x)-(y)) & ((uint32_t)val)) << y) 
 
-uint32_t m_enc_dsp_block_type_a_instr(int opcode, int src_a, int src_b, int src_c, int dest,
-										 int a_reg, int b_reg, int c_reg, int dest_reg, int shift, int sat)
+uint32_t m_enc_dsp_block_type_a_instr(int opcode, int src_a, int a_reg, int src_b, int b_reg, int src_c, int c_reg, int dest, int shift, int sat)
 {
-	return ((uint32_t)opcode)
-		| ((uint32_t)(src_a & IBM(BLOCK_REG_ADDR_WIDTH)) 	<< (0 * BLOCK_REG_ADDR_WIDTH + BLOCK_INSTR_OP_WIDTH))
-		| ((uint32_t)(src_b & IBM(BLOCK_REG_ADDR_WIDTH)) 	<< (1 * BLOCK_REG_ADDR_WIDTH + BLOCK_INSTR_OP_WIDTH))
-		| ((uint32_t)(src_c & IBM(BLOCK_REG_ADDR_WIDTH)) 	<< (2 * BLOCK_REG_ADDR_WIDTH + BLOCK_INSTR_OP_WIDTH))
-		| ((uint32_t)(dest  & IBM(BLOCK_REG_ADDR_WIDTH))  	<< (3 * BLOCK_REG_ADDR_WIDTH + BLOCK_INSTR_OP_WIDTH))
-		| ((uint32_t)!!a_reg 	<< (BLOCK_INSTR_OP_TYPE_START + 0))
-		| ((uint32_t)!!b_reg 	<< (BLOCK_INSTR_OP_TYPE_START + 1))
-		| ((uint32_t)!!c_reg 	<< (BLOCK_INSTR_OP_TYPE_START + 2))
-		| ((uint32_t)!!dest_reg	<< (BLOCK_INSTR_OP_TYPE_START + 3))
-		| ((uint32_t)(shift & IBM(SHIFT_WIDTH)) << (BLOCK_INSTR_PMS_START))
-		| ((uint32_t)!!sat   << (BLOCK_INSTR_OP_TYPE_START + 4));
+	return place_bits( 4,  0, opcode)
+		 | place_bits( 9,  6, src_a)  | ((!!a_reg) << 10)
+		 | place_bits(14, 11, src_b)  | ((!!b_reg) << 15)
+		 | place_bits(19, 16, src_c)  | ((!!c_reg) << 20)
+		 | place_bits(24, 21, dest)
+		 | place_bits(29, 25, shift)  | ((!!sat) << 30);
 }
 
-uint32_t m_enc_dsp_block_type_b_instr(int opcode, int src_a, int src_b, int dest, int res_addr)
+
+uint32_t m_enc_dsp_block_type_b_instr(int opcode, int src_a, int src_a_reg, int src_b, int src_b_reg, int dest, int res_addr)
 {
-	return ((uint32_t)opcode)
-		| ((uint32_t)(src_a & IBM(BLOCK_REG_ADDR_WIDTH)) 	<< (0 * BLOCK_REG_ADDR_WIDTH + BLOCK_INSTR_OP_WIDTH))
-		| ((uint32_t)(src_b & IBM(BLOCK_REG_ADDR_WIDTH)) 	<< (1 * BLOCK_REG_ADDR_WIDTH + BLOCK_INSTR_OP_WIDTH))
-		| ((uint32_t)(dest  & IBM(BLOCK_REG_ADDR_WIDTH))  	<< (2 * BLOCK_REG_ADDR_WIDTH + BLOCK_INSTR_OP_WIDTH))
-		| ((uint32_t)(res_addr & IBM(BLOCK_RES_ADDR_WIDTH)) << (3 * BLOCK_REG_ADDR_WIDTH + BLOCK_INSTR_OP_WIDTH));
+	return (place_bits( 4,  0, opcode) | (1 << 5)
+		 | place_bits( 9,  6, src_a) | ((!!src_a_reg) << 10)
+		 | place_bits(14, 11, src_b) | ((!!src_b_reg) << 15)
+		 | place_bits(19, 16, dest)
+		 | place_bits(27, 20, res_addr));
 }
 
-uint32_t m_enc_dsp_block_instr(int opcode, int src_a, int src_b, int src_c, int dest, int a_reg, int b_reg, int c_reg, int dest_reg, int shift, int sat, int res_addr)
+uint32_t m_enc_dsp_block_instr(int opcode, int src_a, int a_reg, int src_b, int b_reg, int src_c, int c_reg, int dest,  int shift, int sat, int res_addr)
 {
-	if (opcode == BLOCK_INSTR_DELAY
+	if (opcode == BLOCK_INSTR_DELAY_READ
+	 || opcode == BLOCK_INSTR_DELAY_WRITE
 	 || opcode == BLOCK_INSTR_SAVE
-	 || opcode == BLOCK_INSTR_LOAD)
-		return m_enc_dsp_block_type_b_instr(opcode, src_a, src_b, dest, res_addr);
+	 || opcode == BLOCK_INSTR_LOAD
+	 || opcode == BLOCK_INSTR_LUT)
+		return m_enc_dsp_block_type_b_instr(opcode, src_a, a_reg, src_b, b_reg, dest, res_addr);
 	
-	return m_enc_dsp_block_type_a_instr(opcode, src_a, src_b, src_c, dest, a_reg, b_reg, c_reg, dest_reg, shift, sat);
+	return m_enc_dsp_block_type_a_instr(opcode, src_a, a_reg, src_b, b_reg, src_c, c_reg, dest,shift, sat);
 }
+
 
 int m_fpga_block_opcode_format(int opcode)
 {
-	return (opcode == BLOCK_INSTR_DELAY
+	return (opcode == BLOCK_INSTR_DELAY_READ
+		 || opcode == BLOCK_INSTR_DELAY_WRITE
 		 || opcode == BLOCK_INSTR_SAVE
-		 || opcode == BLOCK_INSTR_LOAD) ? INSTR_FORMAT_B : INSTR_FORMAT_A;
+		 || opcode == BLOCK_INSTR_LOAD
+		 || opcode == BLOCK_INSTR_LUT) ? INSTR_FORMAT_B : INSTR_FORMAT_A;
 }
+
 
 int m_dsp_block_instr_format(m_dsp_block_instr instr)
 {
@@ -74,70 +76,74 @@ uint32_t m_encode_dsp_block_instr(m_dsp_block_instr instr)
 	{
 		return m_enc_dsp_block_type_b_instr(
 			instr.opcode,
-			instr.src_a,
-			instr.src_b,
-			instr.dest,
-			instr.res_addr);
+			instr.src_a, instr.src_a_reg,
+			instr.src_b, instr.src_b_reg,
+			instr.dest,  instr.res_addr);
 	}
 	else
 	{
 		return m_enc_dsp_block_type_a_instr(instr.opcode,
-			instr.src_a, 	 instr.src_b, 	  instr.src_c, 	   instr.dest,
-			instr.src_a_reg, instr.src_b_reg, instr.src_c_reg, instr.dest_reg,
-			instr.shift, instr.sat);
+			instr.src_a, 	 instr.src_a_reg,
+			instr.src_b, 	 instr.src_b_reg, 
+			instr.src_c, 	 instr.src_c_reg,
+			instr.dest, instr.shift, instr.sat);
 	}
 }
 
-m_dsp_block_instr m_dsp_block_instr_type_a_str(int opcode, int src_a, int src_b, int src_c, int dest, int a_reg, int b_reg, int c_reg, int dest_reg, int shift, int sat)
+m_dsp_block_instr m_dsp_block_instr_type_a_str(int opcode, int src_a, int a_reg, int src_b, int b_reg, int src_c, int c_reg, int dest, int shift, int sat)
 {
-	return (m_dsp_block_instr){opcode, src_a, src_b, src_c, dest, a_reg, b_reg, c_reg, dest_reg, shift, sat};
+	return (m_dsp_block_instr){opcode, src_a, a_reg, src_b, b_reg, src_c, c_reg, dest, shift, sat};
 }
 
-m_dsp_block_instr m_dsp_block_instr_type_b_str(int opcode, int src_a, int src_b, int dest, int res_addr)
+m_dsp_block_instr m_dsp_block_instr_type_b_str(int opcode, int src_a, int a_reg, int src_b, int b_reg, int dest, int res_addr)
 {
-	return (m_dsp_block_instr){opcode, src_a, src_b, 0, dest, 0, 0, 0, 0, 0, 0, res_addr};
+	return (m_dsp_block_instr){opcode, src_a, a_reg, src_b, b_reg, 0, 0, dest, 0, 0, res_addr};
 }
 
 m_dsp_block_instr m_decode_dsp_block_instr(uint32_t code)
 {
 	m_dsp_block_instr result;
 	
-	result.opcode = range_bits(code, BLOCK_INSTR_OP_WIDTH, 0);
+	printf("\nDecoding %s\n", binary_print_32(code));
 	
-	result.src_a = range_bits(code, BLOCK_REG_ADDR_WIDTH, 0 * BLOCK_REG_ADDR_WIDTH + BLOCK_INSTR_OP_WIDTH);
-	result.src_b = range_bits(code, BLOCK_REG_ADDR_WIDTH, 1 * BLOCK_REG_ADDR_WIDTH + BLOCK_INSTR_OP_WIDTH);
+	result.opcode = range_bits(code, 5, 0);
 	
-	switch (m_dsp_block_instr_format(result))
+	printf("opcode: %s\n", binary_print_8(result.opcode));
+	
+	int format = !!(code & (1 << 5));
+	
+	
+	printf("format: %d\n", format);
+	
+	result.src_a 	 = range_bits(code, 4, 6);
+	result.src_a_reg = !!(code & (1 << 10));
+	
+	printf("src_a: %s\n", binary_print_8(result.src_a));
+	
+	result.src_b 	 = range_bits(code, 4, 11);
+	result.src_b_reg = !!(code & (1 << 15));
+	
+	if (format)
 	{
-		case INSTR_FORMAT_A:
-			result.src_c = range_bits(code, BLOCK_REG_ADDR_WIDTH, 2 * BLOCK_REG_ADDR_WIDTH + BLOCK_INSTR_OP_WIDTH);
-			result.dest  = range_bits(code, BLOCK_REG_ADDR_WIDTH, 3 * BLOCK_REG_ADDR_WIDTH + BLOCK_INSTR_OP_WIDTH);
-			
-			result.src_a_reg = range_bits(code, 1, BLOCK_INSTR_OP_TYPE_START + 0);
-			result.src_b_reg = range_bits(code, 1, BLOCK_INSTR_OP_TYPE_START + 1);
-			result.src_c_reg = range_bits(code, 1, BLOCK_INSTR_OP_TYPE_START + 2);
-			result.dest_reg  = range_bits(code, 1, BLOCK_INSTR_OP_TYPE_START + 3);
-			
-			result.shift = range_bits(code, 4, BLOCK_INSTR_PMS_START);
-			
-			result.sat = range_bits(code, 1, BLOCK_INSTR_OP_TYPE_START + 4);
-			break;
+		result.src_c = 0;
+		result.src_c_reg = 0;
 		
-		case INSTR_FORMAT_B:
-			result.dest  = range_bits(code, BLOCK_REG_ADDR_WIDTH, 2 * BLOCK_REG_ADDR_WIDTH + BLOCK_INSTR_OP_WIDTH);
-			result.src_c = 0;
-			
-			result.src_a_reg = 0;
-			result.src_b_reg = 0;
-			result.src_c_reg = 0;
-			result.dest_reg  = 0;
-			
-			result.shift = 0;
-			
-			result.sat = 0;
-			
-			result.res_addr = range_bits(code, BLOCK_RES_ADDR_WIDTH, 3 * BLOCK_REG_ADDR_WIDTH + BLOCK_INSTR_OP_WIDTH);
-			break;
+		result.dest = range_bits(code, 4, 16);
+		result.shift = 0;
+		result.sat = 0;
+		
+		result.res_addr = range_bits(code, 8, 20);
+	}
+	else
+	{
+		result.src_c 	 = range_bits(code, 4, 16);
+		result.src_c_reg = !!(code & (1 << 20));
+		
+		result.dest = range_bits(code, 4, 21);
+		result.shift = range_bits(code, 5, 25);
+		result.sat = !!(code & (1 << 30));
+		
+		result.res_addr = 0;
 	}
 
     return result;
@@ -192,11 +198,6 @@ int m_fpga_send_byte(uint8_t byte)
 	return m_fpga_txrx(&byte, NULL, 1);
 }
 
-int m_fpga_send_batch(m_fpga_transfer_batch seq)
-{
-	return m_fpga_txrx(seq.buf, NULL, seq.len);
-}
-
 m_fpga_transfer_batch m_new_fpga_transfer_batch()
 {
 	m_fpga_transfer_batch seq;
@@ -206,6 +207,11 @@ m_fpga_transfer_batch m_new_fpga_transfer_batch()
 	seq.buf_len = (int)(sizeof(uint32_t) * N_BLOCKS);
 	
 	return seq;
+}
+
+void m_free_fpga_transfer_batch(m_fpga_transfer_batch batch)
+{
+	if (batch.buf) m_free(batch.buf);
 }
 
 int m_fpga_batch_append(m_fpga_transfer_batch *seq, uint8_t byte)
@@ -229,6 +235,49 @@ int m_fpga_batch_append(m_fpga_transfer_batch *seq, uint8_t byte)
 	return NO_ERROR;
 }
 
+int m_fpga_batch_append_32(m_fpga_transfer_batch *seq, uint32_t x)
+{
+	uint8_t bytes[4];
+	
+	bytes[0] = range_bits(x, 8, 24);
+	bytes[1] = range_bits(x, 8, 16);
+	bytes[2] = range_bits(x, 8,  8);
+	bytes[3] = range_bits(x, 8,  0);
+	
+	int ret_val;
+	
+	if ((ret_val = m_fpga_batch_append(seq, bytes[0])) != NO_ERROR)
+		return ret_val;
+	
+	if ((ret_val = m_fpga_batch_append(seq, bytes[1])) != NO_ERROR)
+		return ret_val;
+	
+	if ((ret_val = m_fpga_batch_append(seq, bytes[2])) != NO_ERROR)
+		return ret_val;
+	
+	if ((ret_val = m_fpga_batch_append(seq, bytes[3])) != NO_ERROR)
+		return ret_val;
+	
+	return ret_val;
+}
+
+int m_fpga_batch_append_16(m_fpga_transfer_batch *seq, uint16_t x)
+{
+	uint8_t bytes[2];
+	
+	bytes[0] = range_bits(x, 8,  8);
+	bytes[1] = range_bits(x, 8,  0);
+	
+	int ret_val;
+	
+	if ((ret_val = m_fpga_batch_append(seq, bytes[0])) != NO_ERROR)
+		return ret_val;
+	
+	if ((ret_val = m_fpga_batch_append(seq, bytes[1])) != NO_ERROR)
+		return ret_val;
+	
+	return ret_val;
+}
 
 int m_fpga_batch_concat(m_fpga_transfer_batch *seq, m_fpga_transfer_batch *seq2)
 {
@@ -285,7 +334,8 @@ char *m_dsp_block_opcode_to_string(uint32_t opcode)
 		case BLOCK_INSTR_ABS: return (char*)"BLOCK_INSTR_ABS";
 		case BLOCK_INSTR_LUT: return (char*)"BLOCK_INSTR_LUT";
 		case BLOCK_INSTR_ENVD: return (char*)"BLOCK_INSTR_ENVD";
-		case BLOCK_INSTR_DELAY: return (char*)"BLOCK_INSTR_DELAY";
+		case BLOCK_INSTR_DELAY_READ: return (char*)"BLOCK_INSTR_DELAY_READ";
+		case BLOCK_INSTR_DELAY_WRITE: return (char*)"BLOCK_INSTR_DELAY_WRITE";
 		case BLOCK_INSTR_SAVE: return (char*)"BLOCK_INSTR_SAVE";
 		case BLOCK_INSTR_LOAD: return (char*)"BLOCK_INSTR_LOAD";
 		case BLOCK_INSTR_MOV: return (char*)"BLOCK_INSTR_MOV";
@@ -303,25 +353,27 @@ void print_instruction(m_dsp_block_instr instr)
 	switch (m_dsp_block_instr_format(instr))
 	{
 		case INSTR_FORMAT_A:
-			printf("Instruction = %s(%d, %d, %d, %d, %d, %d, %d, %d, %d, %d)",
+			printf("Instruction = %s(%d, %d, %d, %d, %d, %d, %d, %d, %d)",
 						m_dsp_block_opcode_to_string(instr.opcode),
 						instr.src_a,
-						instr.src_b,
-						instr.src_c,
-						instr.dest,
 						instr.src_a_reg,
+						instr.src_b,
 						instr.src_b_reg,
+						instr.src_c,
 						instr.src_c_reg,
-						instr.dest_reg,
+						instr.dest,
+						
 						instr.shift,
 						instr.sat);
 			break;
 		
 		case INSTR_FORMAT_B:
-			printf("Instruction = %s(%d, %d, %d, 0x%04x)",
+			printf("Instruction = %s(%d, %d, %d, %d, %d, 0x%04x)",
 						m_dsp_block_opcode_to_string(instr.opcode),
 							instr.src_a,
+							instr.src_a_reg,
 							instr.src_b,
+							instr.src_b_reg,
 							instr.dest,
 							instr.res_addr);
 			break;
@@ -364,7 +416,7 @@ int m_fpga_batch_print(m_fpga_transfer_batch seq)
 	{
 		byte = seq.buf[i];
 		
-		printf("\tByte %s%d: 0x%04x. ", (n > 9 && i < 10) ? " " : "", i, byte);
+		printf("\tByte %s%d: 0x%02x. ", (n > 9 && i < 10) ? " " : "", i, byte);
 		
 		switch (state)
 		{
@@ -390,6 +442,10 @@ int m_fpga_batch_print(m_fpga_transfer_batch seq)
 
 					case COMMAND_UPDATE_BLOCK_REG:
 						printf("Command UPDATE_BLOCK_REG");
+						state = 1;
+						ret_state = 3;
+						value = 0;
+						ctr = 0;
 						break;
 
 					case COMMAND_ALLOC_SRAM_DELAY:
@@ -590,6 +646,22 @@ void load_biquad(int base_block,
 void m_fpga_comms_task(void *param)
 {
 	m_fpga_comms_init();
+	
+	vTaskDelay(pdMS_TO_TICKS(2000));
+	
+	printf("try...\n");
+	m_fpga_send_byte(COMMAND_ALLOC_SRAM_DELAY);
+	m_fpga_send_byte((4096 & 0xFF00) >> 8);
+	m_fpga_send_byte( 0);
+	
+	m_fpga_send_byte(COMMAND_SWAP_PIPELINES);
+	
+	printf("try...\n");
+	m_fpga_send_byte(COMMAND_ALLOC_SRAM_DELAY);
+	m_fpga_send_byte((4096) >> 8);
+	m_fpga_send_byte( 0);
+	
+	m_fpga_send_byte(COMMAND_SWAP_PIPELINES);
 	
 	vTaskDelete(NULL);
 }
