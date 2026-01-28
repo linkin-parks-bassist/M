@@ -50,7 +50,7 @@ int add_param_update(m_parameter_update up)
 
 void print_parameter_update(m_parameter_update up)
 {
-	printf("%d.%d.%d -> %s%.03f", up.id.profile_id, up.id.transformer_id, up.id.parameter_id, (up.target >= 0) ? " " : "", up.target);
+	//printf("%d.%d.%d -> %s%.03f", up.id.profile_id, up.id.transformer_id, up.id.parameter_id, (up.target >= 0) ? " " : "", up.target);
 }
 
 void m_param_update_task(void *arg)
@@ -71,21 +71,21 @@ void m_param_update_task(void *arg)
 	{
 		while ((update_queue_tail + 1) % UPDATE_QUEUE_LENGTH != update_queue_head && xQueueReceive(update_rtos_queue, &current, 0) == pdPASS)
 		{
-			printf("Considering new update ");
+			//printf("Considering new update ");
 			print_parameter_update(current);
 			
 			enqueue = 1;
-			printf(". Check array (%d entries)\n", n_updates);
+			//printf(". Check array (%d entries)\n", n_updates);
 			for (int i = 0; i < n_updates; i++)
 			{
-				printf("array_update[%d] = ", i);
+				//printf("array_update[%d] = ", i);
 				print_parameter_update(current);
-				printf("\n");
+				//printf("\n");
 				if (update_array[i].id.profile_id 		== current.id.profile_id
 				 && update_array[i].id.transformer_id 	== current.id.transformer_id
 				 && update_array[i].id.parameter_id 	== current.id.parameter_id)
 				{
-					printf("This is the same parameter. Update its target\n");
+					//printf("This is the same parameter. Update its target\n");
 					update_array[i].target = current.target;
 					enqueue = 0;
 					break;
@@ -95,18 +95,18 @@ void m_param_update_task(void *arg)
 			if (!enqueue)
 				continue;
 			
-			printf("Check waiting queue (%d entries)\n",
-				((update_queue_tail < update_queue_head) ? update_queue_tail + UPDATE_QUEUE_LENGTH : update_queue_tail) - update_queue_head);
+			//printf("Check waiting queue (%d entries)\n",
+			//	((update_queue_tail < update_queue_head) ? update_queue_tail + UPDATE_QUEUE_LENGTH : update_queue_tail) - update_queue_head);
 			for (int j = update_queue_tail; j != update_queue_head; j = (j - 1) % UPDATE_QUEUE_LENGTH)
 			{
-				printf("array_queue[%d] = ", j);
+				//printf("array_queue[%d] = ", j);
 				print_parameter_update(current);
-				printf("\n");
+				//printf("\n");
 				if (update_queue[j].id.profile_id 		== current.id.profile_id
 				 && update_queue[j].id.transformer_id 	== current.id.transformer_id
 				 && update_queue[j].id.parameter_id 	== current.id.parameter_id)
 				{
-					printf("This is the same parameter. Update its target\n");
+					//printf("This is the same parameter. Update its target\n");
 					update_queue[j].target = current.target;
 					enqueue = 0;
 					break;
@@ -164,7 +164,7 @@ void m_param_update_task(void *arg)
 				diff = -param->max_velocity;
 			
 			//printf("Move parameter %s (%d.%d.%d) by %f from %f to %f, with target %f\n", param->name, param->id.profile_id, param->id.transformer_id, param->id.parameter_id,
-		//		diff, param->value, param->value + diff, update_array[i].target);
+			//	diff, param->value, param->value + diff, update_array[i].target);
 			
 			param->value = param->value + diff;
 		}
@@ -201,13 +201,13 @@ void m_param_update_task(void *arg)
 
 int m_parameter_trigger_update(m_parameter *param, float target)
 {
-	printf("m_parameter_trigger_update, param = %p, target = %f\n", param, target);
+	//printf("m_parameter_trigger_update, param = %p, target = %f\n", param, target);
 	if (!param)
 		return ERR_NULL_PTR;
 	
-	printf("Parameter %s, ID %d.%d.%d. Current value: %f. Update target: %f. Max velocity: %f\n",
-		param->name, param->id.profile_id, param->id.transformer_id, param->id.parameter_id,
-		param->value, target, param->max_velocity);
+	//printf("Parameter %s, ID %d.%d.%d. Current value: %f. Update target: %f. Max velocity: %f\n",
+	//	param->name, param->id.profile_id, param->id.transformer_id, param->id.parameter_id,
+	//	param->value, target, param->max_velocity);
 	
 	m_parameter_update up;
 	up.id = param->id;

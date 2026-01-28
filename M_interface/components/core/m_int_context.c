@@ -55,38 +55,9 @@ int m_context_init_effect_list(m_context *cxt)
 	if (!cxt)
 		return ERR_NULL_PTR;
 	
-	m_effect_desc *amp = new_m_effect_desc("Amplifier");
-	m_parameter *param = new_m_parameter_wni("Gain", "gain", -6.0, -24.0, 24.0);
-	m_effect_desc_add_param(amp, param);
-	
-	m_dsp_block *blk1 = new_m_dsp_block_with_instr(m_dsp_block_instr_type_a_str(BLOCK_INSTR_MUL, 0, 0, 0, 1, 0, 0, 0, 4, 0));
-	m_effect_desc_add_block(amp, blk1);
-	m_effect_desc_add_register_val(amp, 0, 0, 4, "pow 10 (/ gain 20)");
-	
-	cxt->effects = m_effect_desc_pll_append(cxt->effects, amp);
-	
-	printf("cxt->effects = %p\n", cxt->effects);
-	
-	m_effect_desc *eff = new_m_effect_desc("Delay");
-	param = new_m_parameter_wni("Delay", "delay", 4096, 0.0, 0.0);
-	m_effect_desc_add_param(eff, param);
-	param = new_m_parameter_wni("Delay Gain", "delay_gain", -1.0, -30.0, 0.0);
-	m_effect_desc_add_param(eff, param);
-	
-	m_dsp_block *blk = new_m_dsp_block_with_instr(m_dsp_block_instr_type_b_str(BLOCK_INSTR_DELAY_READ, 0, 1, 0, 0, 1, 0));
-	m_effect_desc_add_block(eff, blk);
-	m_effect_desc_add_register_val_literal(eff, 0, 0, 4096);
-	
-	blk = new_m_dsp_block_with_instr(m_dsp_block_instr_type_a_str(BLOCK_INSTR_MAD, 0, 1, 1, 0, 0, 0, 0, 0, 0));
-	m_effect_desc_add_block(eff, blk);
-	m_effect_desc_add_register_val(eff, 1, 0, 0, "pow 10 (/ delay_gain 20)");
-	
-	blk = new_m_dsp_block_with_instr(m_dsp_block_instr_type_b_str(BLOCK_INSTR_DELAY_WRITE, 0, 0, 0, 0, 0, 0));
-	m_effect_desc_add_block(eff, blk);
-	
-	m_effect_desc_add_resource_request(eff, new_fpga_resource_req(M_FPGA_RESOURCE_DDELAY, 4096));
-	
-	cxt->effects = m_effect_desc_pll_append(cxt->effects, eff);
+	cxt->effects = m_effect_desc_pll_append(cxt->effects, create_amplifier_eff_desc());
+	cxt->effects = m_effect_desc_pll_append(cxt->effects, create_delay_eff_desc());
+	cxt->effects = m_effect_desc_pll_append(cxt->effects, create_flanger_eff_desc());
 	
 	return NO_ERROR;
 }
@@ -492,6 +463,7 @@ int set_active_profile(m_profile *profile)
 // tell the sequence about it; it is handled from the caller
 int set_active_profile_from_sequence(m_profile *profile)
 {
+	printf("set_active_profile_from_sequence, profile = %p\n", profile);
 	if (profile)
 		m_profile_set_active(profile);
 	
@@ -504,7 +476,10 @@ int set_active_profile_from_sequence(m_profile *profile)
 	
 	uint16_t id = profile ? profile->id : 0;
 	
-	int ret_val = queue_msg_to_teensy(create_m_message(M_MESSAGE_SWITCH_PROFILE, "s", id));
+	int ret_val = NO_ERROR;
+	#ifdef USE_TEENSY
+	ret_val = queue_msg_to_teensy(create_m_message(M_MESSAGE_SWITCH_PROFILE, "s", id));
+	#endif
 	
 	return ret_val;
 }

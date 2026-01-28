@@ -246,7 +246,7 @@ int m_sequence_advance(m_int_sequence *sequence)
 	if (!sequence)
 		return ERR_NULL_PTR;
 	
-	printf("advancing sequence\n");
+	printf("advancing sequence. sequence = %p\n", sequence);
 	
 	if (!sequence->profiles)
 	{
@@ -254,11 +254,15 @@ int m_sequence_advance(m_int_sequence *sequence)
 		return ERR_BAD_ARGS;
 	}
 	
+	printf("Sequence nonempty\n");
+	
 	if (!sequence->active || !sequence->position)
 	{
 		printf("Error: sequence not active\n");
 		return ERR_BAD_ARGS;
 	}
+	
+	printf("Sequence active. Position: %p\n", sequence->position);
 	
 	if (!sequence->position->next)
 	{
@@ -266,11 +270,14 @@ int m_sequence_advance(m_int_sequence *sequence)
 		return NO_ERROR;
 	}
 	
+	printf("sequence->position->next = %p\n", sequence->position->next);
+	
 	sequence->position = sequence->position->next;
 	
-	set_active_profile_from_sequence(sequence->position->data);
+	printf("New sequence->position: %p. sequence->position->data: %p\n", 
+		sequence->position, (sequence->position) ? sequence->position->data : NULL);
 	
-	return NO_ERROR;
+	return set_active_profile_from_sequence(sequence->position->data);
 }
 
 int m_sequence_stop(m_int_sequence *sequence)

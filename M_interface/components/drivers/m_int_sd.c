@@ -12,11 +12,7 @@
 
 static const char *TAG = "m_int_sd.c";
 
-#include "m_alloc.h"
-#include "m_linked_list.h"
-
-#include "m_error_codes.h"
-#include "m_int_sd.h"
+#include "m_int.h"
 
 IMPLEMENT_LINKED_PTR_LIST(char);
 

@@ -121,4 +121,8 @@ int m_fpga_transfer_batch_append_effect(
 		m_fpga_transfer_batch *batch
 	);
 
+m_effect_desc *create_amplifier_eff_desc();
+m_effect_desc *create_delay_eff_desc();
+m_effect_desc *create_flanger_eff_desc();
+
 #endif

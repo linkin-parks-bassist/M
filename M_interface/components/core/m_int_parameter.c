@@ -1,6 +1,6 @@
 #include "m_int.h"
 
-#define DEFAULT_MAX_VELOCITY 1.0
+#define DEFAULT_MAX_VELOCITY 0.01
 
 IMPLEMENT_LINKED_PTR_LIST(m_parameter);
 IMPLEMENT_LINKED_PTR_LIST(m_setting);

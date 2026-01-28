@@ -18,53 +18,24 @@ spi_device_handle_t spi_handle;
 
 QueueHandle_t m_fpga_send_queue;
 
+// IBM = "initial bit mask"; 0b000..0111...1 with "x" 1s
 #define IBM(x) ((1u << (x)) - 1)
+// Extracts n bits, starting at x, and shifted to the start 
 #define range_bits(x, n, start) (((x) >> (start)) & IBM(n))
-#define place_bits(x, y, val) ((IBM((x)-(y)) & ((uint32_t)val)) << y) 
-
-uint32_t m_enc_dsp_block_type_a_instr(int opcode, int src_a, int a_reg, int src_b, int b_reg, int src_c, int c_reg, int dest, int shift, int sat)
-{
-	return place_bits( 4,  0, opcode)
-		 | place_bits( 9,  6, src_a)  | ((!!a_reg) << 10)
-		 | place_bits(14, 11, src_b)  | ((!!b_reg) << 15)
-		 | place_bits(19, 16, src_c)  | ((!!c_reg) << 20)
-		 | place_bits(24, 21, dest)
-		 | place_bits(29, 25, shift)  | ((!!sat) << 30);
-}
-
-
-uint32_t m_enc_dsp_block_type_b_instr(int opcode, int src_a, int src_a_reg, int src_b, int src_b_reg, int dest, int res_addr)
-{
-	return (place_bits( 4,  0, opcode) | (1 << 5)
-		 | place_bits( 9,  6, src_a) | ((!!src_a_reg) << 10)
-		 | place_bits(14, 11, src_b) | ((!!src_b_reg) << 15)
-		 | place_bits(19, 16, dest)
-		 | place_bits(27, 20, res_addr));
-}
-
-uint32_t m_enc_dsp_block_instr(int opcode, int src_a, int a_reg, int src_b, int b_reg, int src_c, int c_reg, int dest,  int shift, int sat, int res_addr)
-{
-	if (opcode == BLOCK_INSTR_DELAY_READ
-	 || opcode == BLOCK_INSTR_DELAY_WRITE
-	 || opcode == BLOCK_INSTR_SAVE
-	 || opcode == BLOCK_INSTR_LOAD
-	 || opcode == BLOCK_INSTR_LUT)
-		return m_enc_dsp_block_type_b_instr(opcode, src_a, a_reg, src_b, b_reg, dest, res_addr);
-	
-	return m_enc_dsp_block_type_a_instr(opcode, src_a, a_reg, src_b, b_reg, src_c, c_reg, dest,shift, sat);
-}
-
+// Gives a word with bits y to x being the initial bits of "val"
+#define place_bits(x, y, val) ((IBM((x)-(y)+1) & ((uint32_t)val)) << y) 
 
 int m_fpga_block_opcode_format(int opcode)
 {
 	return (opcode == BLOCK_INSTR_DELAY_READ
 		 || opcode == BLOCK_INSTR_DELAY_WRITE
+		 || opcode == BLOCK_INSTR_FRAC_DELAY
 		 || opcode == BLOCK_INSTR_SAVE
 		 || opcode == BLOCK_INSTR_LOAD
+		 || opcode == BLOCK_INSTR_LOAD_ACC
+		 || opcode == BLOCK_INSTR_SAVE_ACC
 		 || opcode == BLOCK_INSTR_LUT) ? INSTR_FORMAT_B : INSTR_FORMAT_A;
 }
-
-
 int m_dsp_block_instr_format(m_dsp_block_instr instr)
 {
 	return m_fpga_block_opcode_format(instr.opcode);
@@ -74,54 +45,296 @@ uint32_t m_encode_dsp_block_instr(m_dsp_block_instr instr)
 {
 	if (m_fpga_block_opcode_format(instr.opcode) == INSTR_FORMAT_B)
 	{
-		return m_enc_dsp_block_type_b_instr(
-			instr.opcode,
-			instr.src_a, instr.src_a_reg,
-			instr.src_b, instr.src_b_reg,
-			instr.dest,  instr.res_addr);
+		return place_bits(5,  0, instr.opcode) | (1 << 5)
+		 | place_bits( 9,  6, instr.src_a) | ((!!instr.src_a_reg) << 10)
+		 | place_bits(14, 11, instr.src_b) | ((!!instr.src_b_reg) << 15)
+		 | place_bits(19, 16, instr.dest)
+		 | place_bits(27, 20, instr.res_addr);
 	}
 	else
 	{
-		return m_enc_dsp_block_type_a_instr(instr.opcode,
-			instr.src_a, 	 instr.src_a_reg,
-			instr.src_b, 	 instr.src_b_reg, 
-			instr.src_c, 	 instr.src_c_reg,
-			instr.dest, instr.shift, instr.sat);
+		return place_bits( 5,  0, instr.opcode)
+		 | place_bits( 9,  6, instr.src_a) | ((!!instr.src_a_reg) << 10)
+		 | place_bits(14, 11, instr.src_b) | ((!!instr.src_b_reg) << 15)
+		 | place_bits(19, 16, instr.src_c) | ((!!instr.src_c_reg) << 20)
+		 | place_bits(24, 21, instr.dest)
+		 | place_bits(29, 25, instr.shift) | ((!!instr.sat) << 30) | ((!!instr.no_shift) << 31);
 	}
 }
 
-m_dsp_block_instr m_dsp_block_instr_type_a_str(int opcode, int src_a, int a_reg, int src_b, int b_reg, int src_c, int c_reg, int dest, int shift, int sat)
+m_dsp_block_instr m_dsp_block_instr_type_a_str(int opcode, int src_a, int src_a_reg, int src_b, int src_b_reg, int src_c, int src_c_reg, int dest, int shift, int sat)
 {
-	return (m_dsp_block_instr){opcode, src_a, a_reg, src_b, b_reg, src_c, c_reg, dest, shift, sat};
+	m_dsp_block_instr res;
+	
+	res.opcode = opcode;
+	res.src_a = src_a;
+	res.src_a_reg = src_a_reg;
+	res.src_b = src_b;
+	res.src_b_reg = src_b_reg;
+	res.src_c = src_c;
+	res.src_c_reg = src_c_reg;
+	res.dest = dest;
+	
+	
+	res.no_shift = (shift == NO_SHIFT);
+	res.shift = (shift == NO_SHIFT) ? 0 : shift;
+	res.sat = sat;
+	
+	res.res_addr = 0;
+	
+	return res;
 }
 
-m_dsp_block_instr m_dsp_block_instr_type_b_str(int opcode, int src_a, int a_reg, int src_b, int b_reg, int dest, int res_addr)
+m_dsp_block_instr m_dsp_block_instr_type_b_str(int opcode, int src_a, int src_a_reg, int src_b, int src_b_reg, int dest, int res_addr)
 {
-	return (m_dsp_block_instr){opcode, src_a, a_reg, src_b, b_reg, 0, 0, dest, 0, 0, res_addr};
+	m_dsp_block_instr res;
+	
+	res.opcode = opcode;
+	res.src_a = src_a;
+	res.src_a_reg = src_a_reg;
+	res.src_b = src_b;
+	res.src_b_reg = src_b_reg;
+	res.src_c = 0;
+	res.src_c_reg = 0;
+	res.dest = dest;
+	
+	res.no_shift = 0;
+	res.shift = 0;
+	res.sat = 0;
+	
+	res.res_addr = res_addr;
+	
+	return res;
 }
+
+m_dsp_block_instr m_dsp_block_instr_nop()
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_NOP, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_add(int src_a, int src_a_reg, int src_b, int src_b_reg, int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_ADD, src_a, src_a_reg, src_b, src_b_reg, 0, 0, dest, 0, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_add_unsat(int src_a, int src_a_reg, int src_b, int src_b_reg, int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_ADD, src_a, src_a_reg, src_b, src_b_reg, 0, 0, dest, 0, 1);
+}
+
+m_dsp_block_instr m_dsp_block_instr_sub(int src_a, int src_a_reg, int src_b, int src_b_reg, int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_SUB, src_a, src_a_reg, src_b, src_b_reg, 0, 0, dest, 0, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_sub_unsat(int src_a, int src_a_reg, int src_b, int src_b_reg, int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_SUB, src_a, src_a_reg, src_b, src_b_reg, 0, 0, dest, 0, 1);
+}
+
+m_dsp_block_instr m_dsp_block_instr_lsh(int src_a, int src_a_reg, int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_LSH, src_a, src_a_reg, 0, 0, 0, 0, dest, 0, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_rsh(int src_a, int src_a_reg, int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_RSH, src_a, src_a_reg, 0, 0, 0, 0, dest, 0, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_arsh(int src_a, int src_a_reg, int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_ARSH, src_a, src_a_reg, 0, 0, 0, 0, dest, 0, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_lsh4(int src_a, int src_a_reg, int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_LSH, src_a, src_a_reg, 4, 0, 0, 0, dest, 0, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_rsh4(int src_a, int src_a_reg, int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_RSH, src_a, src_a_reg, 4, 0, 0, 0, dest, 0, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_arsh4(int src_a, int src_a_reg, int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_ARSH, src_a, src_a_reg, 4, 0, 0, 0, dest, 0, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_lsh8(int src_a, int src_a_reg, int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_LSH, src_a, src_a_reg, 8, 0, 0, 0, dest, 0, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_rsh8(int src_a, int src_a_reg, int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_RSH, src_a, src_a_reg, 8, 0, 0, 0, dest, 0, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_arsh8(int src_a, int src_a_reg, int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_ARSH, src_a, src_a_reg, 8, 0, 0, 0, dest, 0, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_mul(int src_a, int src_a_reg, int src_b, int src_b_reg, int dest, int shift)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MUL, src_a, src_a_reg, src_b, src_b_reg, 0, 0, dest, shift, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_mul_unsat(int src_a, int src_a_reg, int src_b, int src_b_reg, int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MUL, src_a, src_a_reg, src_b, src_b_reg, 0, 0, dest, 0, 1);
+}
+
+m_dsp_block_instr m_dsp_block_instr_mul_noshift(int src_a, int src_a_reg, int src_b, int src_b_reg, int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MUL, src_a, src_a_reg, src_b, src_b_reg, 0, 0, dest, NO_SHIFT, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_mul_unsat_noshift(int src_a, int src_a_reg, int src_b, int src_b_reg, int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MUL, src_a, src_a_reg, src_b, src_b_reg, 0, 0, dest, NO_SHIFT, 1);
+}
+
+m_dsp_block_instr m_dsp_block_instr_madd(int src_a, int src_a_reg, int src_b, int src_b_reg, int src_c, int src_c_reg, int dest, int shift)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MADD, src_a, src_a_reg, src_b, src_b_reg, src_c, src_c_reg, dest, shift, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_madd_noshift(int src_a, int src_a_reg, int src_b, int src_b_reg, int src_c, int src_c_reg, int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MADD, src_a, src_a_reg, src_b, src_b_reg, src_c, src_c_reg, dest, NO_SHIFT, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_madd_unsat(int src_a, int src_a_reg, int src_b, int src_b_reg, int src_c, int src_c_reg, int dest, int shift)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MADD, src_a, src_a_reg, src_b, src_b_reg, src_c, src_c_reg, dest, shift, 1);
+}
+
+m_dsp_block_instr m_dsp_block_instr_madd_unsat_noshift(int src_a, int src_a_reg, int src_b, int src_b_reg, int src_c, int src_c_reg, int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MADD, src_a, src_a_reg, src_b, src_b_reg, src_c, src_c_reg, dest, NO_SHIFT, 1);
+}
+
+m_dsp_block_instr m_dsp_block_instr_abs(int src_a, int src_a_reg, int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_ABS, src_a, src_a_reg, 0, 0, 0, 0, dest, 0, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_lut(int src_a, int src_a_reg, int lut, int dest)
+{
+	return m_dsp_block_instr_type_b_str(BLOCK_INSTR_LUT, src_a, src_a_reg, 0, 0, dest, lut);
+}
+
+m_dsp_block_instr m_dsp_block_instr_delay_read(int delay, int delay_reg, int buffer, int dest)
+{
+	return m_dsp_block_instr_type_b_str(BLOCK_INSTR_DELAY_READ, delay, delay_reg, 0, 0, dest, buffer);
+}
+
+m_dsp_block_instr m_dsp_block_instr_delay_write(int src, int src_reg, int buffer)
+{
+	return m_dsp_block_instr_type_b_str(BLOCK_INSTR_DELAY_WRITE, src, src_reg, 0, 0, 0, buffer);
+}
+
+m_dsp_block_instr m_dsp_block_instr_save(int addr, int src, int src_reg)
+{
+	return m_dsp_block_instr_type_b_str(BLOCK_INSTR_SAVE, src, src_reg, 0, 0, 0, addr);
+}
+
+m_dsp_block_instr m_dsp_block_instr_load(int addr, int dest)
+{
+	return m_dsp_block_instr_type_b_str(BLOCK_INSTR_LOAD, 0, 0, 0, 0, dest, addr);
+}
+
+m_dsp_block_instr m_dsp_block_instr_mov(int src, int src_reg, int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MOV, src, src_reg, 0, 0, 0, 0, dest, 0, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_clamp(int src_a, int src_a_reg, int src_b, int src_b_reg, int src_c, int src_c_reg, int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_CLAMP, src_a, src_a_reg, src_b, src_b_reg, src_c, src_c_reg, dest, 0, 0);
+}
+m_dsp_block_instr m_dsp_block_instr_macz(int src_a, int src_a_reg, int src_b, int src_b_reg)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MACZ, src_a, src_a_reg, src_b, src_b_reg, 0, 0, 0, 0, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_macz_noshift(int src_a, int src_a_reg, int src_b, int src_b_reg)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MACZ, src_a, src_a_reg, src_b, src_b_reg, 0, 0, 0, NO_SHIFT, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_mac(int src_a, int src_a_reg, int src_b, int src_b_reg)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MAC, src_a, src_a_reg, src_b, src_b_reg, 0, 0, 0, 0, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_mac_noshift(int src_a, int src_a_reg, int src_b, int src_b_reg)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MAC, src_a, src_a_reg, src_b, src_b_reg, 0, 0, 0, NO_SHIFT, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_mov_acc(int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MOV_ACC, 0, 0, 0, 0, 0, 0, dest, 0, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_linterp(int src_a, int src_a_reg, int src_b, int src_b_reg, int src_c, int src_c_reg, int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_LINTERP, src_a, src_a_reg, src_b, src_b_reg, src_c, src_c_reg, dest, 0, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_frac_delay(int buffer, int dest)
+{
+	return m_dsp_block_instr_type_b_str(BLOCK_INSTR_FRAC_DELAY, 0, 0, 0, 0, dest, buffer);
+}
+
+m_dsp_block_instr m_dsp_block_instr_load_acc(int addr)
+{
+	return m_dsp_block_instr_type_b_str(BLOCK_INSTR_LOAD_ACC, 0, 0, 0, 0, 0, addr);
+}
+
+m_dsp_block_instr m_dsp_block_instr_save_acc(int addr)
+{
+	return m_dsp_block_instr_type_b_str(BLOCK_INSTR_SAVE_ACC, 0, 0, 0, 0, 0, addr);
+}
+
+m_dsp_block_instr m_dsp_block_instr_acc(int src_a, int src_a_reg)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_ACC, src_a, src_a_reg, 0, 0, 0, 0, 0, 0, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_accu(int src_a, int src_a_reg)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_ACC, src_a, src_a_reg, 0, 0, 0, 0, 0, NO_SHIFT, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_clear_acc()
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_CLEAR_ACC, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_mov_uacc(int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MOV_UACC, 0, 0, 0, 0, 0, 0, dest, 0, 0);
+}
+
 
 m_dsp_block_instr m_decode_dsp_block_instr(uint32_t code)
 {
 	m_dsp_block_instr result;
-	
-	printf("\nDecoding %s\n", binary_print_32(code));
-	
 	result.opcode = range_bits(code, 5, 0);
-	
-	printf("opcode: %s\n", binary_print_8(result.opcode));
-	
 	int format = !!(code & (1 << 5));
-	
-	
-	printf("format: %d\n", format);
 	
 	result.src_a 	 = range_bits(code, 4, 6);
 	result.src_a_reg = !!(code & (1 << 10));
 	
-	printf("src_a: %s\n", binary_print_8(result.src_a));
-	
 	result.src_b 	 = range_bits(code, 4, 11);
 	result.src_b_reg = !!(code & (1 << 15));
+	
+	result.no_shift = 0;
 	
 	if (format)
 	{
@@ -142,6 +355,7 @@ m_dsp_block_instr m_decode_dsp_block_instr(uint32_t code)
 		result.dest = range_bits(code, 4, 21);
 		result.shift = range_bits(code, 5, 25);
 		result.sat = !!(code & (1 << 30));
+		result.no_shift = !!(code & (1 << 31));
 		
 		result.res_addr = 0;
 	}
@@ -323,26 +537,33 @@ char *m_dsp_block_opcode_to_string(uint32_t opcode)
 {
 	switch (opcode)
 	{
-		case BLOCK_INSTR_NOP: return (char*)"BLOCK_INSTR_NOP";
-		case BLOCK_INSTR_ADD: return (char*)"BLOCK_INSTR_ADD";
-		case BLOCK_INSTR_SUB: return (char*)"BLOCK_INSTR_SUB";
-		case BLOCK_INSTR_LSH: return (char*)"BLOCK_INSTR_LSH";
-		case BLOCK_INSTR_RSH: return (char*)"BLOCK_INSTR_RSH";
-		case BLOCK_INSTR_ARSH: return (char*)"BLOCK_INSTR_ARSH";
-		case BLOCK_INSTR_MUL: return (char*)"BLOCK_INSTR_MUL";
-		case BLOCK_INSTR_MAD: return (char*)"BLOCK_INSTR_MAD";
-		case BLOCK_INSTR_ABS: return (char*)"BLOCK_INSTR_ABS";
-		case BLOCK_INSTR_LUT: return (char*)"BLOCK_INSTR_LUT";
-		case BLOCK_INSTR_ENVD: return (char*)"BLOCK_INSTR_ENVD";
-		case BLOCK_INSTR_DELAY_READ: return (char*)"BLOCK_INSTR_DELAY_READ";
-		case BLOCK_INSTR_DELAY_WRITE: return (char*)"BLOCK_INSTR_DELAY_WRITE";
-		case BLOCK_INSTR_SAVE: return (char*)"BLOCK_INSTR_SAVE";
-		case BLOCK_INSTR_LOAD: return (char*)"BLOCK_INSTR_LOAD";
-		case BLOCK_INSTR_MOV: return (char*)"BLOCK_INSTR_MOV";
-		case BLOCK_INSTR_CLAMP: return (char*)"BLOCK_INSTR_CLAMP";
-		case BLOCK_INSTR_MACZ: return (char*)"BLOCK_INSTR_MACZ";
-		case BLOCK_INSTR_MAC: return (char*)"BLOCK_INSTR_MAC";
-		case BLOCK_INSTR_MOV_ACC: return (char*)"BLOCK_INSTR_MOV_ACC";
+		case BLOCK_INSTR_NOP: 			return (char*)"BLOCK_INSTR_NOP";
+		case BLOCK_INSTR_ADD: 			return (char*)"BLOCK_INSTR_ADD";
+		case BLOCK_INSTR_SUB: 			return (char*)"BLOCK_INSTR_SUB";
+		case BLOCK_INSTR_LSH: 			return (char*)"BLOCK_INSTR_LSH";
+		case BLOCK_INSTR_RSH: 			return (char*)"BLOCK_INSTR_RSH";
+		case BLOCK_INSTR_ARSH: 			return (char*)"BLOCK_INSTR_ARSH";
+		case BLOCK_INSTR_MUL: 			return (char*)"BLOCK_INSTR_MUL";
+		case BLOCK_INSTR_MADD: 			return (char*)"BLOCK_INSTR_MADD";
+		case BLOCK_INSTR_ABS: 			return (char*)"BLOCK_INSTR_ABS";
+		case BLOCK_INSTR_LUT: 			return (char*)"BLOCK_INSTR_LUT";
+		case BLOCK_INSTR_ENVD: 			return (char*)"BLOCK_INSTR_ENVD";
+		case BLOCK_INSTR_DELAY_READ: 	return (char*)"BLOCK_INSTR_DELAY_READ";
+		case BLOCK_INSTR_DELAY_WRITE: 	return (char*)"BLOCK_INSTR_DELAY_WRITE";
+		case BLOCK_INSTR_SAVE: 			return (char*)"BLOCK_INSTR_SAVE";
+		case BLOCK_INSTR_LOAD: 			return (char*)"BLOCK_INSTR_LOAD";
+		case BLOCK_INSTR_MOV: 			return (char*)"BLOCK_INSTR_MOV";
+		case BLOCK_INSTR_CLAMP: 		return (char*)"BLOCK_INSTR_CLAMP";
+		case BLOCK_INSTR_MACZ: 			return (char*)"BLOCK_INSTR_MACZ";
+		case BLOCK_INSTR_MAC: 			return (char*)"BLOCK_INSTR_MAC";
+		case BLOCK_INSTR_MOV_ACC: 		return (char*)"BLOCK_INSTR_MOV_ACC";
+		case BLOCK_INSTR_LINTERP: 		return (char*)"BLOCK_INSTR_LINTERP";
+		case BLOCK_INSTR_FRAC_DELAY: 	return (char*)"BLOCK_INSTR_FRAC_DELAY";
+		case BLOCK_INSTR_LOAD_ACC: 		return (char*)"BLOCK_INSTR_LOAD_ACC";
+		case BLOCK_INSTR_SAVE_ACC: 		return (char*)"BLOCK_INSTR_SAVE_ACC";
+		case BLOCK_INSTR_ACC: 			return (char*)"BLOCK_INSTR_ACC";
+		case BLOCK_INSTR_CLEAR_ACC:		return (char*)"BLOCK_INSTR_CLEAR_ACC";
+		case BLOCK_INSTR_MOV_UACC:		return (char*)"BLOCK_INSTR_MOV_UACC";
 	}
 	
 	return NULL;
@@ -353,7 +574,7 @@ void print_instruction(m_dsp_block_instr instr)
 	switch (m_dsp_block_instr_format(instr))
 	{
 		case INSTR_FORMAT_A:
-			printf("Instruction = %s(%d, %d, %d, %d, %d, %d, %d, %d, %d)",
+			printf("Instruction = %s(%d, %d, %d, %d, %d, %d, %d %d, %d, %d)",
 						m_dsp_block_opcode_to_string(instr.opcode),
 						instr.src_a,
 						instr.src_a_reg,
@@ -363,6 +584,7 @@ void print_instruction(m_dsp_block_instr instr)
 						instr.src_c_reg,
 						instr.dest,
 						
+						instr.no_shift,
 						instr.shift,
 						instr.sat);
 			break;
@@ -416,7 +638,7 @@ int m_fpga_batch_print(m_fpga_transfer_batch seq)
 	{
 		byte = seq.buf[i];
 		
-		printf("\tByte %s%d: 0x%02x. ", (n > 9 && i < 10) ? " " : "", i, byte);
+		printf("\tByte %s%d: 0x%02X. ", (n > 9 && i < 10) ? " " : "", i, byte);
 		
 		switch (state)
 		{
@@ -450,6 +672,9 @@ int m_fpga_batch_print(m_fpga_transfer_batch seq)
 
 					case COMMAND_ALLOC_SRAM_DELAY:
 						printf("Command ALLOC_SRAM_DELAY");
+						state = 4;
+						value = 0;
+						ctr = 0;
 						break;
 
 					case COMMAND_SWAP_PIPELINES:
@@ -485,6 +710,7 @@ int m_fpga_batch_print(m_fpga_transfer_batch seq)
 					
 					instr_str = m_decode_dsp_block_instr(instruction);
 					
+					printf("Word: %s; ", binary_print_32(instruction));
 					print_instruction(instr_str);
 				}
 				else
@@ -505,7 +731,7 @@ int m_fpga_batch_print(m_fpga_transfer_batch seq)
 					state = 0;
 					
 					value = (value << 8) | byte;
-					printf("Value: %s", binary_print_16(value));
+					printf("Value: %s = %d = %f (in q1.15)", binary_print_16(value), value, (float)value / (powf(2.0, 15)));
 				}
 				else
 				{
@@ -513,7 +739,7 @@ int m_fpga_batch_print(m_fpga_transfer_batch seq)
 					ctr++;
 				}
 				break;
-				
+			
 			default:
 				printf("Unknown :(\n");
 				return 1;
@@ -529,7 +755,7 @@ int m_fpga_batch_print(m_fpga_transfer_batch seq)
 
 int m_fpga_transfer_batch_send(m_fpga_transfer_batch batch)
 {
-	m_fpga_batch_print(batch);
+	//m_fpga_batch_print(batch);
 	
 	return m_fpga_txrx(batch.buf, NULL, batch.len);
 }
@@ -608,22 +834,22 @@ void load_biquad(int base_block,
 	// ch0 = b0*x[n] + b1*x[n-1] = b1*ch2 + ch0
     write_block_register(base_block + 4, 0, float_to_q_nminus1(b1, 1));
     write_block_instr(base_block + 4,
-        BLOCK_INSTR_S(BLOCK_INSTR_MAD, 2, 0, 0, 0, 0, 1, 0, 0, 0, 1));
+        BLOCK_INSTR_S(BLOCK_INSTR_MADD, 2, 0, 0, 0, 0, 1, 0, 0, 0, 1));
 
 	// ch0 = b0*x[n] + b1*x[n-1] + b2*x[n-1] = b2*ch3 + ch0
     write_block_register(base_block + 5, 0, float_to_q_nminus1(b2, 1));
     write_block_instr(base_block + 5,
-        BLOCK_INSTR_S(BLOCK_INSTR_MAD, 3, 0, 0, 0, 0, 1, 0, 0, 0, 1));
+        BLOCK_INSTR_S(BLOCK_INSTR_MADD, 3, 0, 0, 0, 0, 1, 0, 0, 0, 1));
 
 	// ch0 = b0*x[n] + b1*x[n-1] + b2*x[n-1] - a1y[n-1] = -a1*ch4 + ch0
     write_block_register(base_block + 6, 0, float_to_q_nminus1(-a1, 1));
     write_block_instr(base_block + 6,
-        BLOCK_INSTR_S(BLOCK_INSTR_MAD, 4, 0, 0, 0, 0, 1, 0, 0, 0, 1));
+        BLOCK_INSTR_S(BLOCK_INSTR_MADD, 4, 0, 0, 0, 0, 1, 0, 0, 0, 1));
 
 	// ch0 = b0*x[n] + b1*x[n-1] + b2*x[n-1] - a1y[n-1] - a2y[n-2] = -a2*ch5 + ch0
     write_block_register(base_block + 7, 0, float_to_q_nminus1(-a2, 1));
     write_block_instr(base_block + 7,
-        BLOCK_INSTR_S(BLOCK_INSTR_MAD, 5, 0, 0, 0, 0, 1, 0, 0, 0, 1));
+        BLOCK_INSTR_S(BLOCK_INSTR_MADD, 5, 0, 0, 0, 0, 1, 0, 0, 0, 1));
 
 	// clamp to [-1, 1)
 	write_block_instr(base_block + 8,
@@ -738,6 +964,7 @@ int m_fpga_resource_report_integrate(m_fpga_resource_report *cxt, m_fpga_resourc
 	cxt->memory += local->memory;
 	cxt->sdelay += local->sdelay;
 	cxt->ddelay += local->ddelay;
+	cxt->luts   += local->luts;
 	
 	return NO_ERROR;
 }

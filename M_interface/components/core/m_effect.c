@@ -35,8 +35,11 @@ m_dsp_block *new_m_dsp_block_with_instr(m_dsp_block_instr instr)
 
 int m_dsp_block_add_register_val(m_dsp_block *blk, int i, m_dsp_register_val *p)
 {
-	if (!blk || !p || i < 0 || i > N_BLOCKS_REGS)
+	if (!blk || !p)
 		return ERR_NULL_PTR;
+
+	if (i < 0 || i >= N_BLOCKS_REGS)
+		return ERR_BAD_ARGS;
 
 	p->reg = i;
 	
@@ -286,17 +289,20 @@ int m_fpga_transfer_batch_append_block_register_write(m_fpga_transfer_batch *bat
 	if ((ret_val = m_fpga_batch_append(batch, block_no & 0x00FF)) != NO_ERROR) return ret_val;
 	if ((ret_val = m_fpga_batch_append(batch, reg_val->reg)) 	  != NO_ERROR) return ret_val;
 	
-	int16_t s;
+	int16_t s = 0;
 	
-	if (reg_val->format == DSP_REG_FORMAT_LITERAL)
-	{
-		s = reg_val->dq->val.val_int;
-	}
-	else
+	if (reg_val->dq)
 	{
 		float v = m_derived_quantity_compute(reg_val->dq, params);
 		
-		s = float_to_q_nminus1(v, reg_val->format);
+		if (reg_val->format == DSP_REG_FORMAT_LITERAL)
+		{
+			s = (int16_t)v;
+		}
+		else
+		{
+			s = float_to_q_nminus1(v, reg_val->format);
+		}
 	}
 	
 	if ((ret_val = m_fpga_batch_append(batch, (s & 0xFF00) >> 8)) != NO_ERROR) return ret_val;
@@ -328,17 +334,20 @@ int m_fpga_transfer_batch_append_block_register_update(m_fpga_transfer_batch *ba
 	if ((ret_val = m_fpga_batch_append(batch, block_no & 0x00FF)) != NO_ERROR) return ret_val;
 	if ((ret_val = m_fpga_batch_append(batch, reg_val->reg)) 	  != NO_ERROR) return ret_val;
 	
-	int16_t s;
+	int16_t s = 0;
 	
-	if (reg_val->format == DSP_REG_FORMAT_LITERAL)
-	{
-		s = reg_val->dq->val.val_int;
-	}
-	else
+	if (reg_val->dq)
 	{
 		float v = m_derived_quantity_compute(reg_val->dq, params);
 		
-		s = float_to_q_nminus1(v, reg_val->format);
+		if (reg_val->format == DSP_REG_FORMAT_LITERAL)
+		{
+			s = (int16_t)v;
+		}
+		else
+		{
+			s = float_to_q_nminus1(v, reg_val->format);
+		}
 	}
 	
 	if ((ret_val = m_fpga_batch_append(batch, (s & 0xFF00) >> 8)) != NO_ERROR) return ret_val;
@@ -394,6 +403,7 @@ int m_dsp_block_instr_encode_resource_aware(const m_fpga_resource_report *cxt, m
 	local->memory = 0;
 	local->sdelay = 0;
 	local->ddelay = 0;
+	local->luts   = 0;
 	
 	m_dsp_block_instr rectified = blk->instr;
 	
@@ -411,6 +421,14 @@ int m_dsp_block_instr_encode_resource_aware(const m_fpga_resource_report *cxt, m
 			case BLOCK_INSTR_LOAD:
 				rectified.res_addr += cxt->memory;
 				local->memory = blk->instr.res_addr + 1;
+				break;
+			
+			case BLOCK_INSTR_LUT:
+				if (rectified.res_addr >= STOCK_LUTS)
+				{
+					rectified.res_addr += cxt->luts;
+					local->luts = blk->instr.res_addr + 1;
+				}
 				break;
 		}
 	}
@@ -442,6 +460,7 @@ int m_dsp_blocks_encode_resource_aware(const m_fpga_resource_report *cxt, m_fpga
 		report->memory 	= (local.memory > report->memory) ? local.memory : report->memory;
 		report->sdelay 	= (local.sdelay > report->sdelay) ? local.sdelay : report->sdelay;
 		report->ddelay 	= (local.ddelay > report->ddelay) ? local.ddelay : report->ddelay;
+		report->luts 	= (local.luts   > report->luts)   ? local.luts   : report->luts;
 	}
 	
 	return NO_ERROR;
@@ -566,7 +585,7 @@ m_derived_quantity m_derived_quantity_const_float(float v)
 m_derived_quantity m_derived_quantity_const_int(int v)
 {
 	m_derived_quantity result;
-	result.type = M_DERIVED_QUANTITY_CONST_FLT;
+	result.type = M_DERIVED_QUANTITY_CONST_INT;
 	result.val.val_int = v;
 	return result;
 }
@@ -626,7 +645,7 @@ m_derived_quantity *new_m_derived_quantity_from_string_rec(char *str, char **nex
 	
 	char *sub_next = NULL;
 	
-	while (pos < len)
+	while (pos < len + 1)
 	{
 		c = str[pos];
 		
@@ -868,10 +887,8 @@ m_fpga_resource_req *new_fpga_resource_req(int type, int data)
 
 m_effect_desc *new_m_effect_desc(const char *name)
 {
-	printf("Creating effect descriptor...\n");
 	m_effect_desc *result = (m_effect_desc*)m_alloc(sizeof(m_effect_desc));
 	
-	printf("Sucessfully allocated struct\n");
 	if (!result)
 		return NULL;
 	
@@ -882,8 +899,6 @@ m_effect_desc *new_m_effect_desc(const char *name)
 		m_free(result);
 		return NULL;
 	}
-	
-	printf("Sucessfully allocated block array\n");
 	
 	result->block_array_len = 32;
 	result->n_blocks = 0;
@@ -924,8 +939,6 @@ m_effect_desc *new_m_effect_desc(const char *name)
 	
 	result->name = name;
 	
-	printf("Returning %p\n", result);
-	
 	return result;
 }
 
@@ -934,14 +947,18 @@ int m_effect_desc_add_block(m_effect_desc *eff, m_dsp_block *blk)
 	if (!eff || !blk)
 		return ERR_NULL_PTR;
 	
-	if (eff->n_blocks < eff->block_array_len)
+	if (eff->n_blocks >= eff->block_array_len)
 	{
-		eff->blocks[eff->n_blocks++] = blk;
+		m_dsp_block **np = m_realloc(eff->blocks, eff->block_array_len * 2 * sizeof(m_dsp_block*));
+		
+		if (!np)
+			return ERR_ALLOC_FAIL;
+		
+		eff->blocks = np;
+		eff->block_array_len *= 2;
 	}
-	else
-	{
-		return ERR_UNIMPLEMENTED; // dont care at the moment
-	}
+	
+	eff->blocks[eff->n_blocks++] = blk;
 	
 	return NO_ERROR;
 }
@@ -951,16 +968,18 @@ int m_effect_desc_add_param(m_effect_desc *eff, m_parameter *param)
 	if (!eff || !param)
 		return ERR_NULL_PTR;
 	
-	printf("eff->n_params = %d\n", eff->n_params);
+	if (eff->n_params >= eff->param_array_len)
+	{
+		m_parameter **np = m_realloc(eff->params, eff->param_array_len * 2 * sizeof(m_parameter*));
+		
+		if (!np)
+			return ERR_ALLOC_FAIL;
+		
+		eff->params = np;
+		eff->param_array_len *= 2;
+	}
 	
-	if (eff->n_params < eff->param_array_len)
-	{
-		eff->params[eff->n_params++] = param;
-	}
-	else
-	{
-		return ERR_UNIMPLEMENTED; // dont care at the moment
-	}
+	eff->params[eff->n_params++] = param;
 	
 	return NO_ERROR;
 }
@@ -970,14 +989,18 @@ int m_effect_desc_add_resource_request(m_effect_desc *eff, m_fpga_resource_req *
 	if (!eff || !req)
 		return ERR_NULL_PTR;
 	
-	if (eff->n_res_reqs < eff->res_req_array_len)
+	if (eff->n_res_reqs >= eff->res_req_array_len)
 	{
-		eff->res_reqs[eff->n_res_reqs++] = req;
+		m_fpga_resource_req **np = m_realloc(eff->res_reqs, eff->res_req_array_len * 2 * sizeof(m_fpga_resource_req*));
+		
+		if (!np)
+			return ERR_ALLOC_FAIL;
+		
+		eff->res_reqs = np;
+		eff->res_req_array_len *= 2;
 	}
-	else
-	{
-		return ERR_UNIMPLEMENTED; // dont care at the moment
-	}
+	
+	eff->res_reqs[eff->n_res_reqs++] = req;
 	
 	return NO_ERROR;
 }
@@ -1036,246 +1059,91 @@ int m_effect_desc_add_register_val_literal(m_effect_desc *eff, int block_no, int
 	
 	return m_dsp_block_add_register_val(eff->blocks[block_no], reg, bp);
 }
-/*
-int m_effect_desc_add_add_cc(m_effect_desc *eff, int src_a, int src_b, int dest)
+
+m_effect_desc *create_amplifier_eff_desc()
 {
-	if (!eff)
-		return ERR_NULL_PTR;
+	m_effect_desc *amp = new_m_effect_desc("Amplifier");
+	m_parameter *param = new_m_parameter_wni("Gain", "gain", -6.0, -24.0, 24.0);
+	m_effect_desc_add_param(amp, param);
 	
-	m_dsp_block *blk = new_m_dsp_block_with_instr(m_dsp_block_instr_type_a_str(BLOCK_INSTR_ADD, src_a, src_b, 0, dest, 0, 0, 0, 0, 0, 0));
-	m_effect_desc_add_block(eff, blk);
+	m_dsp_block *blk1 = new_m_dsp_block_with_instr(m_dsp_block_instr_type_a_str(BLOCK_INSTR_MUL, 0, 0, 0, 1, 0, 0, 0, 4, 0));
+	m_effect_desc_add_block(amp, blk1);
+	m_effect_desc_add_register_val(amp, 0, 0, 4, "pow 10 (/ gain 20)");
 	
-	return NO_ERROR;
+	return amp;
 }
 
-int m_effect_desc_add_mul_cc(m_effect_desc *eff, int src_a, int src_b, int dest)
+m_effect_desc *create_delay_eff_desc()
 {
-	if (!eff)
-		return ERR_NULL_PTR;
+	m_effect_desc *eff = new_m_effect_desc("Delay");
+	m_parameter *param1 = new_m_parameter_wni("Delay", "delay", 4096, 0.0, 0.0);
+	m_effect_desc_add_param(eff, param1);
+	m_parameter *param2 = new_m_parameter_wni("Delay Gain", "delay_gain", -1.0, -30.0, 0.0);
+	m_effect_desc_add_param(eff, param2);
 	
-	m_dsp_block *blk = new_m_dsp_block_with_instr(m_dsp_block_instr_type_a_str(BLOCK_INSTR_MUL, src_a, src_b, 0, dest, 0, 0, 0, 0, 0, 0));
+	m_dsp_block *blk = new_m_dsp_block_with_instr(m_dsp_block_instr_delay_read(0, 1, 0, 1));
+	m_effect_desc_add_block(eff, blk);
+	m_effect_desc_add_register_val_literal(eff, 0, 0, 8192);
+	
+	blk = new_m_dsp_block_with_instr(m_dsp_block_instr_madd(0, 1, 1, 0, 0, 0, 0, 0));
+	m_effect_desc_add_block(eff, blk);
+	m_effect_desc_add_register_val(eff, 1, 0, 0, "pow 10 (/ delay_gain 20)");
+	
+	blk = new_m_dsp_block_with_instr(m_dsp_block_instr_delay_write(0, 0, 0));
 	m_effect_desc_add_block(eff, blk);
 	
-	return NO_ERROR;
+	m_effect_desc_add_resource_request(eff, new_fpga_resource_req(M_FPGA_RESOURCE_DDELAY, 8192));
+	
+	return eff;
 }
 
-int m_effect_desc_add_const_mul_rc(m_effect_desc *eff, int src_a, float v, int dest)
+m_effect_desc *create_flanger_eff_desc()
 {
-	if (!eff)
-		return ERR_NULL_PTR;
+	m_effect_desc *eff = new_m_effect_desc("Flanger");
+	m_parameter *param1 = new_m_parameter_wni("Center", "center", 5, 0.1, 10.0);
+	param1->units = " ms";
+	m_parameter *param2 = new_m_parameter_wni("Depth", "depth", 100.0, 0.0, 100.0);
+	param2->units = "%";
+	m_parameter *param3 = new_m_parameter_wni("Rate", "rate", 1.0, 0.0, 2.0);
+	param3->units = " Hz";
+	m_parameter *param4 = new_m_parameter_wni("Strength", "strength", 0.8, 0.0, 1.0);
 	
-	if (fabsf(v) > (float)(1 << SHIFT_WIDTH))
-		return 2;
+	m_effect_desc_add_param(eff, param1);
+	m_effect_desc_add_param(eff, param2);
+	m_effect_desc_add_param(eff, param3);
+	m_effect_desc_add_param(eff, param4);
 	
-	float fmt = 1.0;
-	int shift = 0;
+	// Load phase accumulator from mem[0]
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_load_acc(1)));
+	// Add phase accumulator (wrapping)
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_accu(0, 1)));
+	m_effect_desc_add_register_val(eff, 1, 0, DSP_REG_FORMAT_LITERAL, "* rate 6087.0");
+	// Save new phase accumulator
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_save_acc(1)));
+	// Put accumulator on ch0
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mov_uacc(1)));
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_lsh4(1, 0, 1)));
 	
-	while (fabsf(v) > fmt)
-	{
-		fmt *= 2.0;
-		shift++;
-	}
+	// take sin of phase accumulator
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_lut(1, 0, 0, 2)));
 	
-	m_dsp_block *blk = new_m_dsp_block_with_instr(m_dsp_block_instr_type_a_str(BLOCK_INSTR_MUL, src_a, 0, 0, dest, 0, 1, 0, 0, shift, 0));
-	m_dsp_block_add_register_val(blk, 0, new_m_dsp_register_val(0, shift, new_m_derived_quantity_const_float(v)));
-	m_effect_desc_add_block(eff, blk);
+	// multiply sin(phase_acc) by depth (stored as #samples, left shifted 1) into accumulator with no shift
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_macz_noshift(2, 0, 0, 1)));
+	m_effect_desc_add_register_val(eff, 6, 0, DSP_REG_FORMAT_LITERAL, "* * * * 0.001 2 44.1 depth center");
+	// add 
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mac_noshift(0, 1, 1, 1)));
+	m_effect_desc_add_register_val(eff, 7, 0, DSP_REG_FORMAT_LITERAL, "* * 4 44.1 center");
+	m_effect_desc_add_register_val(eff, 7, 1, DSP_REG_FORMAT_LITERAL, "16384");
 	
-	return NO_ERROR;
+	// get fractional delay
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_frac_delay(0, 7)));
+	// write the raw input sample back to the delay buffer
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_delay_write(0, 0, 0)));
+	// mix in fractional delay
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_madd(0, 1, 7, 0, 0, 0, 0, 0)));
+	m_effect_desc_add_register_val(eff, 10, 0, 0, "strength");
+	
+	m_effect_desc_add_resource_request(eff, new_fpga_resource_req(M_FPGA_RESOURCE_DDELAY, 1024));
+	
+	return eff;
 }
-
-int m_effect_desc_add_mad_ccc(m_effect_desc *eff, int src_a, int src_b, int src_c, int dest)
-{
-	if (!eff)
-		return ERR_NULL_PTR;
-	
-	m_dsp_block *blk = new_m_dsp_block_with_instr(m_dsp_block_instr_type_a_str(BLOCK_INSTR_MUL, src_a, src_b, src_c, dest, 0, 0, 0, 0, 0, 0));
-	m_effect_desc_add_block(eff, blk);
-	
-	return NO_ERROR;
-}
-
-int m_effect_desc_add_mad_ccr(m_effect_desc *eff, int src_a, float v, int src_c, int dest)
-{
-	if (!eff)
-		return ERR_NULL_PTR;
-	
-	if (fabsf(v) > (float)(1 << SHIFT_WIDTH))
-		return 2;
-	
-	float fmt = 1.0;
-	int shift = 0;
-	
-	while (fabsf(v) > fmt)
-	{
-		fmt *= 2.0;
-		shift++;
-	}
-	
-	m_dsp_block *blk = new_m_dsp_block_with_instr(m_dsp_block_instr_type_a_str(BLOCK_INSTR_MUL, src_a, 0, src_c, 0, 0, 1, 0, 0, shift, 0));
-	m_dsp_block_add_register_val(blk, 0, new_m_dsp_register_val(0, shift, new_m_derived_quantity_const_float(v)));
-	m_effect_desc_add_block(eff, blk);
-	
-	return NO_ERROR;
-}
-
-int m_effect_desc_add_macz_cc(m_effect_desc *eff, int src_a, int src_b)
-{
-	if (!eff)
-		return ERR_NULL_PTR;
-	
-	m_dsp_block *blk = new_m_dsp_block_with_instr(m_dsp_block_instr_type_a_str(BLOCK_INSTR_MACZ, src_a, src_b, 0, 0, 0, 0, 0, 0, 0, 0));
-	m_effect_desc_add_block(eff, blk);
-	
-	return NO_ERROR;
-}
-
-int m_effect_desc_add_macz_rc(m_effect_desc *eff, int src_a, float v)
-{
-	if (!eff)
-		return ERR_NULL_PTR;
-	
-	if (fabsf(v) > (float)(1 << SHIFT_WIDTH))
-		return 2;
-	
-	float fmt = 1.0;
-	int shift = 0;
-	
-	while (fabsf(v) > fmt)
-	{
-		fmt *= 2.0;
-		shift++;
-	}
-	
-	m_dsp_block *blk = new_m_dsp_block_with_instr(m_dsp_block_instr_type_a_str(BLOCK_INSTR_MACZ, src_a, 0, 0, 0, 0, 1, 0, 0, 0, 0));
-	m_dsp_block_add_register_val(blk, 0, new_m_dsp_register_val(0, shift, new_m_derived_quantity_const_float(v)));
-	m_effect_desc_add_block(eff, blk);
-	
-	return NO_ERROR;
-}
-
-int m_effect_desc_add_mac_cc(m_effect_desc *eff, int src_a, int src_b)
-{
-	if (!eff)
-		return ERR_NULL_PTR;
-	
-	m_dsp_block *blk = new_m_dsp_block_with_instr(m_dsp_block_instr_type_a_str(BLOCK_INSTR_MAC, src_a, src_b, 0, 0, 0, 0, 0, 0, 0, 0));
-	m_effect_desc_add_block(eff, blk);
-	
-	return NO_ERROR;
-}
-
-int m_effect_desc_add_mac_cc_ns(m_effect_desc *eff, int src_a, int src_b)
-{
-	if (!eff)
-		return ERR_NULL_PTR;
-	
-	m_dsp_block *blk = new_m_dsp_block_with_instr(m_dsp_block_instr_type_a_str(BLOCK_INSTR_MAC, src_a, src_b, 0, 0, 0, 0, 0, 0, 0, 1));
-	m_effect_desc_add_block(eff, blk);
-	
-	return NO_ERROR;
-}
-
-int m_effect_desc_add_mac_rc(m_effect_desc *eff, int src_a, float v)
-{
-	if (!eff)
-		return ERR_NULL_PTR;
-	
-	if (fabsf(v) > (float)(1 << SHIFT_WIDTH))
-		return 2;
-	
-	float fmt = 1.0;
-	int shift = 0;
-	
-	while (fabsf(v) > fmt)
-	{
-		fmt *= 2.0;
-		shift++;
-	}
-	
-	m_dsp_block *blk = new_m_dsp_block_with_instr(m_dsp_block_instr_type_a_str(BLOCK_INSTR_MAC, src_a, 0, 0, 0, 0, 1, 0, 0, shift, 0));
-	m_dsp_block_add_register_val(blk, 0, new_m_dsp_register_val(0, shift, new_m_derived_quantity_const_float(v)));
-	m_effect_desc_add_block(eff, blk);
-	
-	return NO_ERROR;
-}
-
-int m_effect_desc_add_mac_rc_ns(m_effect_desc *eff, int src_a, float v)
-{
-	if (!eff)
-		return ERR_NULL_PTR;
-	
-	if (fabsf(v) > (float)(1 << SHIFT_WIDTH))
-		return ERR_BAD_ARGS;
-	
-	float fmt = 1.0;
-	int shift = 0;
-	
-	while (fabsf(v) > fmt)
-	{
-		fmt *= 2.0;
-		shift++;
-	}
-	
-	m_dsp_block *blk = new_m_dsp_block_with_instr(m_dsp_block_instr_type_a_str(BLOCK_INSTR_MAC, src_a, 0, 0, 0, 0, 1, 0, 0, shift, 1));
-	m_dsp_block_add_register_val(blk, 0, new_m_dsp_register_val(0, shift, new_m_derived_quantity_const_float(v)));
-	m_effect_desc_add_block(eff, blk);
-	
-	return NO_ERROR;
-}
-
-int m_effect_desc_add_mac_rc_ns_sh(m_effect_desc *eff, int src_a, float v, int shift)
-{
-	if (!eff)
-		return ERR_NULL_PTR;
-	
-	m_dsp_block *blk = new_m_dsp_block_with_instr(m_dsp_block_instr_type_a_str(BLOCK_INSTR_MAC, src_a, 0, 0, 0, 0, 1, 0, 0, shift, 1));
-	m_dsp_block_add_register_val(blk, 0, new_m_dsp_register_val(0, shift, new_m_derived_quantity_const_float(v)));
-	m_effect_desc_add_block(eff, blk);
-	
-	return NO_ERROR;
-}
-
-int m_effect_desc_add_load(m_effect_desc *eff, int addr, int dest)
-{
-	if (!eff)
-		return ERR_NULL_PTR;
-	
-	m_dsp_block *blk = new_m_dsp_block_with_instr(m_dsp_block_instr_type_b_str(BLOCK_INSTR_LOAD, 0, 0, dest, 0, 0, 0, addr));
-	m_effect_desc_add_block(eff, blk);
-	
-	return NO_ERROR;
-}
-
-int m_effect_desc_add_save(m_effect_desc *eff, int src_a, int addr)
-{
-	if (!eff)
-		return ERR_NULL_PTR;
-	
-	m_dsp_block *blk = new_m_dsp_block_with_instr(m_dsp_block_instr_type_b_str(BLOCK_INSTR_SAVE, src_a, 0, 0, 0, 0, 0, addr));
-	m_effect_desc_add_block(eff, blk);
-	
-	return NO_ERROR;
-}
-
-int m_effect_desc_add_mov_acc(m_effect_desc *eff, int dest)
-{
-	if (!eff)
-		return ERR_NULL_PTR;
-	
-	m_dsp_block *blk = new_m_dsp_block_with_instr(m_dsp_block_instr_type_a_str(BLOCK_INSTR_MOV_ACC, 0, 0, 0, dest, 0, 0, 0, 0, 0, 0));
-	m_effect_desc_add_block(eff, blk);
-	
-	return NO_ERROR;
-}
-
-int m_effect_desc_add_mov_acc_sh(m_effect_desc *eff, int dest, int shift)
-{
-	if (!eff)
-		return ERR_NULL_PTR;
-	
-	m_dsp_block *blk = new_m_dsp_block_with_instr(m_dsp_block_instr_type_a_str(BLOCK_INSTR_MOV_ACC, 0, 0, 0, dest, 0, 0, 0, 0, 1, 0));
-	m_effect_desc_add_block(eff, blk);
-	
-	return NO_ERROR;
-}
-*/
