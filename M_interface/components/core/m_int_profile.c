@@ -24,7 +24,7 @@ int init_m_profile(m_profile *profile)
 	profile->active = 0;
 	profile->unsaved_changes = 1;
 	
-	profile->sequence = NULL;
+	profile->sequence = &global_cxt.main_sequence;
 	
 	if (ret_val != NO_ERROR)
 		return ret_val;
@@ -172,8 +172,6 @@ m_transformer *m_profile_append_transformer_eff(m_profile *profile, m_effect_des
 	
 	transformer_rectify_param_ids(trans);
 	
-	printf("Added transformer with id %d.%d\n", profile->id, trans->id);
-	
 	return trans;
 }
 
@@ -185,6 +183,8 @@ int m_profile_remove_transformer(m_profile *profile, uint16_t id)
 		return ERR_NULL_PTR;
 	
 	int ret_val = m_pipeline_remove_transformer(&profile->pipeline, id);
+	
+	m_profile_if_active_update_fpga(profile);
 	
 	printf("cxt_remove_transformer done. ret_val = %s\n", m_error_code_to_string(ret_val));
 	return ret_val;
@@ -307,6 +307,18 @@ int m_profile_save(m_profile *profile)
 	return NO_ERROR;
 }
 
+int m_profile_program_fpga(m_profile *profile)
+{
+	if (!profile)
+		return ERR_NULL_PTR;
+	
+	m_fpga_transfer_batch send_seq = m_pipeline_create_fpga_transfer_batch(&profile->pipeline);
+	m_fpga_queue_transfer_batch(send_seq);
+	m_fpga_queue_pipeline_swap();
+	
+	return NO_ERROR;
+}
+
 int m_profile_if_active_update_fpga(m_profile *profile)
 {
 	if (!profile)
@@ -315,25 +327,8 @@ int m_profile_if_active_update_fpga(m_profile *profile)
 	if (!profile->active)
 		return NO_ERROR;
 	
-	m_fpga_send_byte(COMMAND_RESET_PIPELINE);
-	m_fpga_transfer_batch send_seq = m_pipeline_create_fpga_transfer_batch(&profile->pipeline);
-	
-	m_fpga_transfer_batch_send(send_seq);
-	m_fpga_send_byte(COMMAND_SWAP_PIPELINES);
+	m_profile_program_fpga(profile);
 	
 	return NO_ERROR;
 }
 
-int m_profile_program_fpga(m_profile *profile)
-{
-	if (!profile)
-		return ERR_NULL_PTR;
-	
-	m_fpga_send_byte(COMMAND_RESET_PIPELINE);
-	m_fpga_transfer_batch send_seq = m_pipeline_create_fpga_transfer_batch(&profile->pipeline);
-	
-	m_fpga_transfer_batch_send(send_seq);
-	m_fpga_send_byte(COMMAND_SWAP_PIPELINES);
-	
-	return NO_ERROR;
-}

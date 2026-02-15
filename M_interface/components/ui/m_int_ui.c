@@ -270,17 +270,127 @@ int enter_ui_page(m_ui_page *page)
 		printf("page has 'enter_page'; calling\n");
 		page->enter_page(page);
 	}
-	else
-	{	
-		if (!page->screen)
-		{
-			printf("Error! Page has no screen!\n");
-			return ERR_BAD_ARGS;
-		}
-		printf("lv_scr_load...\n");
-		lv_scr_load(page->screen);
+
+	if (!page->screen)
+	{
+		printf("Error! Page has no screen!\n");
+		return ERR_BAD_ARGS;
+	}
+	lv_scr_load(page->screen);
+
+	global_cxt.pages.current_page = page;
+	
+	printf("enter_ui_page done\n");
+	return NO_ERROR;
+}
+
+int enter_ui_page_forwards(m_ui_page *page)
+{
+	printf("enter ui page...\n");
+	
+	if (!page)
+	{
+		printf("Error! No page!\n");
+		return ERR_NULL_PTR;
 	}
 	
+	if (!page->ui_created)
+	{
+		if (!page->configured)
+		{
+			printf("Error! Page is unconfigured\n");
+			return ERR_BAD_ARGS;
+		}
+		
+		if (!page->create_ui)
+		{
+			printf("Error! Page has no UI, and no create_ui function pointer!\n");
+			return ERR_BAD_ARGS;
+		}
+	}
+	
+	if (!page->ui_created)
+	{
+		printf("Page has not created its UI yet. Creating now...\n");
+		page->create_ui(page);
+	}
+	
+	if (page->refresh)
+	{
+		printf("page has refresh; calling\n");
+		page->refresh(page);
+	}
+	
+	if (page->enter_page)
+	{
+		printf("page has 'enter_page'; calling\n");
+		page->enter_page(page);
+	}
+
+	if (!page->screen)
+	{
+		printf("Error! Page has no screen!\n");
+		return ERR_BAD_ARGS;
+	}
+	lv_scr_load_anim(page->screen, LV_SCR_LOAD_ANIM_OUT_LEFT, UI_PAGE_TRANSITION_ANIM_MS, 0, false);
+	
+	global_cxt.pages.current_page = page;
+	
+	printf("enter_ui_page done\n");
+	return NO_ERROR;
+}
+
+int enter_ui_page_backwards(m_ui_page *page)
+{
+	printf("enter ui page...\n");
+	
+	if (!page)
+	{
+		printf("Error! No page!\n");
+		return ERR_NULL_PTR;
+	}
+	
+	if (!page->ui_created)
+	{
+		if (!page->configured)
+		{
+			printf("Error! Page is unconfigured\n");
+			return ERR_BAD_ARGS;
+		}
+		
+		if (!page->create_ui)
+		{
+			printf("Error! Page has no UI, and no create_ui function pointer!\n");
+			return ERR_BAD_ARGS;
+		}
+	}
+	
+	if (!page->ui_created)
+	{
+		printf("Page has not created its UI yet. Creating now...\n");
+		page->create_ui(page);
+	}
+	
+	if (page->refresh)
+	{
+		printf("page has refresh; calling\n");
+		page->refresh(page);
+	}
+	
+	if (page->enter_page)
+	{
+		printf("page has 'enter_page'; calling\n");
+		page->enter_page(page);
+	}
+	
+	if (!page->screen)
+	{
+		printf("Error! Page has no screen!\n");
+		return ERR_BAD_ARGS;
+	}
+	printf("lv_scr_load...\n");
+	lv_scr_load_anim(page->screen, LV_SCR_LOAD_ANIM_OUT_RIGHT, UI_PAGE_TRANSITION_ANIM_MS, 0, false);
+
 	global_cxt.pages.current_page = page;
 	
 	printf("enter_ui_page done\n");
@@ -289,12 +399,30 @@ int enter_ui_page(m_ui_page *page)
 
 int enter_ui_page_indirect(m_ui_page **_page)
 {
-	//printf("enter ui page indirect...\n");
-	
 	if (!_page)
 		return ERR_NULL_PTR;
 	
 	enter_ui_page(*_page);
+	
+	return NO_ERROR;
+}
+
+int enter_ui_page_indirect_forwards(m_ui_page **_page)
+{
+	if (!_page)
+		return ERR_NULL_PTR;
+	
+	enter_ui_page_forwards(*_page);
+	
+	return NO_ERROR;
+}
+
+int enter_ui_page_backwardindirect_s(m_ui_page **_page)
+{
+	if (!_page)
+		return ERR_NULL_PTR;
+	
+	enter_ui_page_backwards(*_page);
 	
 	return NO_ERROR;
 }
@@ -306,6 +434,24 @@ void enter_ui_page_cb(lv_event_t *e)
 	printf("Given page: %p\n", page);
 	if (page)
 		enter_ui_page(page);
+}
+
+void enter_ui_page_forwards_cb(lv_event_t *e)
+{
+	printf("enter ui page callback triggered\n");
+	m_ui_page *page = (m_ui_page*)lv_event_get_user_data(e);
+	printf("Given page: %p\n", page);
+	if (page)
+		enter_ui_page_forwards(page);
+}
+
+void enter_ui_page_backwards_cb(lv_event_t *e)
+{
+	printf("enter ui page callback triggered\n");
+	m_ui_page *page = (m_ui_page*)lv_event_get_user_data(e);
+	printf("Given page: %p\n", page);
+	if (page)
+		enter_ui_page_backwards(page);
 }
 
 void enter_parent_page_cb(lv_event_t *e)
@@ -320,9 +466,9 @@ void enter_parent_page_cb(lv_event_t *e)
 	}
 	
 	if (page->parent)
-		enter_ui_page(page->parent);
+		enter_ui_page_backwards(page->parent);
 	else
-		enter_ui_page(&global_cxt.pages.main_menu);
+		enter_ui_page_backwards(&global_cxt.pages.main_menu);
 }
 
 void m_ui_page_return_to_parent(m_ui_page *page)
@@ -336,7 +482,7 @@ void m_ui_page_return_to_parent(m_ui_page *page)
 	if (page->parent->enter_page)
 		page->parent->enter_page(page->parent);
 	else
-		enter_ui_page(page->parent);
+		enter_ui_page_backwards(page->parent);
 }
 
 int init_ui_page_panel_str(m_ui_page_panel *panel)
@@ -556,7 +702,7 @@ int create_panel_with_back_button_and_page_button(m_ui_page *page, const char *r
 	
 	create_panel_with_back_button(page);
     
-    create_panel_right_button(page, right_button_text, enter_ui_page_cb, right_button_page);
+    create_panel_right_button(page, right_button_text, enter_ui_page_forwards_cb, right_button_page);
 
     return NO_ERROR;
 }
@@ -854,6 +1000,58 @@ static void edit_rw_text_cb(lv_event_t *e)
 	lv_obj_add_state(page->panel->title, LV_STATE_FOCUSED);
 }
 
+int ui_page_update_title(m_ui_page *page, const char *text)
+{
+	if (!page)
+		return ERR_NULL_PTR;
+	
+	if (!page->panel)
+		return ERR_BAD_ARGS;
+	
+	if (page->panel->text != text)
+		return ui_page_set_title(page, text);
+	
+	return NO_ERROR;
+}
+
+int ui_page_init_create_panel_label(m_ui_page *page)
+{
+	if (!page)
+		return ERR_NULL_PTR;
+	
+	if (!page->panel)
+		return ERR_BAD_ARGS;
+	
+	char *text = page->panel->text ? page->panel->text : "";
+	
+	if (page->panel->flags & TOP_PANEL_FLAG_RW_TITLE)
+	{
+		page->panel->title = lv_textarea_create(page->panel->panel);
+		lv_textarea_set_text(page->panel->title, text);
+		
+		lv_obj_set_style_border_width(page->panel->title, 0, 0);
+		lv_obj_set_style_bg_color	 (page->panel->title, lv_color_hex(TOP_PANEL_COLOUR), 0);
+		lv_textarea_set_one_line(page->panel->title, true);
+		lv_textarea_set_align(page->panel->title, LV_TEXT_ALIGN_CENTER);
+		
+		
+		lv_obj_add_event_cb(page->panel->title, edit_rw_text_cb, LV_EVENT_CLICKED, page);
+	}
+	else
+	{
+		page->panel->title = lv_label_create(page->panel->panel);
+		lv_label_set_text(page->panel->title, text);
+		
+		lv_obj_set_style_text_align(page->panel->title, LV_TEXT_ALIGN_CENTER, 0);
+		lv_obj_align_to(page->panel->title, page->panel->panel, LV_ALIGN_CENTER, 0, 0);
+	}
+	
+	lv_obj_align_to(page->panel->title, page->panel->panel, LV_ALIGN_CENTER, 0, 0);
+	//lv_obj_set_size(page->panel->title, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+	
+	return NO_ERROR;
+}
+
 int ui_page_set_title(m_ui_page *page, const char *text)
 {
 	if (!page)
@@ -866,37 +1064,13 @@ int ui_page_set_title(m_ui_page *page, const char *text)
     
     if (text && page->ui_created && page->panel->panel)
     {
+		if (!page->panel->title)
+			return ui_page_init_create_panel_label(page);
+		
 		if (page->panel->flags & TOP_PANEL_FLAG_RW_TITLE)
-		{
-			if (!page->panel->title)
-				page->panel->title = lv_textarea_create(page->panel->panel);
-			
 			lv_textarea_set_text(page->panel->title, page->panel->text);
-			
-			lv_obj_set_style_text_color(page->panel->title, lv_color_hex(GLOBAL_MAIN_TEXT_COLOUR), 0);
-			lv_obj_set_style_text_font(page->panel->title, GLOBAL_MAIN_FONT, 0);
-			
-			lv_obj_set_style_border_width(page->panel->title, 0, 0);
-			lv_obj_set_style_bg_color	 (page->panel->title, lv_color_hex(TOP_PANEL_COLOUR), 0);
-			lv_obj_set_size(page->panel->title, LV_SIZE_CONTENT, TOP_PANEL_HEIGHT * 0.7);
-			lv_textarea_set_one_line(page->panel->title, true);
-			lv_textarea_set_align(page->panel->title, LV_TEXT_ALIGN_CENTER);
-			
-			lv_obj_align_to(page->panel->title, page->panel->panel, LV_ALIGN_CENTER, 0, 0);
-		}
-		else
-		{
-			if (!page->panel->title)
-				page->panel->title = lv_label_create(page->panel->panel);
-				
+		else	
 			lv_label_set_text(page->panel->title, page->panel->text);
-			
-			lv_obj_set_style_text_color(page->panel->title, lv_color_hex(GLOBAL_MAIN_TEXT_COLOUR), 0);
-			lv_obj_set_style_text_font(page->panel->title, GLOBAL_MAIN_FONT, 0);
-			
-			lv_obj_set_style_text_align(page->panel->title, LV_TEXT_ALIGN_CENTER, 0);
-			lv_obj_align_to(page->panel->title, page->panel->panel, LV_ALIGN_CENTER, 0, 0);
-		}
 	}
 	else
 	{
@@ -905,7 +1079,6 @@ int ui_page_set_title(m_ui_page *page, const char *text)
 	
 	return NO_ERROR;
 }
-
 
 int ui_page_create_panel_ui(m_ui_page *page)
 {
@@ -931,33 +1104,7 @@ int ui_page_create_panel_ui(m_ui_page *page)
 		lv_obj_align_to(page->panel->lb->obj, page->panel->panel, LV_ALIGN_LEFT_MID, 0, 0);
 	}
 	
-	char *text = page->panel->text ? page->panel->text : "";
-	
-	if (page->panel->flags & TOP_PANEL_FLAG_RW_TITLE)
-	{
-		page->panel->title = lv_textarea_create(page->panel->panel);
-		lv_textarea_set_text(page->panel->title, text);
-		
-		lv_obj_set_style_border_width(page->panel->title, 0, 0);
-		lv_obj_set_style_bg_color	 (page->panel->title, lv_color_hex(TOP_PANEL_COLOUR), 0);
-		//lv_obj_set_size(page->panel->title, LV_SIZE_CONTENT, TOP_PANEL_HEIGHT * 0.7);
-		lv_textarea_set_one_line(page->panel->title, true);
-		lv_textarea_set_align(page->panel->title, LV_TEXT_ALIGN_CENTER);
-		
-		
-		lv_obj_add_event_cb(page->panel->title, edit_rw_text_cb, LV_EVENT_CLICKED, page);
-	}
-	else
-	{
-		page->panel->title = lv_label_create(page->panel->panel);
-		lv_label_set_text(page->panel->title, text);
-		
-		lv_obj_set_style_text_align(page->panel->title, LV_TEXT_ALIGN_CENTER, 0);
-		lv_obj_align_to(page->panel->title, page->panel->panel, LV_ALIGN_CENTER, 0, 0);
-	}
-	
-	lv_obj_align_to(page->panel->title, page->panel->panel, LV_ALIGN_CENTER, 0, 0);
-	//lv_obj_set_size(page->panel->title, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+	ui_page_init_create_panel_label(page);
 	
 	if (page->panel->rb)
 	{

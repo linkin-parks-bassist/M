@@ -1,6 +1,6 @@
 #include "m_int.h"
 
-#define DEFAULT_MAX_VELOCITY 0.01
+#define DEFAULT_MAX_VELOCITY 0.001
 
 IMPLEMENT_LINKED_PTR_LIST(m_parameter);
 IMPLEMENT_LINKED_PTR_LIST(m_setting);
@@ -42,7 +42,7 @@ int init_parameter(m_parameter *param, const char *name, float level, float min,
 	param->min = min;
 	param->max = max;
 	
-	param->max_velocity = fabsf(DEFAULT_MAX_VELOCITY * (param->max - param->min));
+	param->max_velocity = fabsf(DEFAULT_MAX_VELOCITY * (max - min));
 	
 	param->factor = 1.0;
 	

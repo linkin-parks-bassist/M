@@ -297,7 +297,7 @@ void m_int_sgtl5000_init(void *param)
 		return;
 	}
 	
-	sgtl5000_line_in_level(3);
+	sgtl5000_line_in_level(7);
 	sgtl5000_line_out_level(31);
 	
 	sgtl5000_status = 1;

@@ -21,4 +21,5 @@ idf_component_register(SRCS "m_alloc.c"
 							drivers
 							ui
 							teensy_comms
+							fpga_comms
 					INCLUDE_DIRS "." "../../../shared" "../../main" "../" "../ui" "../drivers")

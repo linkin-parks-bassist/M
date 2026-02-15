@@ -33,7 +33,7 @@ int seq_view_clicked_cb(m_active_button *button)
 			return ERR_ALLOC_FAIL;
 	}
 	
-	enter_ui_page(profile->view_page);
+	enter_ui_page_forwards(profile->view_page);
 	
 	return NO_ERROR;
 }
@@ -162,9 +162,7 @@ void seq_play_cb(lv_event_t *e)
 		return;
 	}
 	
-	if (str->sequence->active)
-		m_sequence_stop(str->sequence);
-	else
+	if (!str->sequence->active)
 		m_sequence_begin(str->sequence);
 }
 
@@ -216,7 +214,14 @@ void seq_save_cb(lv_event_t *e)
 	
 	m_int_sequence *sequence = str->sequence;
 	
-	save_sequence(sequence);
+	if (sequence == &global_cxt.main_sequence)
+	{
+		cxt_save_all_profiles(&global_cxt);
+	}
+	else
+	{
+		save_sequence(sequence);
+	}
 }
 
 int seq_view_sequence_free_cb(m_active_button *button)
@@ -257,7 +262,7 @@ void sequence_view_set_name(lv_event_t *e)
 	hide_keyboard();
 	
 	str->sequence->unsaved_changes = 1;
-	lv_obj_clear_flag(str->save->obj, LV_OBJ_FLAG_HIDDEN);
+	m_button_enable(str->save);
 }
 
 void sequence_view_revert_name(lv_event_t *e)
@@ -308,7 +313,9 @@ int configure_sequence_view(m_ui_page *page, void *data)
 	str->save = ui_page_add_bottom_button(page, LV_SYMBOL_SAVE, seq_save_cb);
 	
 	page->panel->text = sequence->name;
-	ui_page_set_title_rw(page, sequence_view_set_name, sequence_view_revert_name);
+	
+	if (sequence != &global_cxt.main_sequence)
+		ui_page_set_title_rw(page, sequence_view_set_name, sequence_view_revert_name);
 	
 	seq_profile_ll *current = sequence->profiles;
 	
@@ -420,21 +427,21 @@ void sequence_view_rep_update(void *representer, void *representee)
 	
 	if (sequence->active)
 	{
-		m_button_set_label(str->play, LV_SYMBOL_STOP);
+		m_button_disable(str->play);
 	}
 	else
 	{
-		m_button_set_label(str->play, LV_SYMBOL_PLAY);
+		m_button_enable(str->play);
 	}
 	
 	#ifdef USE_SDCARD
 	if (sequence->unsaved_changes)
 	{
-		m_button_disable(str->save);
+		m_button_enable(str->save);
 	}
 	else
 	{
-		m_button_enable(str->save);
+		m_button_disable(str->save);
 	}
 	#endif
 }

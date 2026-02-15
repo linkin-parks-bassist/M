@@ -55,11 +55,33 @@ int m_context_init_effect_list(m_context *cxt)
 	if (!cxt)
 		return ERR_NULL_PTR;
 	
-	cxt->effects = m_effect_desc_pll_append(cxt->effects, create_amplifier_eff_desc());
-	cxt->effects = m_effect_desc_pll_append(cxt->effects, create_delay_eff_desc());
+	cxt->effects = m_effect_desc_pll_append(cxt->effects, create_gain_eff_desc());
+	cxt->effects = m_effect_desc_pll_append(cxt->effects, create_distortion_eff_desc());
+	cxt->effects = m_effect_desc_pll_append(cxt->effects, create_arctan_distortion_eff_desc());
+	/*cxt->effects = m_effect_desc_pll_append(cxt->effects, create_tube_distortion_eff_desc());
+	cxt->effects = m_effect_desc_pll_append(cxt->effects, create_comb_filter_eff_desc());
 	cxt->effects = m_effect_desc_pll_append(cxt->effects, create_flanger_eff_desc());
+	cxt->effects = m_effect_desc_pll_append(cxt->effects, create_smoother_eff_desc());
+	cxt->effects = m_effect_desc_pll_append(cxt->effects, create_unsmoother_eff_desc());*/
+	
+	cxt->effects = m_effect_desc_pll_append(cxt->effects, create_lpf_eff_desc());
+	cxt->effects = m_effect_desc_pll_append(cxt->effects, create_hpf_eff_desc());
 	
 	return NO_ERROR;
+}
+
+int get_effect_desc(int id)
+{
+	m_effect_desc_pll *current = global_cxt.effects;
+	
+	while (current)
+	{
+		if (current->data && current->data->id == id)
+			return current->data;
+		current = current->next;
+	}
+	
+	return NULL;
 }
 
 int m_context_init_ui(m_context *cxt)
@@ -204,7 +226,9 @@ m_profile *cxt_get_profile_by_id(m_context *cxt, uint16_t profile_id)
 	while (current)
 	{
 		if (current->data && current->data->id == profile_id)
+		{
 			return current->data;
+		}
 		
 		current = current->next;
 	}
@@ -222,12 +246,15 @@ m_transformer *cxt_get_transformer_by_id(m_context *cxt, uint16_t profile_id, ui
 	if (!profile)
 		return NULL;
 	
+	
 	m_transformer_pll *current = profile->pipeline.transformers;
 	
 	while (current)
 	{
 		if (current->data && current->data->id == transformer_id)
+		{
 			return current->data;
+		}
 		
 		current = current->next;
 	}
@@ -246,22 +273,52 @@ m_parameter *cxt_get_parameter_by_id(m_context *cxt, uint16_t profile_id, uint16
 		return NULL;
 	
 	return transformer_get_parameter(trans, parameter_id);
-}
+}	
 
 int cxt_get_parameter_and_transformer_by_id(m_context *cxt, m_parameter_id id, m_parameter **pp, m_transformer **tp)
 {
 	if (!cxt || !pp || !tp)
 		return ERR_NULL_PTR;
 	
+	*pp = NULL;
+	*tp = NULL;
+	
+	if (id.profile_id == CONTEXT_PROFILE_ID)
+	{
+		if (id.transformer_id == 0)
+		{
+			switch (id.parameter_id)
+			{
+				case INPUT_GAIN_PID:
+					*pp = &global_cxt.settings.input_gain;
+					return NO_ERROR;
+					
+				case OUTPUT_GAIN_PID:
+					*pp = &global_cxt.settings.output_gain;
+					return NO_ERROR;
+				
+				default:
+					return ERR_BAD_ARGS;
+			}
+		}
+		
+		return ERR_BAD_ARGS;
+	}
+	
 	m_transformer *trans = cxt_get_transformer_by_id(cxt, id.profile_id, id.transformer_id);
 	
-	if (!trans)
-		return ERR_BAD_ARGS;
 	
+	if (!trans)
+	{
+		return ERR_BAD_ARGS;
+	}
+
 	m_parameter *param = transformer_get_parameter(trans, id.parameter_id);
 	
 	if (!param)
+	{
 		return ERR_BAD_ARGS;
+	}
 	
 	*pp = param;
 	*tp = trans;
@@ -474,10 +531,9 @@ int set_active_profile_from_sequence(m_profile *profile)
 	
 	global_cxt.active_profile = profile;
 	
-	uint16_t id = profile ? profile->id : 0;
-	
 	int ret_val = NO_ERROR;
 	#ifdef USE_TEENSY
+	uint16_t id = profile ? profile->id : 0;
 	ret_val = queue_msg_to_teensy(create_m_message(M_MESSAGE_SWITCH_PROFILE, "s", id));
 	#endif
 	
@@ -681,4 +737,24 @@ m_profile *cxt_find_profile(m_context *cxt, const char *fname)
 	}
 	
 	return NULL;
+}
+
+int cxt_save_all_profiles(m_context *cxt)
+{
+	if (!cxt)
+		return ERR_NULL_PTR;
+	
+	profile_ll *current = cxt->profiles;
+	
+	while (current)
+	{
+		if (current->data)
+		{
+			m_profile_save(current->data);
+		}
+		
+		current = current->next;
+	}
+	
+	return NO_ERROR;
 }

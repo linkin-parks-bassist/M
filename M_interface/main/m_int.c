@@ -16,6 +16,8 @@ void app_main()
 	
 	esp_task_wdt_deinit();
 	
+	m_mem_init();
+	
 	#ifdef USE_DISPLAY
 	lv_disp_t *disp;
 	waveshare_dsi_touch_5_a_init(&disp);
@@ -67,7 +69,7 @@ void app_main()
 	
 	load_effects_from_disk(&global_cxt);
 	
-	load_saved_profiles(&global_cxt);
+	//load_saved_profiles(&global_cxt);
 	
 	context_print_profiles(&global_cxt);
 	

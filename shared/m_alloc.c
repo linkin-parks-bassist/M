@@ -7,8 +7,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <freertos/FreeRTOS.h>
 
-#include "m_alloc.h"
+#include "m_int.h"
 
 static size_t total_current, total_peak;
 
@@ -83,6 +84,56 @@ char *m_strndup(const char *str, size_t n)
     new_str[len] = '\0';
     
     return new_str;
+}
+
+void m_mem_monitor_task(void *param)
+{
+	while (1)
+	{
+		print_memory_report();
+		vTaskDelay(pdMS_TO_TICKS(2000));
+	}
+}
+
+
+void m_mem_init()
+{
+	printf("m_mem_init()");
+	#ifdef PRINT_MEMORY_USAGE
+	printf("Spinning off memory printer task...\n");
+	xTaskCreate(
+		m_mem_monitor_task,
+		"memory_log",
+		2048,
+		NULL,
+		5,                  
+		NULL
+	);
+	#endif
+}
+
+void lv_mem_init(void)
+{
+	return;
+}
+
+void lv_mem_deinit(void)
+{
+	return;
+}
+
+void * lv_malloc_core(size_t size)
+{
+	return m_alloc(size);
+}
+void * lv_realloc_core(void * p, size_t new_size)
+{
+	return m_realloc(p, new_size);
+}
+
+void lv_free_core(void * p)
+{
+	return m_free(p);
 }
 
 #ifdef M_INTERFACE

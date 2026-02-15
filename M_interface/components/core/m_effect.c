@@ -86,6 +86,19 @@ static float m_derived_quantity_compute_rec(m_derived_quantity *dq, m_parameter_
 		if (!dq->val.ref_name || !params)
 			return 0.0;
 		
+		if (strcmp(dq->val.ref_name, "pi") == 0)
+		{
+			return 3.14159265;
+		}
+		else if (strcmp(dq->val.ref_name, "e") == 0)
+		{
+			return 2.718281828459045;
+		}
+		else if (strcmp(dq->val.ref_name, "sample_rate") == 0)
+		{
+			return M_FPGA_SAMPLE_RATE;
+		}
+		
 		m_parameter_pll *current;
 		m_parameter *param;
 		
@@ -153,11 +166,15 @@ static float m_derived_quantity_compute_rec(m_derived_quantity *dq, m_parameter_
 		case M_DERIVED_QUANTITY_FCALL_SQR: x = m_derived_quantity_compute_rec(dq->val.sub_dqs[0], params, depth + 1); ret_val = x * x;
 			break;
 
+		case M_DERIVED_QUANTITY_FCALL_SQRT:
+			ret_val = sqrt(m_derived_quantity_compute_rec(dq->val.sub_dqs[0], params, depth + 1));
+			break;
+
 		case M_DERIVED_QUANTITY_FCALL_EXP:
 			ret_val = exp(m_derived_quantity_compute_rec(dq->val.sub_dqs[0], params, depth + 1));
 			break;
 
-		case M_DERIVED_QUANTITY_FCALL_LOG:
+		case M_DERIVED_QUANTITY_FCALL_LN:
 			ret_val = log(m_derived_quantity_compute_rec(dq->val.sub_dqs[0], params, depth + 1));
 			break;
 
@@ -168,13 +185,25 @@ static float m_derived_quantity_compute_rec(m_derived_quantity *dq, m_parameter_
 		case M_DERIVED_QUANTITY_FCALL_SIN:
 			ret_val = sin(m_derived_quantity_compute_rec(dq->val.sub_dqs[0], params, depth + 1));
 			break;
+			
+		case M_DERIVED_QUANTITY_FCALL_SINH:
+			ret_val = sinh(m_derived_quantity_compute_rec(dq->val.sub_dqs[0], params, depth + 1));
+			break;
 
 		case M_DERIVED_QUANTITY_FCALL_COS:
 			ret_val = cos(m_derived_quantity_compute_rec(dq->val.sub_dqs[0], params, depth + 1));
 			break;
+			
+		case M_DERIVED_QUANTITY_FCALL_COSH:
+			ret_val = cosh(m_derived_quantity_compute_rec(dq->val.sub_dqs[0], params, depth + 1));
+			break;
 
 		case M_DERIVED_QUANTITY_FCALL_TAN:
 			ret_val = tan(m_derived_quantity_compute_rec(dq->val.sub_dqs[0], params, depth + 1));
+			break;
+
+		case M_DERIVED_QUANTITY_FCALL_TANH:
+			ret_val = tanh(m_derived_quantity_compute_rec(dq->val.sub_dqs[0], params, depth + 1));
 			break;
 	}
 	
@@ -255,8 +284,9 @@ int m_fpga_transfer_batch_append_resource_request(m_fpga_transfer_batch *batch, 
 	switch (req->type)
 	{
 		case M_FPGA_RESOURCE_DDELAY:
-			m_fpga_batch_append(batch, COMMAND_ALLOC_SRAM_DELAY);
+			m_fpga_batch_append(batch, COMMAND_ALLOC_DELAY);
 			m_fpga_batch_append_16(batch, (uint16_t)req->data);
+			m_fpga_batch_append_16(batch, (uint16_t)req->data2);
 			break;
 		
 		default:
@@ -417,13 +447,13 @@ int m_dsp_block_instr_encode_resource_aware(const m_fpga_resource_report *cxt, m
 				local->ddelay = blk->instr.res_addr + 1;
 				break;
 			
-			case BLOCK_INSTR_SAVE:
-			case BLOCK_INSTR_LOAD:
+			case BLOCK_INSTR_MEM_READ:
+			case BLOCK_INSTR_MEM_WRITE:
 				rectified.res_addr += cxt->memory;
 				local->memory = blk->instr.res_addr + 1;
 				break;
 			
-			case BLOCK_INSTR_LUT:
+			case BLOCK_INSTR_LUT_READ:
 				if (rectified.res_addr >= STOCK_LUTS)
 				{
 					rectified.res_addr += cxt->luts;
@@ -727,14 +757,19 @@ m_derived_quantity *new_m_derived_quantity_from_string_rec(char *str, char **nex
 						dq->type = M_DERIVED_QUANTITY_FCALL_SQR;
 						unary_call = 1;
 					}
+					else if (strcmp(buf, "sqrt") == 0)
+					{
+						dq->type = M_DERIVED_QUANTITY_FCALL_SQRT;
+						unary_call = 1;
+					}
 					else if (strcmp(buf, "exp") == 0)
 					{
 						dq->type = M_DERIVED_QUANTITY_FCALL_EXP;
 						unary_call = 1;
 					}
-					else if (strcmp(buf, "log") == 0)
+					else if (strcmp(buf, "ln") == 0)
 					{
-						dq->type = M_DERIVED_QUANTITY_FCALL_LOG;
+						dq->type = M_DERIVED_QUANTITY_FCALL_LN;
 						unary_call = 1;
 					}
 					else if (strcmp(buf, "sin") == 0)
@@ -742,12 +777,27 @@ m_derived_quantity *new_m_derived_quantity_from_string_rec(char *str, char **nex
 						dq->type = M_DERIVED_QUANTITY_FCALL_SIN;
 						unary_call = 1;
 					}
+					else if (strcmp(buf, "sinh") == 0)
+					{
+						dq->type = M_DERIVED_QUANTITY_FCALL_SINH;
+						unary_call = 1;
+					}
 					else if (strcmp(buf, "cos") == 0)
 					{
 						dq->type = M_DERIVED_QUANTITY_FCALL_COS;
 						unary_call = 1;
 					}
+					else if (strcmp(buf, "cosh") == 0)
+					{
+						dq->type = M_DERIVED_QUANTITY_FCALL_COSH;
+						unary_call = 1;
+					}
 					else if (strcmp(buf, "tan") == 0)
+					{
+						dq->type = M_DERIVED_QUANTITY_FCALL_TAN;
+						unary_call = 1;
+					}
+					else if (strcmp(buf, "tanh") == 0)
 					{
 						dq->type = M_DERIVED_QUANTITY_FCALL_TAN;
 						unary_call = 1;
@@ -1060,25 +1110,192 @@ int m_effect_desc_add_register_val_literal(m_effect_desc *eff, int block_no, int
 	return m_dsp_block_add_register_val(eff->blocks[block_no], reg, bp);
 }
 
-m_effect_desc *create_amplifier_eff_desc()
+m_effect_desc *create_gain_eff_desc()
 {
-	m_effect_desc *amp = new_m_effect_desc("Amplifier");
-	m_parameter *param = new_m_parameter_wni("Gain", "gain", -6.0, -24.0, 24.0);
-	m_effect_desc_add_param(amp, param);
+	m_effect_desc *eff = new_m_effect_desc("Gain");
+	eff->id = 0;
+	m_parameter *param = new_m_parameter_wni("Gain", "gain", 0, -30.0, 30.0);
+	m_effect_desc_add_param(eff, param);
 	
-	m_dsp_block *blk1 = new_m_dsp_block_with_instr(m_dsp_block_instr_type_a_str(BLOCK_INSTR_MUL, 0, 0, 0, 1, 0, 0, 0, 4, 0));
-	m_effect_desc_add_block(amp, blk1);
-	m_effect_desc_add_register_val(amp, 0, 0, 4, "pow 10 (/ gain 20)");
+	m_dsp_block *blk1 = new_m_dsp_block_with_instr(m_dsp_block_instr_mul(0, 0, 0, 1, 0, 5));
+	m_effect_desc_add_block(eff, blk1);
+	m_effect_desc_add_register_val(eff, 0, 0, 5, "pow 10 (/ gain 20)");
 	
-	return amp;
+	return eff;
 }
 
+
+m_effect_desc *create_distortion_eff_desc()
+{
+	m_effect_desc *eff = new_m_effect_desc("Clip");
+	eff->id = 1;
+	m_parameter *param1 = new_m_parameter_wni("Pre-gain", "pregain", 0.0, -30, 30.0);
+	param1->units = " dB";
+	m_parameter *param2 = new_m_parameter_wni("Clip level", "cliplevel", 0, -30, 0.0);
+	param2->units = " dB";
+	m_parameter *param3 = new_m_parameter_wni("Post-gain", "postgain", 0.0, -30, 30.0);
+	param3->units = " dB";
+	
+	m_effect_desc_add_param(eff, param1);
+	m_effect_desc_add_param(eff, param2);
+	m_effect_desc_add_param(eff, param3);
+	
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mul(0, 0, 0, 1, 0, 4)));
+	m_effect_desc_add_register_val(eff, 0, 0, 4, "pow 10 (/ pregain 20)");
+	
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_clamp(0, 0, 0, 1, 1, 1, 0)));
+	m_effect_desc_add_register_val(eff, 1, 0, 0, "- 0 pow 10 (/ cliplevel 20)");
+	m_effect_desc_add_register_val(eff, 1, 1, 0, "pow 10 (/ cliplevel 20)");
+	
+	
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mul(0, 0, 0, 1, 0, 4)));
+	m_effect_desc_add_register_val(eff, 2, 0, 4, "pow 10 (/ postgain 20)");
+	
+	return eff;
+}
+
+m_effect_desc *create_arctan_distortion_eff_desc()
+{
+	m_effect_desc *eff = new_m_effect_desc("Arctan Distortion");
+	eff->id = 3;
+	m_parameter *param1 = new_m_parameter_wni("Pre-gain", "pregain", 0.0, -30, 30.0);
+	param1->units = " dB";
+	m_parameter *param3 = new_m_parameter_wni("Post-gain", "postgain", 0.0, -30, 30.0);
+	param3->units = " dB";
+	
+	m_effect_desc_add_param(eff, param1);
+	m_effect_desc_add_param(eff, param3);
+	
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mul(0, 0, 0, 1, 0, 5)));
+	m_effect_desc_add_register_val(eff, 0, 0, 5, "/ pow 10 (/ pregain 20) 4");
+	
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_lut_read(0, 0, 1, 0)));
+	
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mul(0, 0, 0, 1, 0, 4)));
+	m_effect_desc_add_register_val(eff, 2, 0, 4, "pow 10 (/ postgain 20)");
+	
+	return eff;
+}
+
+m_effect_desc *create_biquad_eff_desc()
+{
+	m_effect_desc *eff = new_m_effect_desc("Biquad");
+	eff->id = 4;
+	m_parameter *a0 = new_m_parameter_wni("a0", "a0", 1.0,  0.0, 2.0);
+	m_parameter *a1 = new_m_parameter_wni("a1", "a1", 0.0,  0.0, 2.0);
+	m_parameter *a2 = new_m_parameter_wni("a2", "a2", 0.0,  0.0, 2.0);
+	m_parameter *b0 = new_m_parameter_wni("b0", "b0", 0.0, -2.0, 0.0);
+	m_parameter *b1 = new_m_parameter_wni("b1", "b1", 0.0, -2.0, 0.0);
+	
+	m_effect_desc_add_param(eff, a0);
+	m_effect_desc_add_param(eff, a1);
+	m_effect_desc_add_param(eff, a2);
+	m_effect_desc_add_param(eff, b0);
+	m_effect_desc_add_param(eff, b1);
+	
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mem_read(1, 1)));
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mem_read(2, 2)));
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mem_read(3, 3)));
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mem_read(4, 4))); //3
+	
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_macz(0, 0, 0, 1, 3)));
+	m_effect_desc_add_register_val(eff, 4, 0, 3, "a0");
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mac(1, 0, 0, 1, 3)));
+	m_effect_desc_add_register_val(eff, 5, 0, 3, "a1");
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mac(2, 0, 0, 1, 3)));
+	m_effect_desc_add_register_val(eff, 6, 0, 3, "a2");
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mac(3, 0, 0, 1, 3)));
+	m_effect_desc_add_register_val(eff, 7, 0, 3, "b0");
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mac(4, 0, 0, 1, 3))); //8
+	m_effect_desc_add_register_val(eff, 8, 0, 3, "b1");
+	
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mem_write(0, 0, 1)));
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mem_write(1, 0, 2)));
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mem_write(3, 0, 4)));
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mov_acc(0))); //12
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mem_write(0, 0, 3)));
+	
+	return eff;
+}
+
+m_effect_desc *create_lpf_eff_desc()
+{
+	m_effect_desc *eff = new_m_effect_desc("Low Pass Filter");
+	eff->id = 5;
+	m_parameter *cutoff = new_m_parameter_wni("Cutoff Frequency", "cutoff", 100.0,  1.0, 22050.0);
+	cutoff->scale = PARAMETER_SCALE_LOGARITHMIC;
+	cutoff->units = " Hz";
+	
+	m_effect_desc_add_param(eff, cutoff);
+	
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mem_read(1, 1)));
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mem_read(2, 2)));
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mem_read(3, 3)));
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mem_read(4, 4))); //3
+	
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_macz(0, 0, 0, 1, 14)));
+	m_effect_desc_add_register_val(eff, 4, 0, 0, "/ / - 1 cos / * * 2 pi cutoff sample_rate 2 + 1 / sin / * * 2 pi cutoff sample_rate sqrt 2");
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mac(1, 0, 0, 1, 14)));
+	m_effect_desc_add_register_val(eff, 5, 0, 0, "/ - 1 cos / * * 2 pi cutoff sample_rate + 1 / sin / * * 2 pi cutoff sample_rate sqrt 2");
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mac(2, 0, 0, 1, 14)));
+	m_effect_desc_add_register_val(eff, 6, 0, 0, "/ / - 1 cos / * * 2 pi cutoff sample_rate 2 + 1 / sin / * * 2 pi cutoff sample_rate sqrt 2");
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mac_noshift(3, 0, 0, 1)));
+	m_effect_desc_add_register_val(eff, 7, 0, 1, "/ * 2 cos / * * 2 pi cutoff sample_rate + 1 / sin / * * 2 pi cutoff sample_rate sqrt 2");
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mac_noshift(4, 0, 0, 1))); //8
+	m_effect_desc_add_register_val(eff, 8, 0, 1, "- 0 / - 1 / sin / * * 2 pi cutoff sample_rate sqrt 2 + 1 / sin / * * 2 pi cutoff sample_rate sqrt 2");
+	
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mem_write(0, 0, 1)));
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mem_write(1, 0, 2)));
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mem_write(3, 0, 4)));
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mov_acc_sh(14, 0))); //12
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mem_write(0, 0, 3)));
+	
+	return eff;
+}
+
+m_effect_desc *create_hpf_eff_desc()
+{
+	m_effect_desc *eff = new_m_effect_desc("High Pass Filter");
+	eff->id = 6;
+	m_parameter *cutoff = new_m_parameter_wni("Cutoff Frequency", "cutoff", 1000.0,  1.0, 22050.0);
+	cutoff->scale = PARAMETER_SCALE_LOGARITHMIC;
+	cutoff->units = " Hz";
+	
+	m_effect_desc_add_param(eff, cutoff);
+	
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mem_read(1, 1)));
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mem_read(2, 2)));
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mem_read(3, 3)));
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mem_read(4, 4))); //3
+	
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_macz(0, 0, 0, 1, 2)));
+	m_effect_desc_add_register_val(eff, 4, 0, 2, "/ / + 1 cos / * * 2 pi cutoff sample_rate 2 + 1 / sin / * * 2 pi cutoff sample_rate sqrt 2");
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mac(1, 0, 0, 1, 2)));
+	m_effect_desc_add_register_val(eff, 5, 0, 2, "- 0 / + 1 cos / * * 2 pi cutoff sample_rate + 1 / sin / * * 2 pi cutoff sample_rate sqrt 2");
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mac(2, 0, 0, 1, 2)));
+	m_effect_desc_add_register_val(eff, 6, 0, 2, "/ / + 1 cos / * * 2 pi cutoff sample_rate 2 + 1 / sin / * * 2 pi cutoff sample_rate sqrt 2");
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mac(3, 0, 0, 1, 1)));
+	m_effect_desc_add_register_val(eff, 7, 0, 1, "/ * 2 cos / * * 2 pi cutoff sample_rate + 1 / sin / * * 2 pi cutoff sample_rate sqrt 2");
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mac(4, 0, 0, 1, 1))); //8
+	m_effect_desc_add_register_val(eff, 8, 0, 1, "- 0 / - 1 / sin / * * 2 pi cutoff sample_rate sqrt 2 + 1 / sin / * * 2 pi cutoff sample_rate sqrt 2");
+	
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mem_write(0, 0, 1)));
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mem_write(1, 0, 2)));
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mem_write(3, 0, 4)));
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mov_acc(0))); //12
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mem_write(0, 0, 3)));
+	
+	return eff;
+}
+
+#if 0
 m_effect_desc *create_delay_eff_desc()
 {
 	m_effect_desc *eff = new_m_effect_desc("Delay");
+	eff->id = 4;
 	m_parameter *param1 = new_m_parameter_wni("Delay", "delay", 4096, 0.0, 0.0);
-	m_effect_desc_add_param(eff, param1);
 	m_parameter *param2 = new_m_parameter_wni("Delay Gain", "delay_gain", -1.0, -30.0, 0.0);
+	m_effect_desc_add_param(eff, param1);
 	m_effect_desc_add_param(eff, param2);
 	
 	m_dsp_block *blk = new_m_dsp_block_with_instr(m_dsp_block_instr_delay_read(0, 1, 0, 1));
@@ -1097,12 +1314,39 @@ m_effect_desc *create_delay_eff_desc()
 	return eff;
 }
 
+m_effect_desc *create_comb_filter_eff_desc()
+{
+	m_effect_desc *eff = new_m_effect_desc("Comb Filter");
+	eff->id = 5;
+	m_parameter *param1 = new_m_parameter_wni("Strength", "strength", 0.8, 0.0, 1.0);
+	
+	m_effect_desc_add_param(eff, param1);
+	
+	// Load phase accumulator from mem[01] into accumulator
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_load_acc(0)));
+	
+	// get delay
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_delay_read(0, 1, 0, 1)));
+	m_effect_desc_add_register_val(eff, 12, 0, 0, "440");
+	
+	// write the raw input sample back to the delay buffer
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_delay_write(0, 0, 0)));
+	// mix in fractional delay
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_madd(0, 1, 0, 0, 0, 0, 0, 0)));
+	m_effect_desc_add_register_val(eff, 12, 0, 0, "- 0 strength");
+	
+	m_effect_desc_add_resource_request(eff, new_fpga_resource_req(M_FPGA_RESOURCE_DDELAY, 1024));
+	
+	return eff;
+}
+
 m_effect_desc *create_flanger_eff_desc()
 {
 	m_effect_desc *eff = new_m_effect_desc("Flanger");
+	eff->id = 5;
 	m_parameter *param1 = new_m_parameter_wni("Center", "center", 5, 0.1, 10.0);
 	param1->units = " ms";
-	m_parameter *param2 = new_m_parameter_wni("Depth", "depth", 100.0, 0.0, 100.0);
+	m_parameter *param2 = new_m_parameter_wni("Depth", "depth", 5.0, 0.0, 100.0);
 	param2->units = "%";
 	m_parameter *param3 = new_m_parameter_wni("Rate", "rate", 1.0, 0.0, 2.0);
 	param3->units = " Hz";
@@ -1113,37 +1357,96 @@ m_effect_desc *create_flanger_eff_desc()
 	m_effect_desc_add_param(eff, param3);
 	m_effect_desc_add_param(eff, param4);
 	
-	// Load phase accumulator from mem[0]
-	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_load_acc(1)));
-	// Add phase accumulator (wrapping)
+	// Load phase accumulator from mem[01] into accumulator
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_load_acc(0)));
+	// Add constant into acc, with wrapping
 	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_accu(0, 1)));
-	m_effect_desc_add_register_val(eff, 1, 0, DSP_REG_FORMAT_LITERAL, "* rate 6087.0");
-	// Save new phase accumulator
-	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_save_acc(1)));
-	// Put accumulator on ch0
+	m_effect_desc_add_register_val(eff, 1, 0, DSP_REG_FORMAT_LITERAL, "/ * rate pow 2 27 44100");
+	// Save new phase accumulator into mem[0]
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_save_acc(0)));
+	// Put upper accumulator on ch1
 	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mov_uacc(1)));
-	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_lsh4(1, 0, 1)));
+	// Multiply accumulator by 8; otherwise it is too slow
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_lsh(1, 0, 4, 2)));
 	
-	// take sin of phase accumulator
-	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_lut(1, 0, 0, 2)));
+	// take sin of phase accumulator into ch2
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_lut_read(2, 0, 0, 3)));
 	
-	// multiply sin(phase_acc) by depth (stored as #samples, left shifted 1) into accumulator with no shift
-	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_macz_noshift(2, 0, 0, 1)));
-	m_effect_desc_add_register_val(eff, 6, 0, DSP_REG_FORMAT_LITERAL, "* * * * 0.001 2 44.1 depth center");
-	// add 
-	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mac_noshift(0, 1, 1, 1)));
-	m_effect_desc_add_register_val(eff, 7, 0, DSP_REG_FORMAT_LITERAL, "* * 4 44.1 center");
-	m_effect_desc_add_register_val(eff, 7, 1, DSP_REG_FORMAT_LITERAL, "16384");
+	// multiply sin(phase_acc) by depth (stored as #samples, left shifted 1) into accumulator, with no shift
+	// this means acc = 2 * sin(phase_acc) * depth_samples
+	// so the top 16 bits are the integer part and the lower 16 bits are the fractional part
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_macz_unsat_noshift(3, 0, 0, 1)));
+	m_effect_desc_add_register_val(eff, 6, 0, DSP_REG_FORMAT_LITERAL, "* * * 0.01 2 44.1 depth");
+	
+	// take a look
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mov_uacc(4)));
+	
+	// set acc = (depth_ms * sin(phase_acc) + center_ms) * 2^16
+	// center_samples = center_ms * 44.1
+	// multiply it with both 2^14 and 2^2 to shift it to add on to the
+	// accumulator in the right format
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mac_unsat_noshift(0, 1, 1, 1)));
+	m_effect_desc_add_register_val(eff, 8, 0, DSP_REG_FORMAT_LITERAL, "* * 8 44.1 center");
+	m_effect_desc_add_register_val(eff, 8, 1, DSP_REG_FORMAT_LITERAL, "16384");
+	
+	// take a looksie
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mov_uacc(5)));
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mov_acc_unsat(6)));
 	
 	// get fractional delay
 	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_frac_delay(0, 7)));
+	
+	
 	// write the raw input sample back to the delay buffer
 	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_delay_write(0, 0, 0)));
 	// mix in fractional delay
-	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_madd(0, 1, 7, 0, 0, 0, 0, 0)));
-	m_effect_desc_add_register_val(eff, 10, 0, 0, "strength");
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_madd(0, 1, 7, 0, 0, 0, 8, 0)));
+	m_effect_desc_add_register_val(eff, 13, 0, 0, "- 0 strength");
+	
+	// Put the final result into the master channel
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mov(8, 0, 0)));
 	
 	m_effect_desc_add_resource_request(eff, new_fpga_resource_req(M_FPGA_RESOURCE_DDELAY, 1024));
 	
 	return eff;
 }
+
+m_effect_desc *create_smoother_eff_desc()
+{
+	m_effect_desc *eff = new_m_effect_desc("Smoother");
+	eff->id = 6;
+	m_parameter *param1 = new_m_parameter_wni("Smoothing", "g", 50, 0, 99.9);
+	param1->units = "%";
+	
+	m_effect_desc_add_param(eff, param1);
+	
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_load(0, 1)));
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_sub (0, 0, 1, 0, 0)));
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mul (0, 0, 0, 1, 0, 1)));
+	m_effect_desc_add_register_val(eff, 2, 0, 1, "- 1 / g 100");
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_add (1, 0, 0, 0, 0)));
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_save(0, 0, 0)));
+	
+	return eff;
+}
+
+m_effect_desc *create_unsmoother_eff_desc()
+{
+	m_effect_desc *eff = new_m_effect_desc("Unsmoother");
+	eff->id = 7;
+	m_parameter *param1 = new_m_parameter_wni("Unsmoothing", "g", 50, 0, 99.9);
+	param1->units = "%";
+	
+	m_effect_desc_add_param(eff, param1);
+	
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_load(0, 1)));
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_sub (0, 0, 1, 0, 2)));
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_mul (2, 0, 0, 1, 2, 1)));
+	m_effect_desc_add_register_val(eff, 2, 0, 1, "- 1 / g 100");
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_add (1, 0, 2, 0, 2)));
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_save(2, 0, 0)));
+	m_effect_desc_add_block(eff, new_m_dsp_block_with_instr(m_dsp_block_instr_sub (0, 0, 2, 0, 0)));
+	
+	return eff;
+}
+#endif

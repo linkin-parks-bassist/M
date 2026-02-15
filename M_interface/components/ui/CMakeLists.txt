@@ -14,5 +14,6 @@ idf_component_register(SRCS "m_int_button.c"
 							driver
 							drivers
 							teensy_comms
+							fpga_comms
 					INCLUDE_DIRS "." "../../../shared" "../../main" "../" "../core")
 

@@ -27,15 +27,14 @@ QueueHandle_t m_fpga_send_queue;
 
 int m_fpga_block_opcode_format(int opcode)
 {
-	return (opcode == BLOCK_INSTR_DELAY_READ
+	return (opcode == BLOCK_INSTR_LUT_READ
+		 || opcode == BLOCK_INSTR_DELAY_READ
 		 || opcode == BLOCK_INSTR_DELAY_WRITE
-		 || opcode == BLOCK_INSTR_FRAC_DELAY
-		 || opcode == BLOCK_INSTR_SAVE
-		 || opcode == BLOCK_INSTR_LOAD
-		 || opcode == BLOCK_INSTR_LOAD_ACC
-		 || opcode == BLOCK_INSTR_SAVE_ACC
-		 || opcode == BLOCK_INSTR_LUT) ? INSTR_FORMAT_B : INSTR_FORMAT_A;
+		 || opcode == BLOCK_INSTR_MEM_READ
+		 || opcode == BLOCK_INSTR_MEM_WRITE)
+		 ? INSTR_FORMAT_B : INSTR_FORMAT_A;
 }
+
 int m_dsp_block_instr_format(m_dsp_block_instr instr)
 {
 	return m_fpga_block_opcode_format(instr.opcode);
@@ -114,87 +113,30 @@ m_dsp_block_instr m_dsp_block_instr_nop()
 
 m_dsp_block_instr m_dsp_block_instr_add(int src_a, int src_a_reg, int src_b, int src_b_reg, int dest)
 {
-	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_ADD, src_a, src_a_reg, src_b, src_b_reg, 0, 0, dest, 0, 0);
+	return m_dsp_block_instr_madd(src_a, src_a_reg, POS_ONE_REGISTER_ADDR, 1, src_b, src_b_reg, dest, 0);
 }
 
 m_dsp_block_instr m_dsp_block_instr_add_unsat(int src_a, int src_a_reg, int src_b, int src_b_reg, int dest)
 {
-	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_ADD, src_a, src_a_reg, src_b, src_b_reg, 0, 0, dest, 0, 1);
-}
-
-m_dsp_block_instr m_dsp_block_instr_sub(int src_a, int src_a_reg, int src_b, int src_b_reg, int dest)
-{
-	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_SUB, src_a, src_a_reg, src_b, src_b_reg, 0, 0, dest, 0, 0);
-}
-
-m_dsp_block_instr m_dsp_block_instr_sub_unsat(int src_a, int src_a_reg, int src_b, int src_b_reg, int dest)
-{
-	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_SUB, src_a, src_a_reg, src_b, src_b_reg, 0, 0, dest, 0, 1);
-}
-
-m_dsp_block_instr m_dsp_block_instr_lsh(int src_a, int src_a_reg, int dest)
-{
-	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_LSH, src_a, src_a_reg, 0, 0, 0, 0, dest, 0, 0);
-}
-
-m_dsp_block_instr m_dsp_block_instr_rsh(int src_a, int src_a_reg, int dest)
-{
-	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_RSH, src_a, src_a_reg, 0, 0, 0, 0, dest, 0, 0);
-}
-
-m_dsp_block_instr m_dsp_block_instr_arsh(int src_a, int src_a_reg, int dest)
-{
-	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_ARSH, src_a, src_a_reg, 0, 0, 0, 0, dest, 0, 0);
-}
-
-m_dsp_block_instr m_dsp_block_instr_lsh4(int src_a, int src_a_reg, int dest)
-{
-	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_LSH, src_a, src_a_reg, 4, 0, 0, 0, dest, 0, 0);
-}
-
-m_dsp_block_instr m_dsp_block_instr_rsh4(int src_a, int src_a_reg, int dest)
-{
-	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_RSH, src_a, src_a_reg, 4, 0, 0, 0, dest, 0, 0);
-}
-
-m_dsp_block_instr m_dsp_block_instr_arsh4(int src_a, int src_a_reg, int dest)
-{
-	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_ARSH, src_a, src_a_reg, 4, 0, 0, 0, dest, 0, 0);
-}
-
-m_dsp_block_instr m_dsp_block_instr_lsh8(int src_a, int src_a_reg, int dest)
-{
-	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_LSH, src_a, src_a_reg, 8, 0, 0, 0, dest, 0, 0);
-}
-
-m_dsp_block_instr m_dsp_block_instr_rsh8(int src_a, int src_a_reg, int dest)
-{
-	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_RSH, src_a, src_a_reg, 8, 0, 0, 0, dest, 0, 0);
-}
-
-m_dsp_block_instr m_dsp_block_instr_arsh8(int src_a, int src_a_reg, int dest)
-{
-	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_ARSH, src_a, src_a_reg, 8, 0, 0, 0, dest, 0, 0);
+	return m_dsp_block_instr_madd_unsat(src_a, src_a_reg, POS_ONE_REGISTER_ADDR, 1, src_b, src_b_reg, dest, 1);
 }
 
 m_dsp_block_instr m_dsp_block_instr_mul(int src_a, int src_a_reg, int src_b, int src_b_reg, int dest, int shift)
 {
-	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MUL, src_a, src_a_reg, src_b, src_b_reg, 0, 0, dest, shift, 0);
+	return m_dsp_block_instr_madd(src_a, src_a_reg, src_b, src_b_reg, ZERO_REGISTER_ADDR, 1, dest, shift);
 }
-
-m_dsp_block_instr m_dsp_block_instr_mul_unsat(int src_a, int src_a_reg, int src_b, int src_b_reg, int dest)
-{
-	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MUL, src_a, src_a_reg, src_b, src_b_reg, 0, 0, dest, 0, 1);
-}
-
 m_dsp_block_instr m_dsp_block_instr_mul_noshift(int src_a, int src_a_reg, int src_b, int src_b_reg, int dest)
 {
-	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MUL, src_a, src_a_reg, src_b, src_b_reg, 0, 0, dest, NO_SHIFT, 0);
+	return m_dsp_block_instr_madd_noshift(src_a, src_a_reg, src_b, src_b_reg, ZERO_REGISTER_ADDR, 1, dest);
+}
+m_dsp_block_instr m_dsp_block_instr_mul_unsat(int src_a, int src_a_reg, int src_b, int src_b_reg, int dest, int shift)
+{
+	return m_dsp_block_instr_madd_unsat(src_a, src_a_reg, src_b, src_b_reg, ZERO_REGISTER_ADDR, 1, dest, shift);
 }
 
 m_dsp_block_instr m_dsp_block_instr_mul_unsat_noshift(int src_a, int src_a_reg, int src_b, int src_b_reg, int dest)
 {
-	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MUL, src_a, src_a_reg, src_b, src_b_reg, 0, 0, dest, NO_SHIFT, 1);
+	return m_dsp_block_instr_madd_unsat_noshift(src_a, src_a_reg, src_b, src_b_reg, ZERO_REGISTER_ADDR, 1, dest);
 }
 
 m_dsp_block_instr m_dsp_block_instr_madd(int src_a, int src_a_reg, int src_b, int src_b_reg, int src_c, int src_c_reg, int dest, int shift)
@@ -217,48 +159,9 @@ m_dsp_block_instr m_dsp_block_instr_madd_unsat_noshift(int src_a, int src_a_reg,
 	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MADD, src_a, src_a_reg, src_b, src_b_reg, src_c, src_c_reg, dest, NO_SHIFT, 1);
 }
 
-m_dsp_block_instr m_dsp_block_instr_abs(int src_a, int src_a_reg, int dest)
+m_dsp_block_instr m_dsp_block_instr_macz(int src_a, int src_a_reg, int src_b, int src_b_reg, int shift)
 {
-	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_ABS, src_a, src_a_reg, 0, 0, 0, 0, dest, 0, 0);
-}
-
-m_dsp_block_instr m_dsp_block_instr_lut(int src_a, int src_a_reg, int lut, int dest)
-{
-	return m_dsp_block_instr_type_b_str(BLOCK_INSTR_LUT, src_a, src_a_reg, 0, 0, dest, lut);
-}
-
-m_dsp_block_instr m_dsp_block_instr_delay_read(int delay, int delay_reg, int buffer, int dest)
-{
-	return m_dsp_block_instr_type_b_str(BLOCK_INSTR_DELAY_READ, delay, delay_reg, 0, 0, dest, buffer);
-}
-
-m_dsp_block_instr m_dsp_block_instr_delay_write(int src, int src_reg, int buffer)
-{
-	return m_dsp_block_instr_type_b_str(BLOCK_INSTR_DELAY_WRITE, src, src_reg, 0, 0, 0, buffer);
-}
-
-m_dsp_block_instr m_dsp_block_instr_save(int addr, int src, int src_reg)
-{
-	return m_dsp_block_instr_type_b_str(BLOCK_INSTR_SAVE, src, src_reg, 0, 0, 0, addr);
-}
-
-m_dsp_block_instr m_dsp_block_instr_load(int addr, int dest)
-{
-	return m_dsp_block_instr_type_b_str(BLOCK_INSTR_LOAD, 0, 0, 0, 0, dest, addr);
-}
-
-m_dsp_block_instr m_dsp_block_instr_mov(int src, int src_reg, int dest)
-{
-	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MOV, src, src_reg, 0, 0, 0, 0, dest, 0, 0);
-}
-
-m_dsp_block_instr m_dsp_block_instr_clamp(int src_a, int src_a_reg, int src_b, int src_b_reg, int src_c, int src_c_reg, int dest)
-{
-	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_CLAMP, src_a, src_a_reg, src_b, src_b_reg, src_c, src_c_reg, dest, 0, 0);
-}
-m_dsp_block_instr m_dsp_block_instr_macz(int src_a, int src_a_reg, int src_b, int src_b_reg)
-{
-	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MACZ, src_a, src_a_reg, src_b, src_b_reg, 0, 0, 0, 0, 0);
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MACZ, src_a, src_a_reg, src_b, src_b_reg, 0, 0, 0, shift, 0);
 }
 
 m_dsp_block_instr m_dsp_block_instr_macz_noshift(int src_a, int src_a_reg, int src_b, int src_b_reg)
@@ -266,11 +169,10 @@ m_dsp_block_instr m_dsp_block_instr_macz_noshift(int src_a, int src_a_reg, int s
 	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MACZ, src_a, src_a_reg, src_b, src_b_reg, 0, 0, 0, NO_SHIFT, 0);
 }
 
-m_dsp_block_instr m_dsp_block_instr_mac(int src_a, int src_a_reg, int src_b, int src_b_reg)
+m_dsp_block_instr m_dsp_block_instr_mac(int src_a, int src_a_reg, int src_b, int src_b_reg, int shift)
 {
-	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MAC, src_a, src_a_reg, src_b, src_b_reg, 0, 0, 0, 0, 0);
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MAC, src_a, src_a_reg, src_b, src_b_reg, 0, 0, 0, shift, 0);
 }
-
 m_dsp_block_instr m_dsp_block_instr_mac_noshift(int src_a, int src_a_reg, int src_b, int src_b_reg)
 {
 	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MAC, src_a, src_a_reg, src_b, src_b_reg, 0, 0, 0, NO_SHIFT, 0);
@@ -281,44 +183,79 @@ m_dsp_block_instr m_dsp_block_instr_mov_acc(int dest)
 	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MOV_ACC, 0, 0, 0, 0, 0, 0, dest, 0, 0);
 }
 
-m_dsp_block_instr m_dsp_block_instr_linterp(int src_a, int src_a_reg, int src_b, int src_b_reg, int src_c, int src_c_reg, int dest)
+m_dsp_block_instr m_dsp_block_instr_mov_acc_sh(int sh, int dest)
 {
-	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_LINTERP, src_a, src_a_reg, src_b, src_b_reg, src_c, src_c_reg, dest, 0, 0);
-}
-
-m_dsp_block_instr m_dsp_block_instr_frac_delay(int buffer, int dest)
-{
-	return m_dsp_block_instr_type_b_str(BLOCK_INSTR_FRAC_DELAY, 0, 0, 0, 0, dest, buffer);
-}
-
-m_dsp_block_instr m_dsp_block_instr_load_acc(int addr)
-{
-	return m_dsp_block_instr_type_b_str(BLOCK_INSTR_LOAD_ACC, 0, 0, 0, 0, 0, addr);
-}
-
-m_dsp_block_instr m_dsp_block_instr_save_acc(int addr)
-{
-	return m_dsp_block_instr_type_b_str(BLOCK_INSTR_SAVE_ACC, 0, 0, 0, 0, 0, addr);
-}
-
-m_dsp_block_instr m_dsp_block_instr_acc(int src_a, int src_a_reg)
-{
-	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_ACC, src_a, src_a_reg, 0, 0, 0, 0, 0, 0, 0);
-}
-
-m_dsp_block_instr m_dsp_block_instr_accu(int src_a, int src_a_reg)
-{
-	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_ACC, src_a, src_a_reg, 0, 0, 0, 0, 0, NO_SHIFT, 0);
-}
-
-m_dsp_block_instr m_dsp_block_instr_clear_acc()
-{
-	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_CLEAR_ACC, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MOV_ACC, 0, 0, 0, 0, 0, 0, dest, sh, 0);	
 }
 
 m_dsp_block_instr m_dsp_block_instr_mov_uacc(int dest)
 {
 	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MOV_UACC, 0, 0, 0, 0, 0, 0, dest, 0, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_mov_lacc(int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MOV_LACC, 0, 0, 0, 0, 0, 0, dest, 0, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_lsh(int src_a, int src_a_reg, int shift, int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_LSH, src_a, src_a_reg, 0, 0, 0, 0, dest, shift, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_rsh(int src_a, int src_a_reg, int shift, int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_RSH, src_a, src_a_reg, 0, 0, 0, 0, dest, shift, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_arsh(int src_a, int src_a_reg, int shift, int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_ARSH, src_a, src_a_reg, 0, 0, 0, 0, dest, shift, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_abs(int src_a, int src_a_reg, int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_ABS, src_a, src_a_reg, 0, 0, 0, 0, dest, 0, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_min(int src_a, int src_a_reg, int src_b, int src_b_reg, int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MIN, src_a, src_a_reg, src_b, src_b_reg, 0, 0, dest, 0, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_max(int src_a, int src_a_reg, int src_b, int src_b_reg, int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_MAX, src_a, src_a_reg, src_b, src_b_reg, 0, 0, dest, 0, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_clamp(int src_a, int src_a_reg, int src_b, int src_b_reg, int src_c, int src_c_reg, int dest)
+{
+	return m_dsp_block_instr_type_a_str(BLOCK_INSTR_CLAMP, src_a, src_a_reg, src_b, src_b_reg, src_c, src_c_reg, dest, 0, 0);
+}
+
+m_dsp_block_instr m_dsp_block_instr_lut_read(int src_a, int src_a_reg, int lut, int dest)
+{
+	return m_dsp_block_instr_type_b_str(BLOCK_INSTR_LUT_READ, src_a, src_a_reg, 0, 0, dest, lut);
+}
+
+m_dsp_block_instr m_dsp_block_instr_delay_read(int buffer, int dest)
+{
+	return m_dsp_block_instr_type_b_str(BLOCK_INSTR_DELAY_READ, 0, 0, 0, 0, dest, buffer);
+}
+
+m_dsp_block_instr m_dsp_block_instr_delay_write(int src, int src_reg, int inc, int inc_reg, int buffer)
+{
+	return m_dsp_block_instr_type_b_str(BLOCK_INSTR_DELAY_WRITE, src, src_reg, inc, inc_reg, 0, buffer);
+}
+
+m_dsp_block_instr m_dsp_block_instr_mem_write(int src, int src_reg, int addr)
+{
+	return m_dsp_block_instr_type_b_str(BLOCK_INSTR_MEM_WRITE, src, src_reg, 0, 0, 0, addr);
+}
+
+m_dsp_block_instr m_dsp_block_instr_mem_read(int addr, int dest)
+{
+	return m_dsp_block_instr_type_b_str(BLOCK_INSTR_MEM_READ, 0, 0, 0, 0, dest, addr);
 }
 
 
@@ -363,7 +300,7 @@ m_dsp_block_instr m_decode_dsp_block_instr(uint32_t code)
     return result;
 }
 
-int m_fpga_comms_init(void)
+int m_fpga_spi_init()
 {
     esp_err_t ret;
 
@@ -396,13 +333,41 @@ int m_fpga_comms_init(void)
 
 int m_fpga_txrx(uint8_t *tx, uint8_t *rx, size_t len)
 {
+	if (len == 0)
+		return 0;
+		
+	uint8_t reply_buf[len];
+	
     spi_transaction_t t = {
         .length = len * 8,
         .tx_buffer = tx,
-        .rx_buffer = rx,
+        .rx_buffer = reply_buf,
     };
 
 	esp_err_t err = spi_device_transmit(spi_handle, &t);
+	
+	#ifdef PRINT_SPI_BYTES
+	char print_buf[len * 10 + 1];
+	int buf_index = 0;
+	for (int i = 0; i < len; i++)
+	{
+		sprintf(&print_buf[buf_index], "SEND 0x%02x\n", tx[i]);
+		buf_index += 10;
+	}
+	print_buf[buf_index] = 0;
+	printf("\n\n\n\n\n\n\n\n\n\n\n\n\nSPI send to FPGA (%d bytes):\n", len);
+	printf(print_buf);
+	
+	printf("FPGA replied with\n");
+	buf_index = 0;
+	for (int i = 0; i < len; i++)
+	{
+		sprintf(&print_buf[buf_index], "RCVD 0x%02x\n", reply_buf[i]);
+		buf_index += 10;
+	}
+	print_buf[buf_index] = 0;
+	printf(print_buf);
+	#endif
 	
 	return (err == ESP_OK) ? NO_ERROR : ERR_SPI_FAIL;
 }
@@ -419,13 +384,14 @@ m_fpga_transfer_batch m_new_fpga_transfer_batch()
 	seq.buf = m_alloc(sizeof(uint32_t) * N_BLOCKS);
 	seq.len = 0;
 	seq.buf_len = (int)(sizeof(uint32_t) * N_BLOCKS);
+	seq.buffer_owned = 0;
 	
 	return seq;
 }
 
 void m_free_fpga_transfer_batch(m_fpga_transfer_batch batch)
 {
-	if (batch.buf) m_free(batch.buf);
+	if (batch.buf && !batch.buffer_owned) m_free(batch.buf);
 }
 
 int m_fpga_batch_append(m_fpga_transfer_batch *seq, uint8_t byte)
@@ -538,32 +504,24 @@ char *m_dsp_block_opcode_to_string(uint32_t opcode)
 	switch (opcode)
 	{
 		case BLOCK_INSTR_NOP: 			return (char*)"BLOCK_INSTR_NOP";
-		case BLOCK_INSTR_ADD: 			return (char*)"BLOCK_INSTR_ADD";
-		case BLOCK_INSTR_SUB: 			return (char*)"BLOCK_INSTR_SUB";
 		case BLOCK_INSTR_LSH: 			return (char*)"BLOCK_INSTR_LSH";
 		case BLOCK_INSTR_RSH: 			return (char*)"BLOCK_INSTR_RSH";
 		case BLOCK_INSTR_ARSH: 			return (char*)"BLOCK_INSTR_ARSH";
-		case BLOCK_INSTR_MUL: 			return (char*)"BLOCK_INSTR_MUL";
 		case BLOCK_INSTR_MADD: 			return (char*)"BLOCK_INSTR_MADD";
 		case BLOCK_INSTR_ABS: 			return (char*)"BLOCK_INSTR_ABS";
-		case BLOCK_INSTR_LUT: 			return (char*)"BLOCK_INSTR_LUT";
-		case BLOCK_INSTR_ENVD: 			return (char*)"BLOCK_INSTR_ENVD";
+		case BLOCK_INSTR_LUT_READ:		return (char*)"BLOCK_INSTR_LUT_READ";
 		case BLOCK_INSTR_DELAY_READ: 	return (char*)"BLOCK_INSTR_DELAY_READ";
 		case BLOCK_INSTR_DELAY_WRITE: 	return (char*)"BLOCK_INSTR_DELAY_WRITE";
-		case BLOCK_INSTR_SAVE: 			return (char*)"BLOCK_INSTR_SAVE";
-		case BLOCK_INSTR_LOAD: 			return (char*)"BLOCK_INSTR_LOAD";
-		case BLOCK_INSTR_MOV: 			return (char*)"BLOCK_INSTR_MOV";
+		case BLOCK_INSTR_MEM_WRITE:		return (char*)"BLOCK_INSTR_MEM_WRITE";
+		case BLOCK_INSTR_MEM_READ:		return (char*)"BLOCK_INSTR_MEM_READ";
+		case BLOCK_INSTR_MIN: 			return (char*)"BLOCK_INSTR_MIN";
+		case BLOCK_INSTR_MAX: 			return (char*)"BLOCK_INSTR_MAX";
 		case BLOCK_INSTR_CLAMP: 		return (char*)"BLOCK_INSTR_CLAMP";
 		case BLOCK_INSTR_MACZ: 			return (char*)"BLOCK_INSTR_MACZ";
 		case BLOCK_INSTR_MAC: 			return (char*)"BLOCK_INSTR_MAC";
 		case BLOCK_INSTR_MOV_ACC: 		return (char*)"BLOCK_INSTR_MOV_ACC";
-		case BLOCK_INSTR_LINTERP: 		return (char*)"BLOCK_INSTR_LINTERP";
-		case BLOCK_INSTR_FRAC_DELAY: 	return (char*)"BLOCK_INSTR_FRAC_DELAY";
-		case BLOCK_INSTR_LOAD_ACC: 		return (char*)"BLOCK_INSTR_LOAD_ACC";
-		case BLOCK_INSTR_SAVE_ACC: 		return (char*)"BLOCK_INSTR_SAVE_ACC";
-		case BLOCK_INSTR_ACC: 			return (char*)"BLOCK_INSTR_ACC";
-		case BLOCK_INSTR_CLEAR_ACC:		return (char*)"BLOCK_INSTR_CLEAR_ACC";
-		case BLOCK_INSTR_MOV_UACC:		return (char*)"BLOCK_INSTR_MOV_UACC";
+		case BLOCK_INSTR_MOV_UACC: 		return (char*)"BLOCK_INSTR_MOV_UACC";
+		case BLOCK_INSTR_MOV_LACC: 		return (char*)"BLOCK_INSTR_MOV_LACC";
 	}
 	
 	return NULL;
@@ -574,7 +532,7 @@ void print_instruction(m_dsp_block_instr instr)
 	switch (m_dsp_block_instr_format(instr))
 	{
 		case INSTR_FORMAT_A:
-			printf("Instruction = %s(%d, %d, %d, %d, %d, %d, %d %d, %d, %d)",
+			printf("Instruction = %s(%d, %d, %d, %d, %d, %d, %d, %d, %d, %d)",
 						m_dsp_block_opcode_to_string(instr.opcode),
 						instr.src_a,
 						instr.src_a_reg,
@@ -670,8 +628,8 @@ int m_fpga_batch_print(m_fpga_transfer_batch seq)
 						ctr = 0;
 						break;
 
-					case COMMAND_ALLOC_SRAM_DELAY:
-						printf("Command ALLOC_SRAM_DELAY");
+					case COMMAND_ALLOC_DELAY:
+						printf("Command ALLOC_DELAY");
 						state = 4;
 						value = 0;
 						ctr = 0;
@@ -755,51 +713,11 @@ int m_fpga_batch_print(m_fpga_transfer_batch seq)
 
 int m_fpga_transfer_batch_send(m_fpga_transfer_batch batch)
 {
-	//m_fpga_batch_print(batch);
+	#ifdef PRINT_TRANSFER_BATCHES
+	m_fpga_batch_print(batch);
+	#endif
 	
 	return m_fpga_txrx(batch.buf, NULL, batch.len);
-}
-
-void write_block_instr(int block, uint32_t instr)
-{
-	m_fpga_send_byte(COMMAND_WRITE_BLOCK_INSTR);
-	
-	m_fpga_send_byte(block);
-	
-	m_fpga_send_byte((instr >> 24) & 0xFFFF);
-	
-	m_fpga_send_byte((instr >> 16) & 0xFFFF);
-	
-	m_fpga_send_byte((instr >> 8) & 0xFFFF);
-	
-	m_fpga_send_byte(instr & 0xFFFF);
-}
-
-void send_data_command(int command, uint16_t data)
-{
-	m_fpga_send_byte(command);
-	m_fpga_send_byte((data >> 8) & 0xFFFF);
-	m_fpga_send_byte(data & 0xFFFF);
-}
-
-void write_block_register(int block, int reg, uint16_t val)
-{
-	printf("Write block register: %d.%d <= %.06f\n", block, reg, (float)(val / (float)(1 << 15)));
-	
-	printf("Send command COMMAND_WRITE_BLOCK_REG\n");
-	m_fpga_send_byte(COMMAND_WRITE_BLOCK_REG);
-	
-	printf("Send block number\n");
-	m_fpga_send_byte(block);
-	
-	printf("Send register number\n");
-	
-	m_fpga_send_byte(reg & 0xFFFF);
-	
-	printf("Send value\n");
-	m_fpga_send_byte((val >> 8) & 0xFFFF);
-	
-	m_fpga_send_byte(val & 0xFFFF);
 }
 
 #if 0
@@ -869,35 +787,12 @@ void load_biquad(int base_block,
 
 #endif
 
-void m_fpga_comms_task(void *param)
-{
-	m_fpga_comms_init();
-	
-	vTaskDelay(pdMS_TO_TICKS(2000));
-	
-	printf("try...\n");
-	m_fpga_send_byte(COMMAND_ALLOC_SRAM_DELAY);
-	m_fpga_send_byte((4096 & 0xFF00) >> 8);
-	m_fpga_send_byte( 0);
-	
-	m_fpga_send_byte(COMMAND_SWAP_PIPELINES);
-	
-	printf("try...\n");
-	m_fpga_send_byte(COMMAND_ALLOC_SRAM_DELAY);
-	m_fpga_send_byte((4096) >> 8);
-	m_fpga_send_byte( 0);
-	
-	m_fpga_send_byte(COMMAND_SWAP_PIPELINES);
-	
-	vTaskDelete(NULL);
-}
-
 void m_fpga_set_input_gain(float gain_db)
 {
 	float v = powf(10, gain_db / 20.0);
 	uint16_t s = float_to_q_nminus1(v, 5);
 			
-	printf("Telling FPGA to change input gain to %fdB = %f = 0b%d%d%d%d%d.%d%d%d%d%d%d%d%d%d%d%d\n", gain_db, v,
+	/*printf("Telling FPGA to change input gain to %fdB = %f = 0b%d%d%d%d%d.%d%d%d%d%d%d%d%d%d%d%d\n", gain_db, v,
 		!!(s & (1 << 15)),
 		!!(s & (1 << 14)),
 		!!(s & (1 << 13)),
@@ -913,7 +808,7 @@ void m_fpga_set_input_gain(float gain_db)
 		!!(s & (1 << 3)),
 		!!(s & (1 << 2)),
 		!!(s & (1 << 1)),
-		!!(s & (1 << 0)));
+		!!(s & (1 << 0)));*/
 	
 	m_fpga_send_byte(COMMAND_SET_INPUT_GAIN);
 	m_fpga_send_byte((s & 0xFF00) >> 8);
@@ -925,7 +820,7 @@ void m_fpga_set_output_gain(float gain_db)
 	float v = powf(10, gain_db / 20.0);
 	uint16_t s = float_to_q_nminus1(v, 5);
 			
-	printf("Telling FPGA to change input gain to %fdB = %f = 0b%d%d%d%d%d.%d%d%d%d%d%d%d%d%d%d%d\n", gain_db, v,
+	/*printf("Telling FPGA to change output gain to %fdB = %f = 0b%d%d%d%d%d.%d%d%d%d%d%d%d%d%d%d%d\n", gain_db, v,
 		!!(s & (1 << 15)),
 		!!(s & (1 << 14)),
 		!!(s & (1 << 13)),
@@ -941,11 +836,17 @@ void m_fpga_set_output_gain(float gain_db)
 		!!(s & (1 << 3)),
 		!!(s & (1 << 2)),
 		!!(s & (1 << 1)),
-		!!(s & (1 << 0)));
+		!!(s & (1 << 0)));*/
 	
 	m_fpga_send_byte(COMMAND_SET_OUTPUT_GAIN);
 	m_fpga_send_byte((s & 0xFF00) >> 8);
 	m_fpga_send_byte(s & 0x00FF);
+}
+
+
+void m_fpga_commit_reg_updates()
+{
+	m_fpga_send_byte(COMMAND_COMMIT_REG_UPDATES);
 }
 
 m_fpga_resource_report m_empty_fpga_resource_report()

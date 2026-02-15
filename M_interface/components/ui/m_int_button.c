@@ -634,6 +634,7 @@ void m_active_button_delete_anim_cb(void *data, int32_t value)
 
 void m_active_button_trigger_scale_anim(m_active_button *button, int direction)
 {
+	#ifdef ACTIVE_BUTTON_USE_SCALE_ANIM
 	if (!button)
 		return;
 	
@@ -648,6 +649,7 @@ void m_active_button_trigger_scale_anim(m_active_button *button, int direction)
 	lv_anim_path_ease_in_out(&button->scale_anim);
 	
 	lv_anim_start(&button->scale_anim);
+	#endif
 }
 
 void m_active_button_trigger_glide_anim(m_active_button *button, int32_t new_pos_y)

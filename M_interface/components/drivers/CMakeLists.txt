@@ -11,4 +11,5 @@ idf_component_register(SRCS "m_int_sgtl5000.c"
 							esp32_p4_nano
 							fatfs
 							core
+							fpga_comms
 					INCLUDE_DIRS "." "../../../shared" "../../main" "../" "../ui" "../core")

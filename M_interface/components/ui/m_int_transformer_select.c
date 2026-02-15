@@ -6,7 +6,7 @@ IMPLEMENT_LINKED_PTR_LIST(m_transformer_selector_button);
 
 void enter_transformer_selector_cb(lv_event_t *e)
 {
-	enter_ui_page(&global_cxt.pages.transformer_selector);
+	enter_ui_page_forwards(&global_cxt.pages.transformer_selector);
 }
 
 int init_transformer_selector_eff(m_ui_page *page)
@@ -138,25 +138,24 @@ void add_transformer_from_menu_eff(lv_event_t *e)
 	}
 	else
 	{
+		enter_ui_page_backwards(profile->view_page);
 		pv = profile->view_page;
 	}
 	
 	trans = m_profile_append_transformer_eff(profile, eff);
 	
-	if (pv)
-		profile_view_append_transformer(pv, trans);
+	if (pv) profile_view_append_transformer(pv, trans);
 	
 	profile->unsaved_changes = 1;
 	
-	//m_profile_update_representations(profile);
+	m_profile_update_representations(profile);
 	
+	#ifdef USE_FPGA
 	m_profile_if_active_update_fpga(profile);
+	#endif
 	
 	transformer_init_ui_page(trans, pv);
 	create_transformer_view_ui(trans->view_page);
-	
-	printf("Transformer selector exiting; returning to view page for profile %d\n", profile->id);
-	enter_ui_page(profile->view_page);
 }
 
 void add_transformer_from_menu(lv_event_t *e)
@@ -203,7 +202,7 @@ void add_transformer_from_menu(lv_event_t *e)
 	create_transformer_view_ui(trans->view_page);
 	
 	printf("Transformer selector exiting; returning to view page for profile %d\n", profile->id);
-	enter_ui_page(profile->view_page);
+	enter_ui_page_backwards(profile->view_page);
 }
 
 int init_transformer_selector_button_from_effect(m_transformer_selector_button *button, m_effect_desc *eff)
@@ -338,28 +337,6 @@ int enter_transformer_selector(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
-	
-	lv_scr_load(page->screen);
-	
-	return NO_ERROR;
-}
-
-int enter_transformer_selector_forward(m_ui_page *page)
-{
-	if (!page)
-		return ERR_NULL_PTR;
-	
-	lv_scr_load_anim(page->screen, LV_SCR_LOAD_ANIM_MOVE_LEFT, UI_PAGE_TRANSITION_ANIM_MS, 0, false);
-	
-	return NO_ERROR;
-}
-
-int enter_transformer_selector_back(m_ui_page *page)
-{
-	if (!page)
-		return ERR_NULL_PTR;
-	
-	lv_scr_load_anim(page->screen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, UI_PAGE_TRANSITION_ANIM_MS, 0, false);
 	
 	return NO_ERROR;
 }

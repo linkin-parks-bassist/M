@@ -11,15 +11,15 @@ int init_settings(m_settings *settings)
 	settings->default_profile = NULL;
 	settings->default_profile_id = 0;
 	
-	
-	init_parameter(&settings->input_gain, "Input Gain", 0.0, -24.0, 24.0);
+	init_parameter(&settings->input_gain, "Input Gain", 0.0, -30.0, 30.0);
 	settings->input_gain.units = " dB";
-	settings->input_gain.id = (m_parameter_id){.profile_id = 0xFFFF, .transformer_id = 0, .parameter_id = 0};
+	settings->input_gain.id = (m_parameter_id){.profile_id = CONTEXT_PROFILE_ID, .transformer_id = 0, .parameter_id = INPUT_GAIN_PID};
+	settings->input_gain.max_velocity = 0.4;
 	
-	init_parameter(&settings->output_gain, "Output Gain", -60.0, -24.0, 24.0);
+	init_parameter(&settings->output_gain, "Output Gain", -60.0, -30.0, 30.0);
 	settings->output_gain.units = " dB";
-	settings->output_gain.id = (m_parameter_id){.profile_id = 0xFFFF, .transformer_id = 0, .parameter_id = 1};
-	
+	settings->output_gain.id = (m_parameter_id){.profile_id = CONTEXT_PROFILE_ID, .transformer_id = 0, .parameter_id = OUTPUT_GAIN_PID};
+	settings->output_gain.max_velocity = 0.4;
 	
 	settings_mutex = xSemaphoreCreateMutex();
 	assert(settings_mutex != NULL);
@@ -29,6 +29,7 @@ int init_settings(m_settings *settings)
 
 int send_settings(m_settings *settings)
 {
+	#ifdef USE_TEENSY
 	if (!settings)
 		return ERR_NULL_PTR;
 	
@@ -36,6 +37,7 @@ int send_settings(m_settings *settings)
 	queue_msg_to_teensy(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0xFFFF, 0, 0, settings->input_gain.value));
 	queue_msg_to_teensy(create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", 0xFFFF, 0, 1, settings->output_gain.value));
 	xSemaphoreGive(settings_mutex);
+	#endif
 	
 	return NO_ERROR;
 }

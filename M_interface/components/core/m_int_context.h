@@ -73,6 +73,7 @@ int resolve_default_profile(m_context *cxt);
 
 int set_profile_as_default(m_context *cxt, m_profile *profile);
 
+int cxt_save_all_profiles(m_context *cxt);
 void context_print_profiles(m_context *cxt);
 
 int cxt_set_all_profiles_left_button_to_main_menu(m_context *cxt);
@@ -80,5 +81,7 @@ int cxt_set_all_profiles_left_button_to_main_menu(m_context *cxt);
 int cxt_handle_hw_switch(m_context *cxt, int sw);
 
 m_profile *cxt_find_profile(m_context *cxt, const char *fname);
+
+int get_effect_desc(int id);
 
 #endif

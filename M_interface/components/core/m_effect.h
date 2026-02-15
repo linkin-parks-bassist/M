@@ -8,23 +8,27 @@
 
 #define M_DSP_BLOCK_N_REGS 2
 
-#define M_DERIVED_QUANTITY_CONST_FLT 0
-#define M_DERIVED_QUANTITY_CONST_INT 1
-#define M_DERIVED_QUANTITY_REFERENCE 2
-#define M_DERIVED_QUANTITY_FCALL_ADD 3
-#define M_DERIVED_QUANTITY_FCALL_SUB 4
-#define M_DERIVED_QUANTITY_FCALL_MUL 5
-#define M_DERIVED_QUANTITY_FCALL_DIV 6
-#define M_DERIVED_QUANTITY_FCALL_ABS 7
-#define M_DERIVED_QUANTITY_FCALL_SQR 8
-#define M_DERIVED_QUANTITY_FCALL_EXP 9
-#define M_DERIVED_QUANTITY_FCALL_LOG 10
-#define M_DERIVED_QUANTITY_FCALL_POW 11
-#define M_DERIVED_QUANTITY_FCALL_SIN 12
-#define M_DERIVED_QUANTITY_FCALL_COS 13
-#define M_DERIVED_QUANTITY_FCALL_TAN 14
+#define M_DERIVED_QUANTITY_CONST_FLT 	0
+#define M_DERIVED_QUANTITY_CONST_INT 	1
+#define M_DERIVED_QUANTITY_REFERENCE 	2
+#define M_DERIVED_QUANTITY_FCALL_ADD 	3
+#define M_DERIVED_QUANTITY_FCALL_SUB 	4
+#define M_DERIVED_QUANTITY_FCALL_MUL 	5
+#define M_DERIVED_QUANTITY_FCALL_DIV 	6
+#define M_DERIVED_QUANTITY_FCALL_ABS 	7
+#define M_DERIVED_QUANTITY_FCALL_SQR 	8
+#define M_DERIVED_QUANTITY_FCALL_SQRT 	9
+#define M_DERIVED_QUANTITY_FCALL_EXP 	10
+#define M_DERIVED_QUANTITY_FCALL_LN 	11
+#define M_DERIVED_QUANTITY_FCALL_POW 	12
+#define M_DERIVED_QUANTITY_FCALL_SIN 	13
+#define M_DERIVED_QUANTITY_FCALL_SINH 	14
+#define M_DERIVED_QUANTITY_FCALL_COS 	15
+#define M_DERIVED_QUANTITY_FCALL_COSH 	16
+#define M_DERIVED_QUANTITY_FCALL_TAN 	17
+#define M_DERIVED_QUANTITY_FCALL_TANH 	18
 
-#define M_DERIVED_QUANTITY_TYPE_MAX_VAL M_DERIVED_QUANTITY_FCALL_TAN
+#define M_DERIVED_QUANTITY_TYPE_MAX_VAL M_DERIVED_QUANTITY_FCALL_TANH
 
 typedef struct m_derived_quantity
 {
@@ -71,12 +75,15 @@ int m_dsp_block_uses_param(m_dsp_block *blk, m_parameter *param);
 typedef struct {
 	int type;
 	int data;
+	int data2;
 } m_fpga_resource_req;
 
 m_fpga_resource_req *new_fpga_resource_req(int type, int data);
 
 typedef struct
 {
+	int id;
+	
 	const char *name;
 	
 	int n_blocks;
@@ -121,8 +128,18 @@ int m_fpga_transfer_batch_append_effect(
 		m_fpga_transfer_batch *batch
 	);
 
-m_effect_desc *create_amplifier_eff_desc();
+m_effect_desc *create_gain_eff_desc();
+m_effect_desc *create_distortion_eff_desc();
+m_effect_desc *create_arctan_distortion_eff_desc();
+m_effect_desc *create_tube_distortion_eff_desc();
 m_effect_desc *create_delay_eff_desc();
+m_effect_desc *create_comb_filter_eff_desc();
 m_effect_desc *create_flanger_eff_desc();
+m_effect_desc *create_smoother_eff_desc();
+m_effect_desc *create_unsmoother_eff_desc();
+
+m_effect_desc *create_biquad_eff_desc();
+m_effect_desc *create_lpf_eff_desc();
+m_effect_desc *create_hpf_eff_desc();
 
 #endif

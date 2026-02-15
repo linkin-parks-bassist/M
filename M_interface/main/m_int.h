@@ -17,6 +17,7 @@
 //#define USE_COMMS
 #define USE_FPGA
 //#define USE_TEENSY
+//#define PRINT_MEMORY_USAGE
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
@@ -71,6 +72,7 @@
 #include "m_int_parameter.h"
 
 #include "m_int_comms.h"
+#include "m_fpga_comms.h"
 
 #include "m_int_button.h"
 #include "m_int_ui.h"

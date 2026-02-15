@@ -193,6 +193,7 @@ int transformer_set_id(m_transformer *trans, uint16_t profile_id, uint16_t trans
 
 int request_append_transformer(uint16_t type, m_transformer *local)
 {
+	#ifdef USE_TEENSY
 	if (!local)
 		return ERR_NULL_PTR;
 	
@@ -204,6 +205,9 @@ int request_append_transformer(uint16_t type, m_transformer *local)
 	msg.cb_arg = local;
 	
 	return queue_msg_to_teensy(msg);
+	#endif
+	
+	return NO_ERROR;
 }
 
 void transformer_receive_id(m_message message, m_response response)
@@ -467,6 +471,15 @@ int m_transformer_update_fpga_registers(m_transformer *trans)
 	if (!trans->eff)
 		return ERR_BAD_ARGS;
 	
+	m_parameter_pll *current = trans->parameters;
+	
+	while (current)
+	{
+		if (!current->data)
+			continue;
+		current = current->next;
+	}
+	
 	m_fpga_transfer_batch batch = m_new_fpga_transfer_batch();
 	
 	if (!batch.buf)
@@ -474,9 +487,7 @@ int m_transformer_update_fpga_registers(m_transformer *trans)
 	
 	m_fpga_transfer_batch_append_effect_register_updates(&batch, trans->eff, trans->block_position, trans->parameters);
 	
-	int ret_val = m_fpga_transfer_batch_send(batch);
-	
-	m_free(batch.buf);
+	int ret_val = m_fpga_queue_transfer_batch(batch);
 	
 	return ret_val;
 }

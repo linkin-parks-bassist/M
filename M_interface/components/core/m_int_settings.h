@@ -1,6 +1,10 @@
 #ifndef M_INT_SETTINGS_H_
 #define M_INT_SETTINGS_H_
 
+#define CONTEXT_PROFILE_ID  0xFFFF
+#define INPUT_GAIN_PID		0x0000
+#define OUTPUT_GAIN_PID		0x0001
+
 typedef struct
 {
 	m_parameter input_gain;

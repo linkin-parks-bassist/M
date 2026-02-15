@@ -1,4 +1,4 @@
-idf_component_register(SRCS 
+idf_component_register(SRCS "m_fpga_comms.c"
 					REQUIRES
 							driver
 							drivers

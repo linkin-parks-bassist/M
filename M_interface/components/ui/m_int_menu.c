@@ -40,8 +40,6 @@ void menu_page_link_clicked_cb(lv_event_t *e)
 {
 	m_int_menu_item *item = (m_int_menu_item*)lv_event_get_user_data(e);
 	
-	//printf("menu_page_link_clicked_cb\n");
-	
 	if (!item)
 		return;
 	
@@ -49,9 +47,9 @@ void menu_page_link_clicked_cb(lv_event_t *e)
 		return;
 	
 	if (item->linked_page_indirect)
-		enter_ui_page_indirect(item->linked_page_indirect);
+		enter_ui_page_indirect_forwards(item->linked_page_indirect);
 	else if (item->linked_page)
-		enter_ui_page(item->linked_page);
+		enter_ui_page_forwards(item->linked_page);
 }
 
 int configure_menu_item(m_int_menu_item *item)
@@ -316,7 +314,7 @@ void menu_item_profile_listing_released_cb(lv_event_t *e)
 		{
 			profile->view_page->parent = &global_cxt.pages.main_menu;
 			
-			enter_ui_page(profile->view_page);
+			enter_ui_page_forwards(profile->view_page);
 		}
 	}
 	else
@@ -470,7 +468,7 @@ m_int_menu_item *create_page_link_menu_item(char *text, m_ui_page *linked_page, 
 	return item;
 }
 
-m_int_menu_item *create_page_link_indirect_menu_item(char *text, m_ui_page **linked_page, m_ui_page *parent)
+m_int_menu_item *create_page_linindirect_k_menu_item(char *text, m_ui_page **linked_page, m_ui_page *parent)
 {
 	m_int_menu_item *item = m_alloc(sizeof(m_int_menu_item));
 	
@@ -663,8 +661,6 @@ int enter_menu_page(m_ui_page *page)
 	
 	refresh_menu_page(page);
 	
-	lv_scr_load(page->screen);
-	
 	m_int_menu_page_str *str = (m_int_menu_page_str*)page->data_struct;
 	
 	if (str)
@@ -783,7 +779,7 @@ int configure_main_menu(m_ui_page *page, void *data)
 	nullify_parameter_widget(&str->input_gain);
 	nullify_parameter_widget(&str->output_gain);
 	
-	configure_parameter_widget(&str->input_gain, &global_cxt.settings.input_gain, NULL, page);
+	configure_parameter_widget( &str->input_gain,  &global_cxt.settings.input_gain, NULL, page);
 	configure_parameter_widget(&str->output_gain, &global_cxt.settings.output_gain, NULL, page);
 	
 	init_button(&str->profiles_button);
@@ -797,8 +793,8 @@ int configure_main_menu(m_ui_page *page, void *data)
 	m_button_set_label(&str->erase_sd_card_button.button, "Erase SD card");
 	m_button_disable_alignment(&str->erase_sd_card_button.button);
 	
-	button_set_clicked_cb(&str->profiles_button, enter_ui_page_cb, &global_cxt.pages.main_sequence_view);
-	button_set_clicked_cb(&str->sequences_button, enter_ui_page_cb, &global_cxt.pages.sequence_list);
+	button_set_clicked_cb( &str->profiles_button, enter_ui_page_forwards_cb, &global_cxt.pages.main_sequence_view);
+	button_set_clicked_cb(&str->sequences_button, enter_ui_page_forwards_cb, &global_cxt.pages.sequence_list);
 	
 	/*
 	m_int_menu_item *item = create_pad_menu_item(20);
@@ -897,28 +893,6 @@ int enter_main_menu(m_ui_page *page)
 {
 	if (!page)
 		return ERR_NULL_PTR;
-	
-	lv_scr_load(page->screen);
-	
-	return NO_ERROR;
-}
-
-int enter_main_menu_forward(m_ui_page *page)
-{
-	if (!page)
-		return ERR_NULL_PTR;
-	
-	lv_scr_load_anim(page->screen, LV_SCR_LOAD_ANIM_MOVE_LEFT, UI_PAGE_TRANSITION_ANIM_MS, 0, false);
-	
-	return NO_ERROR;
-}
-
-int enter_main_menu_back(m_ui_page *page)
-{
-	if (!page)
-		return ERR_NULL_PTR;
-	
-	lv_scr_load_anim(page->screen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, UI_PAGE_TRANSITION_ANIM_MS, 0, false);
 	
 	return NO_ERROR;
 }

@@ -20,7 +20,7 @@
 
 #define GLOBAL_BACKGROUND_COLOUR	0x222222
 
-#define UI_PAGE_TRANSITION_ANIM_MS 0
+#define UI_PAGE_TRANSITION_ANIM_MS 175
 
 #define BACK_BUTTON_VSIZE	((int)(0.06 * DISPLAY_VRES))
 #define BACK_BUTTON_HSIZE	BACK_BUTTON_HSIZE
@@ -36,8 +36,8 @@
 #define STANDARD_YPOS  		(-(int)(0.02 * DISPLAY_VRES))
 
 #define STANDARD_CONTAINER_WIDTH  		((int)(0.83 * DISPLAY_HRES))
-#define STANDARD_CONTAINER_HEIGHT 		((int)(0.72 * DISPLAY_VRES))
-#define STANDARD_CONTAINER_TALL_HEIGHT 	((int)(0.81 * DISPLAY_VRES))
+#define STANDARD_CONTAINER_HEIGHT 		((int)(0.75 * DISPLAY_VRES))
+#define STANDARD_CONTAINER_TALL_HEIGHT 	((int)(0.85 * DISPLAY_VRES))
 
 DECLARE_LINKED_PTR_LIST(lv_obj_t);
 
@@ -115,9 +115,15 @@ int configure_ui_page(m_ui_page *page, void *data);
 int create_page_ui(m_ui_page *page);
 
 int enter_ui_page(m_ui_page *page);
+int enter_ui_page_forwards(m_ui_page *page);
+int enter_ui_page_backwards(m_ui_page *page);
 
 void enter_ui_page_cb(lv_event_t *e);
+void enter_ui_page_forwards_cb(lv_event_t *e);
+void enter_ui_page_backwards_forwards_cb(lv_event_t *e);
 int  enter_ui_page_indirect(m_ui_page **_page);
+int  enter_ui_page_indirect_forwards(m_ui_page **_page);
+int  enter_ui_page_indirect_backwards(m_ui_page **_page);
 void m_ui_page_return_to_parent(m_ui_page *page);
 
 int m_ui_page_set_background_default(m_ui_page *page);
@@ -135,6 +141,7 @@ int ui_page_add_back_button(m_ui_page *page);
 int ui_page_add_parent_button(m_ui_page *page);
 
 int ui_page_set_title(m_ui_page *page, const char *text);
+int ui_page_update_title(m_ui_page *page, const char *text);
 
 int ui_page_set_title_rw(m_ui_page *page, lv_event_cb_t ok_cb, lv_event_cb_t cancel_cb);
 

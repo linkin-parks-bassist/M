@@ -85,7 +85,7 @@ void transformer_view_enter_settings_cb(lv_event_t *e)
 	if (!str)
 		return;
 	
-	enter_ui_page(str->settings_page);
+	enter_ui_page_forwards(str->settings_page);
 }
 
 int configure_transformer_view(m_ui_page *page, void *data)
@@ -293,35 +293,11 @@ int create_transformer_view_ui(m_ui_page *page)
 int enter_transformer_view(m_ui_page *page)
 {
 	printf("Enter transformer view...\n");
-	lv_scr_load(page->screen);
 	
+	#ifdef USE_TEENSY
 	transformer_view_request_parameter_values(page);
+	#endif
 	printf("Done\n");
-	return NO_ERROR;
-}
-
-int enter_transformer_view_forward(m_ui_page *page)
-{
-	if (!page)
-	{
-		//printf("Error: transformer view is NULL\n");
-		return ERR_NULL_PTR;
-	}
-	//printf("Enter transformer view...\n");
-	lv_scr_load_anim(page->screen, LV_SCR_LOAD_ANIM_MOVE_LEFT, UI_PAGE_TRANSITION_ANIM_MS, 0, false);
-	
-	transformer_view_request_parameter_values(page);
-	//printf("Done\n");
-	return NO_ERROR;
-}
-
-int enter_transformer_view_back(m_ui_page *page)
-{
-	//printf("Enter transformer view...\n");
-	lv_scr_load_anim(page->screen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, UI_PAGE_TRANSITION_ANIM_MS, 0, false);
-	
-	transformer_view_request_parameter_values(page);
-	//printf("Done\n");
 	return NO_ERROR;
 }
 

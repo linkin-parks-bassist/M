@@ -9,6 +9,7 @@ void m_free(void *ptr);
 void *m_int_lv_malloc(size_t size);
 void m_int_lv_free(void *ptr);
 
+void m_mem_init();
 void print_memory_report();
 
 #endif

@@ -178,17 +178,10 @@ int m_int_sequence_add_menu_listing(m_int_sequence *sequence, m_int_menu_item *l
 	return NO_ERROR;
 }
 
-
 int m_sequence_begin(m_int_sequence *sequence)
 {
 	if (!sequence)
 		return ERR_NULL_PTR;
-	
-	if (!sequence->profiles)
-	{
-		printf("Error: empty sequence\n");
-		return ERR_BAD_ARGS;
-	}
 	
 	if (!sequence->profiles)
 	{
@@ -202,6 +195,43 @@ int m_sequence_begin(m_int_sequence *sequence)
 	set_active_profile_from_sequence(sequence->profiles->data);
 	
 	sequence->position = sequence->profiles;
+	
+	m_sequence_update_representations(sequence);
+	
+	return NO_ERROR;
+}
+
+int m_sequence_begin_at(m_int_sequence *sequence, m_profile *profile)
+{
+	if (!sequence || !profile)
+		return ERR_NULL_PTR;
+	
+	if (!sequence->profiles)
+	{
+		printf("Sequence is empty !\n");
+		return NO_ERROR;
+	}
+	
+	global_cxt.sequence = sequence;
+	sequence->active = 1;
+	
+	seq_profile_ll *current = sequence->profiles;
+	int found = 0;
+	
+	while (current && !found)
+	{
+		if (current->data == profile)
+			found = 1;
+		else
+			current = current->next;
+	}
+	
+	if (!found)
+		return ERR_BAD_ARGS;
+	
+	set_active_profile_from_sequence(current->data);
+	
+	sequence->position = current;
 	
 	m_sequence_update_representations(sequence);
 	

@@ -283,26 +283,18 @@ void parameter_widget_change_cb_inner(m_parameter_widget *pw)
 	
 	m_parameter_trigger_update(pw->param, val);
 	
+	#ifdef USE_TEENSY
 	m_message msg = create_m_message(M_MESSAGE_SET_PARAM_VALUE, "sssf", pw->param->id.profile_id, pw->param->id.transformer_id, pw->param->id.parameter_id, pw->param->value);
-
 	queue_msg_to_teensy(msg);
+	#endif
 	
 	if (pw->profile)
 	{
 		pw->profile->unsaved_changes = 1;
 	}
-	else
+	else if (pw->param->id.profile_id == CONTEXT_PROFILE_ID)
 	{
 		global_cxt.settings.changed = 1;
-		
-		if (pw->param == &global_cxt.settings.input_gain)
-		{
-			m_fpga_set_input_gain(pw->param->value);
-		}
-		else if (pw->param == &global_cxt.settings.output_gain)
-		{
-			m_fpga_set_output_gain(pw->param->value);
-		}
 	}
 }
 

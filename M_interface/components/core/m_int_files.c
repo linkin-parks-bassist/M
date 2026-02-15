@@ -401,28 +401,29 @@ int read_profile_from_file(m_profile *profile, const char *fname)
 	
 	read_short(n_transformers);
 	
+	m_effect_desc *eff;
+	
 	for (int i = 0; i < n_transformers; i++)
 	{
 		//printf("Reading transformer %d...\n", i);
 		//Get transformer type
 		read_short(arg16);
 		
-		
-		ESP_LOGI(TAG, "Encountered %s in position %d", transformer_type_to_string(arg16), (int)i);
-		
-		if (!transformer_type_valid(arg16))
+		eff = get_effect_desc(arg16);
+		if (!eff)
 		{
-			
-			ESP_LOGE(TAG, "Invalid transformer type %d = 0x%04x in file. Aborting", (int)arg16, (int)arg16);
+			ESP_LOGE(TAG, "Profile references non-existent effect. Aborting.\n");
 			ret_val = ERR_MANGLED_FILE;
 			goto profile_read_bail;
 		}
 		
-		trans = m_profile_append_transformer_type(profile, arg16);
+		ESP_LOGI(TAG, "Encountered %s in position %d", eff->name, (int)i);
+		
+		trans = m_profile_append_transformer_eff(profile, eff);
 		
 		if (!trans)
 		{
-			ESP_LOGE(TAG, "Failed to append %s ", transformer_type_to_string(arg16));
+			ESP_LOGE(TAG, "Failed to append effect \"%s\"", eff->name);
 			ret_val = ERR_MANGLED_FILE;
 			goto profile_read_bail;
 		}

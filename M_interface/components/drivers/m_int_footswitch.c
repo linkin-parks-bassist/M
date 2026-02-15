@@ -6,10 +6,10 @@
 #include "m_int_footswitch.h"
 #include "m_int_context.h"
 
-#define HW_SWITCH_GPIO_0   23   // n = 0
-#define HW_SWITCH_GPIO_1   22   // n = 1
+#define HW_SWITCH_GPIO_0   22   // n = 0
+#define HW_SWITCH_GPIO_1   23   // n = 1
 
-#define HW_SWITCH_DEBOUNCE_MS  	20
+#define HW_SWITCH_DEBOUNCE_MS  	100
 #define HW_SWITCH_TASK_STACK  	2048
 #define HW_SWITCH_TASK_PRIO   	6
 
@@ -43,6 +43,8 @@ void footswitch_task(void *arg)
         {
             TickType_t now = xTaskGetTickCount();
 
+			printf("now = %d, last_event_tick[n] = %d; now - last_event_tick[n] = %d, debounce_ticks = %d\n", now, last_event_tick[n],
+				now - last_event_tick[n], debounce_ticks);
             if ((now - last_event_tick[n]) >= debounce_ticks)
             {
                 last_event_tick[n] = now;

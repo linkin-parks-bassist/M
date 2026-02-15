@@ -120,7 +120,7 @@ void sequence_list_add_cb(lv_event_t *e)
 	if (new_sequence->view_page)
 	{
 		new_sequence->view_page->parent = page;
-		enter_ui_page(new_sequence->view_page);
+		enter_ui_page_forwards(new_sequence->view_page);
 	}
 	
 	m_int_menu_item *new_listing = create_sequence_listing_menu_item(new_sequence->name, new_sequence, page);
@@ -255,7 +255,7 @@ void menu_item_sequence_listing_released_cb(lv_event_t *e)
 		}
 		
 		sequence->view_page->parent = item->parent;
-		enter_ui_page(sequence->view_page);
+		enter_ui_page_forwards(sequence->view_page);
 	}
 	else
 	{

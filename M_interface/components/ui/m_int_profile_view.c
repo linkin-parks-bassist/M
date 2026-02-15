@@ -43,7 +43,7 @@ int profile_view_transformer_click_cb(m_active_button *button)
 	if (!button->data)
 		return ERR_BAD_ARGS;
 	
-	enter_ui_page(((m_transformer*)button->data)->view_page);
+	enter_ui_page_forwards(((m_transformer*)button->data)->view_page);
 	
 	return NO_ERROR;
 }
@@ -58,9 +58,28 @@ int profile_view_transformer_moved_cb(m_active_button *button)
 	if (!trans)
 		return ERR_BAD_ARGS;
 	
+	#ifdef USE_TEENSY
 	queue_msg_to_teensy(create_m_message(M_MESSAGE_MOVE_TRANSFORMER, "sss", trans->profile->id, trans->id, button->index));
+	#endif
+	
+	#ifdef USE_FPGA
+	m_profile_if_active_update_fpga(trans->profile);
+	#endif
 	
 	return NO_ERROR;
+}
+
+int profile_view_transformer_delete_cb(m_active_button *button)
+{
+	if (!button)
+		return ERR_NULL_PTR;
+	
+	m_transformer *trans = button->data;
+	
+	if (!trans)
+		return ERR_BAD_ARGS;
+	
+	return m_profile_remove_transformer(trans->profile, trans->id);
 }
 
 int init_profile_view(m_ui_page *page)
@@ -116,8 +135,9 @@ int init_profile_view(m_ui_page *page)
 	str->array->flags |= M_ACTIVE_BUTTON_ARRAY_FLAG_DELETEABLE;
 	str->array->flags |= M_ACTIVE_BUTTON_ARRAY_FLAG_MOVEABLE;
 	
-	str->array->clicked_cb = profile_view_transformer_click_cb;
-	str->array->moved_cb   = profile_view_transformer_moved_cb;
+	str->array->clicked_cb    = profile_view_transformer_click_cb;
+	str->array->moved_cb      = profile_view_transformer_moved_cb;
+	str->array->del_button_cb = profile_view_transformer_delete_cb;
 	
 	str->rep.representee = NULL;
 	str->rep.representer = page;
@@ -170,12 +190,12 @@ static void menu_button_cb(lv_event_t *e)
 	if (profile->sequence)
 	{
 		printf("profile has a sequence; enter sequence view %p\n", profile->sequence->view_page);
-		enter_ui_page(profile->sequence->view_page);
+		enter_ui_page_backwards(profile->sequence->view_page);
 	}
 	else
 	{
 		printf("profile has no sequence. enter ... whatevery. %p\n", page->parent);
-		enter_ui_page(page->parent);
+		enter_ui_page_backwards(page->parent);
 	}
 }
 
@@ -203,6 +223,8 @@ int profile_view_save_name(m_ui_page *page)
 	#ifdef USE_SDCARD
 	m_button_enable(str->save);
 	#endif
+	
+	m_profile_update_representations(str->profile);
 	
 	return NO_ERROR;
 }
@@ -239,12 +261,12 @@ void profile_view_enter_settings_page_cb(lv_event_t *e)
 	if (!str)
 		return;
 	
-	enter_ui_page(str->settings_page);
+	enter_ui_page_forwards(str->settings_page);
 }
 
 void profile_view_enter_main_menu_cb(lv_event_t *e)
 {
-	enter_ui_page(&global_cxt.pages.main_menu);
+	enter_ui_page_backwards(&global_cxt.pages.main_menu);
 }
 
 void profile_view_play_button_cb(lv_event_t *e)
@@ -266,23 +288,14 @@ void profile_view_play_button_cb(lv_event_t *e)
 		return;
 	}
 	
-	if (str->profile->active)
+	if (str->profile->sequence)
 	{
-		if (str->profile->sequence)
-		{
-			m_sequence_stop(str->profile->sequence);
-		}
-		else
-		{
-			set_active_profile(NULL);
-		}
+		m_sequence_begin_at(str->profile->sequence, str->profile);
 	}
 	else
 	{
 		set_active_profile(str->profile);
 	}
-	
-	printf("done\n");
 }
 
 int configure_profile_view(m_ui_page *page, void *data)
@@ -439,7 +452,7 @@ int create_profile_view_ui(m_ui_page *page)
 	
 	if (profile->active)
 	{
-		m_button_set_label(str->play, LV_SYMBOL_STOP);
+		m_button_disable(str->play);
 	}
 	
 	if (!str->profile->unsaved_changes)
@@ -460,77 +473,11 @@ int enter_profile_view(m_ui_page *page)
 	
 	m_profile_view_str *str = (m_profile_view_str*)page->data_struct;
 	
-	printf("load screen...\n");
-	lv_scr_load(page->screen);
-	printf("screen loaded\n");
 	if (str)
 		global_cxt.working_profile = str->profile;
 	printf("set working profile\n");
 	global_cxt.pages.transformer_selector.parent = page;
 	printf("enter_profile_view done\n");
-	return NO_ERROR;
-}
-
-int enter_profile_view_from(m_ui_page *page, m_ui_page *prev)
-{
-	if (!page)
-		return ERR_NULL_PTR;
-	
-	if (prev)
-	{
-		switch (prev->type)
-		{
-			case M_UI_PAGE_MAIN_MENU:
-				page->parent = NULL;
-				break;
-			
-			default:
-				break;
-		}
-	}
-	
-	enter_profile_view(page);
-	
-	return NO_ERROR;
-}
-
-int enter_profile_view_forward(m_ui_page *page)
-{
-	if (!page)
-		return ERR_NULL_PTR;
-	
-	m_profile_view_str *str = page->data_struct;
-	
-	lv_scr_load_anim(page->screen, LV_SCR_LOAD_ANIM_MOVE_LEFT, UI_PAGE_TRANSITION_ANIM_MS, 0, false);
-	
-	if (str)
-		global_cxt.working_profile = str->profile;
-	
-	global_cxt.pages.transformer_selector.parent = page;
-	global_cxt.pages.main_menu.parent = page;
-	
-	//printf("All good\n");
-	return NO_ERROR;
-}
-
-int enter_profile_view_back(m_ui_page *page)
-{
-	if (!page)
-		return ERR_NULL_PTR;
-	
-	m_profile_view_str *str = page->data_struct;
-	
-	lv_scr_load_anim(page->screen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, UI_PAGE_TRANSITION_ANIM_MS, 0, false);
-	
-	if (str)
-		global_cxt.working_profile = str->profile;
-	
-	global_cxt.pages.transformer_selector.parent = page;
-	global_cxt.pages.main_menu.parent = page;
-	
-	profile_view_refresh_play_button(page);
-	profile_view_refresh_save_button(page);
-	
 	return NO_ERROR;
 }
 
@@ -670,11 +617,11 @@ void profile_view_rep_update(void *representer, void *representee)
 	
 	if (profile->active)
 	{
-		m_button_set_label(str->play, LV_SYMBOL_STOP);
+		m_button_disable(str->play);
 	}
 	else
 	{
-		m_button_set_label(str->play, LV_SYMBOL_PLAY);
+		m_button_enable(str->play);
 	}
 	
 	#ifdef USE_SDCARD

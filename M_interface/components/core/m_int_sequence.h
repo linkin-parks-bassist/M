@@ -48,6 +48,7 @@ int m_int_sequence_add_menu_listing(m_int_sequence *sequence, struct m_int_menu_
 void free_sequence(m_int_sequence *sequence);
 
 int m_sequence_begin(m_int_sequence *sequence);
+int m_sequence_begin_at(m_int_sequence *sequence, m_profile *profile);
 int m_sequence_regress(m_int_sequence *sequence);
 int m_sequence_advance(m_int_sequence *sequence);
 int m_sequence_stop(m_int_sequence *sequence);

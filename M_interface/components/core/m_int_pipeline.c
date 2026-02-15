@@ -75,6 +75,8 @@ m_transformer *m_pipeline_append_transformer_eff(m_pipeline *pipeline, m_effect_
 		current->next = node;
 	}
 	
+	printf("Created transformer with id %d\n", trans->id);
+	
 	return trans;
 }
 
