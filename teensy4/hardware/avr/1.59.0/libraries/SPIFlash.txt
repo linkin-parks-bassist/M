@@ -1,3 +1,0 @@
-Access SPI flash memory, directly as raw data.
-
-For file-based interface, use SerialFlash.

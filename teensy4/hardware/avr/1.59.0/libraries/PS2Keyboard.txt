@@ -1,3 +1,0 @@
-Connect a PS2 Keyboard for user input.
-
-Written by Christian Weichel, with improvements by Paul Stoffregen.

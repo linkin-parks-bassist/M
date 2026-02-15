@@ -1,1 +1,0 @@
-Artnet is a lighting control protocol, typically used with Ethernet.

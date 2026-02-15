@@ -1,3 +1,0 @@
-Connect a Keypad with row-column matrix wiring.
-
-Written by Mark Stanley and Alexander Brevig.

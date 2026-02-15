@@ -1,9 +1,0 @@
-name: "Band Pass Filter"
-parameters:
-- name: "Center"
-  default: 1000.0
-  type: freq
- 
-- name: "Bandwidth"
-  default: 100.0
-  type: freq

@@ -1,8 +1,0 @@
-name: "Dirty Octave"
-has_reconfigure: false
-parameters:
-- name: "Fuzz"
-  default: 5
-  min: 0
-  max: 10
-  hidden: 1

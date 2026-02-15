@@ -1,1 +1,0 @@
-Use Timer2 to run a function every millisecond.  Written by Javier Valencia.

@@ -1,3 +1,0 @@
-Control DMX lighting.  Requires a RS-485 transmitter chip.
-
-Written by Peter Knight.

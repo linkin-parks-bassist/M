@@ -1,1 +1,0 @@
-Control many RGB LEDs using inexpensive shift register chips.  Written by Elco Jacobs.

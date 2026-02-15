@@ -1,1 +1,0 @@
-Use rotary or linear position encoders.  Supports "4X" counting mode with highly optimized code.  Written by Paul Stoffregen.

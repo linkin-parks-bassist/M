@@ -1,3 +1,0 @@
-Use DOG-M Displays, which require only 4 pins, plus power.
-
-Written by Eberhard Fahle

@@ -1,1 +1,0 @@
-Measure distance using the Parallax Ping ultrasonic sensor.  Written by Caleb Zulawski.

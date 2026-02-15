@@ -1,1 +1,0 @@
-Use Timer1 to run a function at periodic intervals and/or to create PWM output signals.

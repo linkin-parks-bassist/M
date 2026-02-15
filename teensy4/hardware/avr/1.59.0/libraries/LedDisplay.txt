@@ -1,3 +1,0 @@
-Use Avago HCMS-29xx type display, which are very bright, but expensive.
-
-Written by Tom Igoe.

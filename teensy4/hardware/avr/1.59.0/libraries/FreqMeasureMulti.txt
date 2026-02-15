@@ -1,1 +1,0 @@
-Simultaneously measure up to 8 frequencies on Teensy 3.x.  Recommended for under 5 kHz signals.
