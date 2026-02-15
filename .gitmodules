@@ -1,0 +1,6 @@
+[submodule "m-fpga"]
+	path = m-fpga
+	url = https://github.com/linkin-parks-bassist/m-fpga.git
+[submodule "m-interface"]
+	path = m-interface
+	url = https://github.com/linkin-parks-bassist/m-interface.git
