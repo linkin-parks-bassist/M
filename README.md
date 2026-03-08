@@ -15,8 +15,8 @@ It is also:
 
 M consists of two two devices;
 
-- an MCU running [M-interface](github.com/linkin-parks-bassist/m-interface), the UI, control system and compiler for M, and 
-- an FPGA running [M-FPGA](github.com/linkin-parks-bassist/m-fpga), a purpose-built, high-performance programmable hardware DSP engine,
+- an MCU running [M-interface](https://github.com/linkin-parks-bassist/m-interface), the UI, control system and compiler for M, and 
+- an FPGA running [M-FPGA](https://github.com/linkin-parks-bassist/m-fpga), a purpose-built, high-performance programmable hardware DSP engine,
 
 in addition to a touch screen and all the hardware required for an effects pedal (PCB coming soon!).
 
@@ -117,7 +117,7 @@ Audio is streamed to the FPGA via I2S, which executes DSP instructions programme
 
 ---
 
-# [M-interface](github.com/linkin-parks-bassist/m-interface)
+# [M-interface](https://github.com/linkin-parks-bassist/m-interface)
 
 M-interface is the control system and compiler for M: The Everything Pedal. It uses FreeRTOS and LVGL to provide a graphical user interface for M. It allows users to create, edit, manage, apply and sequence presets using effects from a local library of effects stored in text files on the local SD card.
 
@@ -190,7 +190,7 @@ and link with `-lM`.
 
 ---
 
-# [M-FPGA](github.com/linkin-parks-bassist/m-fpga)
+# [M-FPGA](https://github.com/linkin-parks-bassist/m-fpga)
 
 <p align="center">
   <img src="docs/resources/M-fpga.svg" alt="Global schematic" width="60%">
