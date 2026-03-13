@@ -4,3 +4,6 @@
 [submodule "m-interface"]
 	path = m-interface
 	url = https://github.com/linkin-parks-bassist/m-interface.git
+[submodule "m-pcb"]
+	path = m-pcb
+	url = https://github.com/linkin-parks-bassist/m-pcb.git
